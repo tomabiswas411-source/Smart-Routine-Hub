@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { NextAuthProvider } from "@/providers/session-provider";
 import { DesktopNav, MobileHeader } from "@/components/layout/desktop-nav";
 import { MobileBottomNav } from "@/components/layout/mobile-nav";
 import { Footer } from "@/components/layout/footer";
@@ -55,27 +56,29 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange={false}
         >
-          <div className="min-h-screen flex flex-col">
-            {/* Mobile Header */}
-            <MobileHeader />
+          <NextAuthProvider>
+            <div className="min-h-screen flex flex-col">
+              {/* Mobile Header */}
+              <MobileHeader />
+              
+              {/* Desktop Navigation */}
+              <DesktopNav />
+              
+              {/* Main Content */}
+              <main className="flex-1 pb-20 md:pb-0">
+                {children}
+              </main>
+              
+              {/* Footer - Sticky Footer */}
+              <Footer />
+            </div>
             
-            {/* Desktop Navigation */}
-            <DesktopNav />
+            {/* Mobile Bottom Navigation */}
+            <MobileBottomNav />
             
-            {/* Main Content */}
-            <main className="flex-1 pb-20 md:pb-0">
-              {children}
-            </main>
-            
-            {/* Footer - Sticky Footer */}
-            <Footer />
-          </div>
-          
-          {/* Mobile Bottom Navigation */}
-          <MobileBottomNav />
-          
-          {/* Toast Notifications */}
-          <Toaster position="top-center" />
+            {/* Toast Notifications */}
+            <Toaster position="top-center" />
+          </NextAuthProvider>
         </ThemeProvider>
       </body>
     </html>
