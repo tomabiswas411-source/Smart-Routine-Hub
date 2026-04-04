@@ -292,11 +292,12 @@ function MasterRoutineCalendar() {
 
   // Filter schedules
   const filteredSchedules = schedules.filter((s) => {
+    if (!s.isActive) return false;
     if (filterSemester !== "all" && s.semester !== parseInt(filterSemester)) return false;
     if (filterTeacher !== "all" && s.teacherId !== filterTeacher) return false;
     if (filterRoom !== "all" && s.roomId !== filterRoom) return false;
-    if (filterDay !== "all" && s.dayOfWeek.toLowerCase() !== filterDay.toLowerCase()) return false;
-    return s.isActive;
+    if (filterDay !== "all" && s.dayOfWeek?.toLowerCase() !== filterDay.toLowerCase()) return false;
+    return true;
   });
 
   // Calculate stats
@@ -304,7 +305,7 @@ function MasterRoutineCalendar() {
   const activeClasses = filteredSchedules.filter(s => {
     const now = new Date();
     const dayName = days[now.getDay()];
-    return s.dayOfWeek.toLowerCase() === dayName;
+    return s.dayOfWeek?.toLowerCase() === dayName;
   }).length;
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
@@ -320,9 +321,9 @@ function MasterRoutineCalendar() {
   // Get schedules for a specific day and time
   const getSchedulesForSlot = (day: string, time: string) => {
     return filteredSchedules.filter((s) => {
-      const scheduleDay = s.dayOfWeek.toLowerCase();
+      const scheduleDay = s.dayOfWeek?.toLowerCase() || '';
       const matchesDay = scheduleDay === day.toLowerCase();
-      const matchesTime = s.startTime.startsWith(time.split(":")[0]);
+      const matchesTime = s.startTime?.startsWith(time.split(":")[0]);
       return matchesDay && matchesTime;
     });
   };
