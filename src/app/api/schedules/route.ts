@@ -19,11 +19,16 @@ async function checkScheduleConflicts(data: {
   const conflicts: string[] = [];
   
   try {
+    // Validate required fields
+    if (!data.dayOfWeek || !data.startTime || !data.endTime || !data.roomId || !data.teacherId) {
+      return { hasConflict: false, conflicts: [] };
+    }
+    
     // Get all active schedules for the same day
     const schedulesQuery = query(
       collection(db, "schedules"),
       where("isActive", "==", true),
-      where("dayOfWeek", "==", data.dayOfWeek)
+      where("dayOfWeek", "==", data.dayOfWeek.toLowerCase())
     );
     const snapshot = await getDocs(schedulesQuery);
     const schedules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -32,10 +37,13 @@ async function checkScheduleConflicts(data: {
       // Skip the schedule being edited
       if (data.excludeId && schedule.id === data.excludeId) continue;
 
-      // Check time overlap
-      const existingStart = schedule.startTime;
-      const existingEnd = schedule.endTime;
+      const existingStart = schedule.startTime as string;
+      const existingEnd = schedule.endTime as string;
       
+      // Skip if existing schedule doesn't have valid times
+      if (!existingStart || !existingEnd) continue;
+      
+      // Check time overlap
       const hasTimeOverlap = 
         (data.startTime >= existingStart && data.startTime < existingEnd) ||
         (data.endTime > existingStart && data.endTime <= existingEnd) ||
@@ -44,17 +52,17 @@ async function checkScheduleConflicts(data: {
       if (hasTimeOverlap) {
         // Check room conflict
         if (schedule.roomId === data.roomId) {
-          conflicts.push(`Room ${schedule.roomNumber} is already booked for ${schedule.courseCode} at ${schedule.startTime}-${schedule.endTime}`);
+          conflicts.push(`Room ${schedule.roomNumber || 'Unknown'} is already booked for ${schedule.courseCode || 'Unknown'} at ${existingStart}-${existingEnd}`);
         }
 
         // Check teacher conflict
         if (schedule.teacherId === data.teacherId) {
-          conflicts.push(`Teacher ${schedule.teacherName} has another class (${schedule.courseCode}) at this time`);
+          conflicts.push(`You have another class (${schedule.courseCode || 'Unknown'}) at this time (${existingStart}-${existingEnd})`);
         }
 
         // Check program/semester conflict (same batch can't have two classes at same time)
-        if (schedule.program === data.program && schedule.semester === data.semester) {
-          conflicts.push(`${data.program.toUpperCase()} Semester ${data.semester} already has ${schedule.courseCode} at ${schedule.startTime}-${schedule.endTime}`);
+        if (data.program && data.semester && schedule.program === data.program && schedule.semester === data.semester) {
+          conflicts.push(`${data.program.toUpperCase()} Semester ${data.semester} already has ${schedule.courseCode || 'Unknown'} at ${existingStart}-${existingEnd}`);
         }
       }
     }
@@ -120,6 +128,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     
+    // Validate required fields
+    if (!body.dayOfWeek || !body.startTime || !body.endTime || !body.roomId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Missing required fields: dayOfWeek, startTime, endTime, and roomId are required" 
+      }, { status: 400 });
+    }
+    
     // If teacher, force their own ID as teacherId
     const teacherId = session.user.role === 'teacher' ? session.user.id : body.teacherId;
     const teacherName = session.user.role === 'teacher' ? session.user.name : body.teacherName;
@@ -131,8 +147,8 @@ export async function POST(request: NextRequest) {
       endTime: body.endTime,
       roomId: body.roomId,
       teacherId: teacherId,
-      program: body.program,
-      semester: body.semester,
+      program: body.program || 'bsc',
+      semester: body.semester || 1,
     });
 
     if (conflictCheck.hasConflict) {
@@ -149,6 +165,8 @@ export async function POST(request: NextRequest) {
       timeSlotId: body.timeSlotId || `slot-${body.startTime}-${body.endTime}`, // Generate if not provided
       teacherId,
       teacherName,
+      semester: body.semester || 1,
+      program: body.program || 'bsc',
       isActive: true,
     });
 

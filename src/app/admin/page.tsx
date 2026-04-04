@@ -551,7 +551,9 @@ export default function AdminDashboard() {
       const timeSlot = timeSlots.find(t => t.id === scheduleForm.timeSlotId);
       
       if (!course || !teacher || !room || !timeSlot) {
-        throw new Error("Invalid selection");
+        toast({ title: "Error", description: "Please select course, teacher, room, and time slot", variant: "destructive" });
+        setSubmitting(false);
+        return;
       }
       
       const scheduleData = {
@@ -581,9 +583,18 @@ export default function AdminDashboard() {
         setShowScheduleDialog(false);
         resetScheduleForm();
         fetchAllData();
+      } else if (data.conflicts) {
+        toast({ 
+          title: "⚠️ Scheduling Conflicts", 
+          description: data.conflicts.join(". "), 
+          variant: "destructive" 
+        });
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to save schedule", variant: "destructive" });
       }
-    } catch {
-      toast({ title: "Error", description: "Failed to save schedule.", variant: "destructive" });
+    } catch (error) {
+      console.error("Error saving schedule:", error);
+      toast({ title: "Error", description: "Failed to save schedule. Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -610,10 +621,18 @@ export default function AdminDashboard() {
 
   // Notice CRUD
   const handleSaveNotice = async () => {
+    if (!noticeForm.title.trim() || !noticeForm.content.trim()) {
+      toast({ title: "Error", description: "Please fill title and content", variant: "destructive" });
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const noticeData = {
-        ...noticeForm,
+        title: noticeForm.title,
+        content: noticeForm.content,
+        category: noticeForm.category,
+        isPinned: noticeForm.isPinned,
         postedBy: session?.user?.id,
         postedByName: session?.user?.name,
         isApproved: true,
@@ -635,9 +654,12 @@ export default function AdminDashboard() {
         setShowNoticeDialog(false);
         resetNoticeForm();
         fetchAllData();
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to save notice", variant: "destructive" });
       }
-    } catch {
-      toast({ title: "Error", description: "Failed to save notice.", variant: "destructive" });
+    } catch (error) {
+      console.error("Error saving notice:", error);
+      toast({ title: "Error", description: "Failed to save notice. Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
