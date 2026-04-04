@@ -1,29 +1,32 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, Calendar, Users, Bell, Menu } from "lucide-react";
-import { useAppStore } from "@/store/app-store";
+import { Home, CalendarDays, User, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const navItems = [
-  { id: "home", label: "Home", icon: Home, href: "#home" },
-  { id: "schedule", label: "Schedule", icon: Calendar, href: "#schedule" },
-  { id: "teachers", label: "Teachers", icon: Users, href: "#teachers" },
-  { id: "notices", label: "Notices", icon: Bell, href: "#notices" },
-  { id: "menu", label: "Menu", icon: Menu, href: "#menu" },
+  { id: "home", label: "Home", icon: Home, href: "/" },
+  { id: "master", label: "Routine", icon: CalendarDays, href: "/?view=master-calendar" },
+  { id: "student", label: "Student", icon: User, href: "/?view=student" },
+  { id: "library", label: "Library", icon: BookOpen, href: "/?view=library" },
 ];
 
-export function MobileBottomNav() {
-  const { activeNav, setActiveNav } = useAppStore();
+function MobileBottomNavContent() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const view = searchParams.get("view");
 
-  const handleNavClick = (id: string, href: string) => {
-    setActiveNav(id);
-    // Scroll to section
-    const element = document.querySelector(href);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+  const getActiveId = () => {
+    if (view === "master-calendar") return "master";
+    if (view === "student") return "student";
+    if (view === "library") return "library";
+    return "home";
   };
+
+  const activeId = getActiveId();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
@@ -34,23 +37,23 @@ export function MobileBottomNav() {
       <div className="relative flex items-center justify-around h-16 pb-safe px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeNav === item.id;
+          const isActive = activeId === item.id;
           
           return (
-            <button
+            <Link
               key={item.id}
-              onClick={() => handleNavClick(item.id, item.href)}
+              href={item.href}
               className={cn(
                 "relative flex flex-col items-center justify-center w-14 h-14 rounded-xl transition-colors",
                 isActive 
-                  ? "text-primary" 
+                  ? "text-emerald-600 dark:text-emerald-400" 
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               {isActive && (
                 <motion.div
-                  layoutId="activeNav"
-                  className="absolute inset-0 bg-primary/10 rounded-xl"
+                  layoutId="activeMobileNav"
+                  className="absolute inset-0 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl"
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
               )}
@@ -64,10 +67,18 @@ export function MobileBottomNav() {
               )}>
                 {item.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </div>
     </nav>
+  );
+}
+
+export function MobileBottomNav() {
+  return (
+    <Suspense fallback={null}>
+      <MobileBottomNavContent />
+    </Suspense>
   );
 }

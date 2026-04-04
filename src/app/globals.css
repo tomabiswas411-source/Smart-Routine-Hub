@@ -43,7 +43,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ICE-RU Department Management System - Light Mode */
+/* Smart Routine Hub - Light Mode */
 :root {
   --radius: 0.625rem;
   
@@ -55,12 +55,12 @@
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
   
-  /* Primary - Indigo */
-  --primary: #6366F1;
+  /* Primary - Emerald/Teal */
+  --primary: #10B981;
   --primary-foreground: #FFFFFF;
   
-  /* Secondary - Amber */
-  --secondary: #F59E0B;
+  /* Secondary - Teal */
+  --secondary: #14B8A6;
   --secondary-foreground: #0F172A;
   
   /* Muted */
@@ -68,8 +68,8 @@
   --muted-foreground: #64748B;
   
   /* Accent */
-  --accent: #E0E7FF;
-  --accent-foreground: #3730A3;
+  --accent: #D1FAE5;
+  --accent-foreground: #065F46;
   
   /* Status colors */
   --destructive: #EF4444;
@@ -80,24 +80,24 @@
   /* Border & Input */
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: #6366F1;
+  --ring: #10B981;
   
   /* Chart colors */
-  --chart-1: #6366F1;
-  --chart-2: #F59E0B;
-  --chart-3: #10B981;
+  --chart-1: #10B981;
+  --chart-2: #14B8A6;
+  --chart-3: #3B82F6;
   --chart-4: #EF4444;
   --chart-5: #8B5CF6;
   
   /* Sidebar */
   --sidebar: #FFFFFF;
   --sidebar-foreground: #0F172A;
-  --sidebar-primary: #6366F1;
+  --sidebar-primary: #10B981;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E0E7FF;
-  --sidebar-accent-foreground: #3730A3;
+  --sidebar-accent: #D1FAE5;
+  --sidebar-accent-foreground: #065F46;
   --sidebar-border: #E2E8F0;
-  --sidebar-ring: #6366F1;
+  --sidebar-ring: #10B981;
 }
 
 /* Dark Mode */
@@ -109,12 +109,12 @@
   --popover: #1E293B;
   --popover-foreground: #F1F5F9;
   
-  /* Primary - Light Indigo */
-  --primary: #818CF8;
+  /* Primary - Light Emerald */
+  --primary: #34D399;
   --primary-foreground: #0F172A;
   
-  /* Secondary - Bright Amber */
-  --secondary: #FBBF24;
+  /* Secondary - Light Teal */
+  --secondary: #2DD4BF;
   --secondary-foreground: #0F172A;
   
   /* Muted */
@@ -122,8 +122,8 @@
   --muted-foreground: #94A3B8;
   
   /* Accent */
-  --accent: #312E81;
-  --accent-foreground: #A5B4FC;
+  --accent: #064E3B;
+  --accent-foreground: #6EE7B7;
   
   /* Status colors */
   --destructive: #F87171;
@@ -134,24 +134,24 @@
   /* Border & Input */
   --border: #334155;
   --input: #334155;
-  --ring: #818CF8;
+  --ring: #34D399;
   
   /* Chart colors */
-  --chart-1: #818CF8;
-  --chart-2: #FBBF24;
-  --chart-3: #34D399;
+  --chart-1: #34D399;
+  --chart-2: #2DD4BF;
+  --chart-3: #60A5FA;
   --chart-4: #F87171;
   --chart-5: #A78BFA;
   
   /* Sidebar */
   --sidebar: #1E293B;
   --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #818CF8;
+  --sidebar-primary: #34D399;
   --sidebar-primary-foreground: #0F172A;
-  --sidebar-accent: #312E81;
-  --sidebar-accent-foreground: #A5B4FC;
+  --sidebar-accent: #064E3B;
+  --sidebar-accent-foreground: #6EE7B7;
   --sidebar-border: #334155;
-  --sidebar-ring: #818CF8;
+  --sidebar-ring: #34D399;
 }
 
 @layer base {
@@ -190,13 +190,13 @@
   }
 }
 
-/* Hero gradient */
+/* Hero gradient - Emerald/Teal */
 .hero-gradient {
-  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%);
+  background: linear-gradient(135deg, #10B981 0%, #14B8A6 50%, #0D9488 100%);
 }
 
 .dark .hero-gradient {
-  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #9333EA 100%);
+  background: linear-gradient(135deg, #059669 0%, #0D9488 50%, #0F766E 100%);
 }
 
 /* Animations */
@@ -268,7 +268,7 @@
 
 /* Text gradient */
 .text-gradient {
-  background: linear-gradient(135deg, #6366F1 0%, #A855F7 100%);
+  background: linear-gradient(135deg, #10B981 0%, #14B8A6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

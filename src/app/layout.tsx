@@ -19,24 +19,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ICE Department - Rajshahi University",
-  description: "Department of Information and Communication Engineering, Rajshahi University. Your complete academic companion for class schedules, teacher information, notices, and academic calendar.",
-  keywords: ["ICE", "Rajshahi University", "Engineering", "Class Schedule", "Academic", "Bangladesh"],
-  authors: [{ name: "ICE Department" }],
+  title: "Smart Routine Hub - Academic Schedule Management",
+  description: "Smart Routine Hub - Your complete academic companion for class schedules, routines, and academic activities. Manage and view class schedules with real-time updates.",
+  keywords: ["Routine", "Schedule", "Academic", "Class", "University", "Smart Routine Hub"],
+  authors: [{ name: "Smart Routine Hub" }],
   icons: {
     icon: "/logo.svg",
   },
   openGraph: {
-    title: "ICE Department - Rajshahi University",
-    description: "Your complete academic companion for ICE Department",
-    url: "https://ice.ru.ac.bd",
-    siteName: "ICE-RU Department Management System",
+    title: "Smart Routine Hub - Academic Schedule Management",
+    description: "Your complete academic companion for managing class schedules",
+    url: "https://smart-routine-hub.vercel.app",
+    siteName: "Smart Routine Hub",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ICE Department - Rajshahi University",
-    description: "Your complete academic companion for ICE Department",
+    title: "Smart Routine Hub - Academic Schedule Management",
+    description: "Your complete academic companion for managing class schedules",
   },
 };
 

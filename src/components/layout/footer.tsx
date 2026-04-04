@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Mail, Phone, MapPin, Facebook, Globe } from "lucide-react";
+import { Heart, Mail, Phone, MapPin, Facebook, Globe, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -10,19 +10,19 @@ export function Footer() {
     <footer className="mt-auto bg-card border-t border-border">
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Department Info */}
+          {/* Brand Info */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg hero-gradient flex items-center justify-center">
-                <span className="text-white font-bold text-lg">ICE</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <CalendarDays className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">ICE Department</h3>
-                <p className="text-xs text-muted-foreground">Rajshahi University</p>
+                <h3 className="font-bold text-foreground">Smart Routine Hub</h3>
+                <p className="text-xs text-muted-foreground">Academic Schedule Management</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground max-w-xs">
-              Department of Information and Communication Engineering, dedicated to excellence in education and research.
+              Your complete academic companion for managing class schedules, routines, and academic activities.
             </p>
           </div>
 
@@ -30,20 +30,20 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="font-semibold text-foreground">Quick Links</h4>
             <nav className="flex flex-col gap-2">
-              <Link href="#schedule" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Class Schedule
+              <Link href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Home
               </Link>
-              <Link href="#teachers" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Teacher Directory
+              <Link href="/?view=master-calendar" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Master Routine
               </Link>
-              <Link href="#notices" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Notice Board
+              <Link href="/?view=student" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Student View
               </Link>
-              <Link href="#calendar" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Academic Calendar
+              <Link href="/?view=library" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Resource Library
               </Link>
-              <Link href="#about" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                About Us
+              <Link href="/login" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Admin Login
               </Link>
             </nav>
           </div>
@@ -54,7 +54,7 @@ export function Footer() {
             <div className="space-y-3">
               <div className="flex items-start gap-3 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
-                <span>ICE Building, Rajshahi University, Rajshahi-6205, Bangladesh</span>
+                <span>Department of ICE, Rajshahi University, Bangladesh</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
@@ -96,9 +96,9 @@ export function Footer() {
         {/* Bottom */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p className="flex items-center gap-1">
-            Developed with <Heart className="w-4 h-4 text-red-500 fill-red-500" /> for ICE Department
+            Developed with <Heart className="w-4 h-4 text-red-500 fill-red-500" /> for Smart Routine Hub
           </p>
-          <p>© {new Date().getFullYear()} ICE Department, Rajshahi University. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Smart Routine Hub. All rights reserved.</p>
         </div>
       </div>
     </footer>

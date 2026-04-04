@@ -2,520 +2,623 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Users, BookOpen, DoorOpen, Calendar, ChevronRight, Sparkles, 
-  Search, MapPin, Mail, Phone, ExternalLink, Clock, AlertCircle,
-  Grid3X3, List, RefreshCw
+  GraduationCap, CalendarDays, User, BookOpen, LogIn, RefreshCw,
+  Building, Clock, XCircle, CalendarClock, ChevronLeft, ChevronRight,
+  LayoutGrid, Kanban, Filter, Funnel
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
-import { 
-  StatsCard, SectionHeader, ClassCard, TeacherCard, NoticeCard, 
-  LoadingSkeleton, ScheduleFilterBar, NoticeFilterBar 
-} from "@/components/shared";
-import { useAppStore } from "@/store/app-store";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import type { Schedule, Notice, User, DashboardStats, AcademicCalendar } from "@/types";
+import { format, startOfWeek, addDays, addWeeks, subWeeks, isToday, isSameDay } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Helper to safely convert Firestore timestamp to Date
-function toDate(timestamp: unknown): Date {
-  if (!timestamp) return new Date();
-  
-  // If it's already a Date
-  if (timestamp instanceof Date) return timestamp;
-  
-  // If it's a Firestore Timestamp object with seconds and nanoseconds
-  if (typeof timestamp === "object" && timestamp !== null) {
-    const ts = timestamp as { seconds?: number; nanoseconds?: number; _seconds?: number; _nanoseconds?: number };
-    if (ts.seconds || ts._seconds) {
-      return new Date((ts.seconds || ts._seconds || 0) * 1000);
-    }
-  }
-  
-  // If it's a string or number
-  if (typeof timestamp === "string" || typeof timestamp === "number") {
-    const date = new Date(timestamp);
-    if (!isNaN(date.getTime())) return date;
-  }
-  
-  return new Date();
+// Types
+interface Schedule {
+  id: string;
+  courseId: string;
+  teacherId: string;
+  roomId: string;
+  courseName: string;
+  courseCode: string;
+  teacherName: string;
+  roomNumber: string;
+  startTime: string;
+  endTime: string;
+  dayOfWeek: string;
+  year: number;
+  semester: number;
+  section: string;
+  classType: "theory" | "lab";
+  isActive: boolean;
 }
 
-// Get current day name
-function getCurrentDay(): string {
-  const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  return days[new Date().getDay()];
+interface Teacher {
+  id: string;
+  fullName: string;
+  designation: string | null;
 }
 
-// Format day for display
-function formatDay(day: string): string {
-  return day.charAt(0).toUpperCase() + day.slice(1);
+interface Room {
+  id: string;
+  roomNumber: string;
+  building: string | null;
 }
 
-export default function HomePage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [teachers, setTeachers] = useState<User[]>([]);
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<AcademicCalendar[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"cards" | "grid">("cards");
-  const [seeded, setSeeded] = useState(false);
+// Program configuration
+const programs = [
+  {
+    id: "bsc",
+    name: "Bachelor of Science",
+    shortName: "BSc",
+    icon: GraduationCap,
+    semesters: 8,
+    color: "from-blue-500 to-cyan-500",
+    lightColor: "bg-blue-50 dark:bg-blue-950/30",
+    textColor: "text-blue-600 dark:text-blue-400",
+    borderColor: "border-blue-200 dark:border-blue-800",
+  },
+  {
+    id: "msc",
+    name: "Master of Science",
+    shortName: "MSc",
+    icon: GraduationCap,
+    semesters: 3,
+    color: "from-purple-500 to-violet-500",
+    lightColor: "bg-purple-50 dark:bg-purple-950/30",
+    textColor: "text-purple-600 dark:text-purple-400",
+    borderColor: "border-purple-200 dark:border-purple-800",
+  },
+];
 
-  const { scheduleFilter, noticeCategory, setNoticeCategory } = useAppStore();
+const days = ["sunday", "monday", "tuesday", "wednesday", "thursday"];
+const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
 
-  // Fetch all data
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [statsRes, schedulesRes, teachersRes, noticesRes, calendarRes] = await Promise.all([
-        fetch("/api/stats"),
-        fetch(`/api/schedules?year=${scheduleFilter.year}&semester=${scheduleFilter.semester}&section=${scheduleFilter.section}&day=${scheduleFilter.day}`),
-        fetch("/api/teachers"),
-        fetch(`/api/notices?limit=10${noticeCategory !== "all" ? `&category=${noticeCategory}` : ""}`),
-        fetch("/api/calendar"),
-      ]);
-
-      const [statsData, schedulesData, teachersData, noticesData, calendarData] = await Promise.all([
-        statsRes.json(),
-        schedulesRes.json(),
-        teachersRes.json(),
-        noticesRes.json(),
-        calendarRes.json(),
-      ]);
-
-      if (statsData.success) setStats(statsData.data);
-      if (schedulesData.success) setSchedules(schedulesData.data);
-      if (teachersData.success) setTeachers(teachersData.data);
-      if (noticesData.success) setNotices(noticesData.data);
-      if (calendarData.success) setCalendarEvents(calendarData.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [scheduleFilter, noticeCategory]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Filter teachers by search
-  const filteredTeachers = teachers.filter((teacher) =>
-    teacher.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    teacher.designation?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Handle seed data
-  const handleSeedData = async () => {
-    try {
-      const res = await fetch("/api/seed", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        setSeeded(true);
-        fetchData();
-      } else {
-        alert(data.message || "Database already seeded");
-      }
-    } catch (error) {
-      console.error("Error seeding data:", error);
-    }
-  };
-
+// Semester Card Component
+function SemesterCard({ 
+  number, 
+  program, 
+  onClick 
+}: { 
+  number: number; 
+  program: typeof programs[0];
+  onClick: () => void;
+}) {
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
+    <motion.button
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: number * 0.05 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className="group flex flex-col items-center gap-2 p-4"
+    >
+      <div className={cn(
+        "w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300",
+        "bg-gradient-to-br shadow-lg",
+        program.color,
+        "text-white shadow-lg group-hover:shadow-xl"
+      )}>
+        {number}
+      </div>
+      <span className="text-sm font-medium text-foreground">{number}{getOrdinalSuffix(number)} Semester</span>
+      <Badge variant="outline" className={cn("text-xs", program.textColor, program.borderColor)}>
+        {program.shortName}
+      </Badge>
+    </motion.button>
+  );
+}
+
+function getOrdinalSuffix(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+// Home Page Component
+function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, semester: number) => void }) {
+  return (
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <section id="home" className="hero-gradient text-white py-12 md:py-20">
+      <section className="py-12 md:py-16 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-cyan-950/30">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center max-w-3xl mx-auto"
+            className="text-center max-w-2xl mx-auto"
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1 }}
-              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm mb-6"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Academic Portal 2025</span>
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-3xl md:text-5xl font-bold mb-4"
-            >
-              Information & Communication
-              <span className="block mt-2">Engineering</span>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-lg md:text-xl text-white/80 mb-2"
-            >
-              Rajshahi University
-            </motion.p>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="text-sm md:text-base text-white/60 mb-8"
-            >
-              Your complete academic companion
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-3"
-            >
-              <a
-                href="#schedule"
-                className="w-full sm:w-auto px-6 py-3 bg-white text-primary font-semibold rounded-lg hover:bg-white/90 transition-colors text-center"
-              >
-                View Schedule
-              </a>
-              <a
-                href="#teachers"
-                className="w-full sm:w-auto px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 font-semibold rounded-lg hover:bg-white/20 transition-colors text-center"
-              >
-                Teacher Directory
-              </a>
-            </motion.div>
+            <div className="inline-flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-full px-4 py-1.5 text-sm text-emerald-700 dark:text-emerald-300 mb-6">
+              <CalendarDays className="w-4 h-4" />
+              <span>Academic Session 2025</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Smart Routine Hub
+            </h1>
+            <p className="text-muted-foreground mb-8">
+              Select your program and semester to view class schedules, routines, and more
+            </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-6 md:py-8 bg-background">
-        <div className="container mx-auto px-4">
-          {loading ? (
-            <LoadingSkeleton type="stats" count={4} />
-          ) : stats ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              <StatsCard title="Total Teachers" value={stats.totalTeachers} icon={Users} color="primary" index={0} />
-              <StatsCard title="Active Courses" value={stats.activeCourses} icon={BookOpen} color="green" index={1} />
-              <StatsCard title="Classrooms" value={stats.totalRooms} icon={DoorOpen} color="amber" index={2} />
-              <StatsCard title="Current Semester" value={stats.currentSemester.split(" ")[0]} icon={Calendar} color="blue" description={stats.currentSemester.split(" ")[1]} index={3} />
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* Schedule Section */}
-      <section id="schedule" className="py-8 md:py-12 bg-muted/30 scroll-mt-14 md:scroll-mt-16">
-        <div className="container mx-auto px-4">
-          <SectionHeader
-            title="Class Schedule"
-            subtitle={`${scheduleFilter.year === 1 ? "1st" : scheduleFilter.year === 2 ? "2nd" : scheduleFilter.year === 3 ? "3rd" : "4th"} Year, ${scheduleFilter.semester === 1 ? "1st" : "2nd"} Semester, Section ${scheduleFilter.section}`}
-          />
-
-          {/* Filter Bar */}
-          <ScheduleFilterBar />
-
-          {/* View Toggle */}
-          <div className="flex items-center justify-between mt-4 mb-4">
-            <h3 className="font-semibold text-foreground">
-              {formatDay(scheduleFilter.day)}&apos;s Classes
-            </h3>
-            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-              <button
-                onClick={() => setViewMode("cards")}
-                className={cn(
-                  "p-2 rounded-md transition-colors",
-                  viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
-                )}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("grid")}
-                className={cn(
-                  "p-2 rounded-md transition-colors",
-                  viewMode === "grid" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
-                )}
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Schedules Display */}
-          {loading ? (
-            <LoadingSkeleton type="class-card" count={4} />
-          ) : schedules.length > 0 ? (
-            <div className={cn(
-              "gap-4",
-              viewMode === "cards" ? "grid md:grid-cols-2 lg:grid-cols-3" : "grid grid-cols-1"
-            )}>
-              {schedules.map((schedule, index) => (
-                <ClassCard key={schedule.id} schedule={schedule} change={schedule.change} index={index} />
-              ))}
-            </div>
-          ) : (
+      {/* Programs Section */}
+      <section className="py-8 md:py-12">
+        <div className="container mx-auto px-4 space-y-8">
+          {programs.map((program) => (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12 bg-card rounded-xl border border-border"
-            >
-              <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No classes scheduled</h3>
-              <p className="text-muted-foreground">Try selecting a different day or filter</p>
-            </motion.div>
-          )}
-        </div>
-      </section>
-
-      {/* Teachers Section */}
-      <section id="teachers" className="py-8 md:py-12 bg-background scroll-mt-14 md:scroll-mt-16">
-        <div className="container mx-auto px-4">
-          <SectionHeader
-            title="Our Teachers"
-            subtitle="Meet our experienced faculty members"
-          />
-
-          {/* Search Bar */}
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search by name or designation..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-11 pl-10 pr-4 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </div>
-
-          {loading ? (
-            <LoadingSkeleton type="teacher-card" count={4} />
-          ) : filteredTeachers.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredTeachers.map((teacher, index) => (
-                <TeacherCard key={teacher.id} teacher={teacher} index={index} />
-              ))}
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12 bg-card rounded-xl border border-border"
-            >
-              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No teachers found</h3>
-              <p className="text-muted-foreground">Try a different search term</p>
-            </motion.div>
-          )}
-        </div>
-      </section>
-
-      {/* Notice Board Section */}
-      <section id="notices" className="py-8 md:py-12 bg-muted/30 scroll-mt-14 md:scroll-mt-16">
-        <div className="container mx-auto px-4">
-          <SectionHeader
-            title="Notice Board"
-            subtitle="Stay updated with important announcements"
-          />
-
-          {/* Category Filter */}
-          <div className="mb-6">
-            <NoticeFilterBar category={noticeCategory} onCategoryChange={setNoticeCategory} />
-          </div>
-
-          {loading ? (
-            <LoadingSkeleton type="notice-card" count={3} />
-          ) : notices.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {notices.map((notice, index) => (
-                <NoticeCard key={notice.id} notice={notice} index={index} />
-              ))}
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12 bg-card rounded-xl border border-border"
-            >
-              <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No notices available</h3>
-              <p className="text-muted-foreground">Check back later for updates</p>
-            </motion.div>
-          )}
-        </div>
-      </section>
-
-      {/* Academic Calendar Section */}
-      <section id="calendar" className="py-8 md:py-12 bg-background scroll-mt-14 md:scroll-mt-16">
-        <div className="container mx-auto px-4">
-          <SectionHeader
-            title="Academic Calendar"
-            subtitle="Important dates and events"
-          />
-
-          {loading ? (
-            <LoadingSkeleton type="list" count={5} />
-          ) : calendarEvents.length > 0 ? (
-            <div className="space-y-3">
-              {calendarEvents.map((event, index) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border"
-                >
-                  <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center text-sm font-semibold",
-                    event.eventType === "exam" && "bg-red-500/10 text-red-500",
-                    event.eventType === "holiday" && "bg-green-500/10 text-green-500",
-                    event.eventType === "event" && "bg-purple-500/10 text-purple-500",
-                    event.eventType === "class" && "bg-blue-500/10 text-blue-500"
-                  )}>
-                    {format(toDate(event.date), "dd")}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-foreground truncate">{event.title}</h4>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{format(toDate(event.date), "MMM yyyy")}</span>
-                      {event.endDate && (
-                        <>
-                          <span>-</span>
-                          <span>{format(toDate(event.endDate), "MMM dd, yyyy")}</span>
-                        </>
-                      )}
-                    </div>
-                    {event.description && (
-                      <p className="text-xs text-muted-foreground mt-1 truncate">{event.description}</p>
-                    )}
-                  </div>
-                  <span className={cn(
-                    "text-xs font-medium px-2 py-1 rounded-full",
-                    event.eventType === "exam" && "bg-red-500/10 text-red-500",
-                    event.eventType === "holiday" && "bg-green-500/10 text-green-500",
-                    event.eventType === "event" && "bg-purple-500/10 text-purple-500",
-                    event.eventType === "class" && "bg-blue-500/10 text-blue-500"
-                  )}>
-                    {event.eventType}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12 bg-card rounded-xl border border-border"
-            >
-              <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No events scheduled</h3>
-              <p className="text-muted-foreground">Check back later for updates</p>
-            </motion.div>
-          )}
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section id="about" className="py-8 md:py-12 bg-muted/30 scroll-mt-14 md:scroll-mt-16">
-        <div className="container mx-auto px-4">
-          <SectionHeader
-            title="About ICE Department"
-            subtitle="Learn more about our department"
-          />
-
-          <div className="grid md:grid-cols-2 gap-8">
-            <motion.div
+              key={program.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
+              className={cn(
+                "rounded-2xl border overflow-hidden",
+                program.borderColor,
+                program.lightColor
+              )}
             >
-              <p className="text-muted-foreground leading-relaxed">
-                The Department of Information and Communication Engineering (ICE) at Rajshahi University 
-                is dedicated to excellence in education and research in the fields of information 
-                technology and communication systems.
-              </p>
-              <p className="text-muted-foreground leading-relaxed">
-                Our department offers undergraduate and graduate programs that prepare students for 
-                successful careers in the rapidly evolving field of information and communication technology.
-              </p>
-              <div className="pt-4">
-                <h4 className="font-semibold text-foreground mb-3">Contact Information</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>ICE Building, Rajshahi University, Rajshahi-6205, Bangladesh</span>
+              {/* Program Header */}
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-inherit">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br",
+                    program.color
+                  )}>
+                    <program.icon className="w-5 h-5 text-white" />
                   </div>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                    <a href="mailto:ice@ru.ac.bd" className="hover:text-primary transition-colors">
-                      ice@ru.ac.bd
-                    </a>
+                  <div>
+                    <h2 className="font-semibold text-foreground">{program.name}</h2>
+                    <p className="text-xs text-muted-foreground">({program.shortName})</p>
                   </div>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                    <a href="tel:+880721750123" className="hover:text-primary transition-colors">
-                      +880-721-750123
-                    </a>
-                  </div>
+                </div>
+                <Badge variant="secondary" className="gap-1">
+                  <span>{program.semesters}</span>
+                  <span className="text-muted-foreground">Semesters</span>
+                </Badge>
+              </div>
+
+              {/* Semesters Grid */}
+              <div className="p-4 md:p-6">
+                <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                  {Array.from({ length: program.semesters }, (_, i) => i + 1).map((sem) => (
+                    <SemesterCard
+                      key={sem}
+                      number={sem}
+                      program={program}
+                      onClick={() => onSelectSemester(program.id, sem)}
+                    />
+                  ))}
                 </div>
               </div>
             </motion.div>
+          ))}
+        </div>
+      </section>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-card rounded-xl border border-border p-6"
-            >
-              <h4 className="font-semibold text-foreground mb-4">Quick Links</h4>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: "Rajshahi University", href: "https://ru.ac.bd" },
-                  { label: "Academic Portal", href: "#" },
-                  { label: "Library", href: "#" },
-                  { label: "Research", href: "#" },
-                ].map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors p-2 rounded-lg hover:bg-muted"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    {link.label}
-                  </a>
-                ))}
+      {/* Features Section */}
+      <section className="py-8 md:py-12 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: CalendarDays,
+                title: "Smart Scheduling",
+                description: "Real-time class schedule with instant updates and notifications"
+              },
+              {
+                icon: User,
+                title: "Teacher Directory",
+                description: "Find and connect with faculty members easily"
+              },
+              {
+                icon: BookOpen,
+                title: "Resource Library",
+                description: "Access course materials and academic resources"
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="p-6 bg-card rounded-xl border border-border"
+              >
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4">
+                  <feature.icon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// Master Routine Calendar Component
+function MasterRoutineCalendar() {
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [viewMode, setViewMode] = useState<"timeline" | "kanban">("timeline");
+  
+  // Filters
+  const [filterSemester, setFilterSemester] = useState<string>("all");
+  const [filterTeacher, setFilterTeacher] = useState<string>("all");
+  const [filterRoom, setFilterRoom] = useState<string>("all");
+  const [filterDay, setFilterDay] = useState<string>("all");
+
+  // Fetch data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [schedulesRes, teachersRes, roomsRes] = await Promise.all([
+          fetch("/api/schedules"),
+          fetch("/api/teachers"),
+          fetch("/api/rooms"),
+        ]);
+
+        const [schedulesData, teachersData, roomsData] = await Promise.all([
+          schedulesRes.json(),
+          teachersRes.json(),
+          roomsRes.json(),
+        ]);
+
+        if (schedulesData.success) setSchedules(schedulesData.data || []);
+        if (teachersData.success) setTeachers(teachersData.data || []);
+        if (roomsData.success) setRooms(roomsData.data || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Filter schedules
+  const filteredSchedules = schedules.filter((s) => {
+    if (filterSemester !== "all" && s.semester !== parseInt(filterSemester)) return false;
+    if (filterTeacher !== "all" && s.teacherId !== filterTeacher) return false;
+    if (filterRoom !== "all" && s.roomId !== filterRoom) return false;
+    if (filterDay !== "all" && s.dayOfWeek.toLowerCase() !== filterDay.toLowerCase()) return false;
+    return s.isActive;
+  });
+
+  // Calculate stats
+  const totalClasses = filteredSchedules.length;
+  const activeClasses = filteredSchedules.filter(s => {
+    const now = new Date();
+    const dayName = days[now.getDay()];
+    return s.dayOfWeek.toLowerCase() === dayName;
+  }).length;
+
+  const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
+  const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
+
+  const resetFilters = () => {
+    setFilterSemester("all");
+    setFilterTeacher("all");
+    setFilterRoom("all");
+    setFilterDay("all");
+  };
+
+  // Get schedules for a specific day and time
+  const getSchedulesForSlot = (day: string, time: string) => {
+    return filteredSchedules.filter((s) => {
+      const scheduleDay = s.dayOfWeek.toLowerCase();
+      const matchesDay = scheduleDay === day.toLowerCase();
+      const matchesTime = s.startTime.startsWith(time.split(":")[0]);
+      return matchesDay && matchesTime;
+    });
+  };
+
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <section className="py-6 border-b border-border bg-card">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <CalendarDays className="w-5 h-5 text-emerald-600" />
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">Master Routine Calendar</h1>
               </div>
-            </motion.div>
+              <p className="text-sm text-muted-foreground">
+                Complete department schedule overview with real-time updates
+              </p>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+              <Button
+                variant={viewMode === "timeline" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("timeline")}
+                className="gap-2"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Timeline
+              </Button>
+              <Button
+                variant={viewMode === "kanban" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("kanban")}
+                className="gap-2"
+              >
+                <Kanban className="w-4 h-4" />
+                Kanban
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Seed Data Button (Development) */}
-      {!seeded && teachers.length === 0 && (
-        <section className="py-6 bg-background">
-          <div className="container mx-auto px-4 text-center">
-            <p className="text-muted-foreground text-sm mb-3">
-              No data found. Click below to seed sample data.
-            </p>
-            <button
-              onClick={handleSeedData}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Seed Sample Data
-            </button>
+      <div className="container mx-auto px-4 py-6">
+        {/* Smart Filters */}
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Funnel className="w-4 h-4" />
+              Smart Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <Select value={filterSemester} onValueChange={setFilterSemester}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Semesters</SelectItem>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                    <SelectItem key={sem} value={sem.toString()}>
+                      {sem}{getOrdinalSuffix(sem)} Semester
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterTeacher} onValueChange={setFilterTeacher}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Teacher" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Teachers</SelectItem>
+                  {teachers.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id}>
+                      {teacher.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterRoom} onValueChange={setFilterRoom}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Room" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Rooms</SelectItem>
+                  {rooms.map((room) => (
+                    <SelectItem key={room.id} value={room.id}>
+                      {room.roomNumber}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterDay} onValueChange={setFilterDay}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Day" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Days</SelectItem>
+                  {days.map((day) => (
+                    <SelectItem key={day} value={day}>
+                      {day.charAt(0).toUpperCase() + day.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button variant="outline" onClick={resetFilters} className="gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Reset
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: "Total Classes", value: totalClasses, icon: CalendarDays, color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-900/30" },
+            { label: "Active Classes", value: activeClasses, icon: Clock, color: "text-green-500", bg: "bg-green-100 dark:bg-green-900/30" },
+            { label: "Canceled", value: 0, icon: XCircle, color: "text-red-500", bg: "bg-red-100 dark:bg-red-900/30" },
+            { label: "Rescheduled", value: 0, icon: CalendarClock, color: "text-orange-500", bg: "bg-orange-100 dark:bg-orange-900/30" },
+          ].map((stat) => (
+            <Card key={stat.label}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", stat.bg)}>
+                    <stat.icon className={cn("w-5 h-5", stat.color)} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Week Navigation */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-        </section>
-      )}
+          <div className="text-center">
+            <p className="font-medium text-foreground">This Week</p>
+            <p className="text-xs text-muted-foreground">
+              {format(weekStart, "MMM d")} - {format(addDays(weekStart, 4), "MMM d, yyyy")}
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => setCurrentWeek(new Date())}>
+            Today
+          </Button>
+        </div>
+
+        {/* Calendar Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <div className="min-w-[800px]">
+                  {/* Header Row */}
+                  <div className="grid grid-cols-6 border-b border-border">
+                    <div className="p-3 bg-muted/50 font-medium text-sm text-muted-foreground">Time</div>
+                    {weekDays.map((day) => (
+                      <div
+                        key={day.toISOString()}
+                        className={cn(
+                          "p-3 bg-muted/50 font-medium text-sm text-center border-l border-border",
+                          isToday(day) && "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                        )}
+                      >
+                        <div>{format(day, "EEE")}</div>
+                        <div className="text-xs text-muted-foreground">{format(day, "d")}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Time Rows */}
+                  {timeSlots.map((time) => (
+                    <div key={time} className="grid grid-cols-6 border-b border-border last:border-b-0">
+                      <div className="p-3 text-sm text-muted-foreground bg-muted/30">
+                        {time}
+                      </div>
+                      {days.map((day) => {
+                        const slotSchedules = getSchedulesForSlot(day, time);
+                        return (
+                          <div
+                            key={`${day}-${time}`}
+                            className="p-2 border-l border-border min-h-[60px]"
+                          >
+                            {slotSchedules.map((schedule) => (
+                              <div
+                                key={schedule.id}
+                                className={cn(
+                                  "p-2 rounded-lg text-xs mb-1",
+                                  "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                                )}
+                              >
+                                <p className="font-medium truncate">{schedule.courseCode}</p>
+                                <p className="opacity-80 truncate">{schedule.roomNumber}</p>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
+  );
+}
+
+// Main Page Component with Routing
+function PageContent() {
+  const searchParams = useSearchParams();
+  const view = searchParams.get("view");
+  const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
+  const [selectedSemester, setSelectedSemester] = useState<number | null>(null);
+
+  // Handle semester selection
+  const handleSelectSemester = (program: string, semester: number) => {
+    setSelectedProgram(program);
+    setSelectedSemester(semester);
+    // Navigate to master calendar with filters
+    window.location.href = `/?view=master-calendar&program=${program}&semester=${semester}`;
+  };
+
+  // Show Master Routine Calendar if view=master-calendar
+  if (view === "master-calendar") {
+    return <MasterRoutineCalendar />;
+  }
+
+  // Show Student View
+  if (view === "student") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">Student View</h2>
+          <p className="text-muted-foreground">Coming Soon</p>
+          <Link href="/">
+            <Button className="mt-4">Back to Home</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Show Library View
+  if (view === "library") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">Resource Library</h2>
+          <p className="text-muted-foreground">Coming Soon</p>
+          <Link href="/">
+            <Button className="mt-4">Back to Home</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Default: Show Home Page
+  return <HomePage onSelectSemester={handleSelectSemester} />;
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <PageContent />
+    </Suspense>
   );
 }
