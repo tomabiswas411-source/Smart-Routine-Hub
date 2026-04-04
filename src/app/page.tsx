@@ -40,7 +40,6 @@ interface Schedule {
   startTime: string;
   endTime: string;
   dayOfWeek: string;
-  year: number;
   semester: number;
   program: string;
   classType: "theory" | "lab";
@@ -305,6 +304,9 @@ interface NotificationItem {
   type: "class_cancelled" | "class_rescheduled" | "room_changed" | "general";
   title: string;
   message: string;
+  semester?: number;
+  program?: string;
+  courseCode?: string;
   timestamp: string;
   isRead: boolean;
 }
@@ -359,6 +361,12 @@ function NotificationSection() {
     return date.toLocaleDateString();
   };
 
+  const getOrdinalSuffix = (n: number): string => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
@@ -379,7 +387,7 @@ function NotificationSection() {
           </div>
         ) : notifications.length > 0 ? (
           <div className="max-h-80 overflow-y-auto">
-            {notifications.map((notification, index) => (
+            {notifications.map((notification) => (
               <div
                 key={notification.id}
                 className={cn(
@@ -397,6 +405,19 @@ function NotificationSection() {
                   <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">
                     {notification.message}
                   </p>
+                  {/* Semester Highlight */}
+                  {notification.semester && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] px-2 py-0.5">
+                        {notification.semester}{getOrdinalSuffix(notification.semester)} Semester
+                      </Badge>
+                      {notification.program && (
+                        <Badge variant="outline" className="text-[10px] uppercase px-2 py-0.5">
+                          {notification.program}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                   <p className="text-[10px] text-muted-foreground/70 mt-1">
                     {formatTime(notification.timestamp)}
                   </p>
@@ -573,7 +594,6 @@ function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, se
 function StudentView() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedYear, setSelectedYear] = useState<number>(1);
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
   const [selectedProgram, setSelectedProgram] = useState<string>("bsc");
   const [viewMode, setViewMode] = useState<"cards" | "list" | "timeline">("cards");
@@ -598,7 +618,6 @@ function StudentView() {
   // Filter schedules based on selection
   const filteredSchedules = schedules.filter((s) => {
     if (!s.isActive) return false;
-    if (s.year !== selectedYear) return false;
     if (s.semester !== selectedSemester) return false;
     if (s.program && s.program !== selectedProgram) return false;
     return true;
@@ -612,7 +631,6 @@ function StudentView() {
       .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
   });
 
-  const getYearFromSemester = (sem: number): number => Math.ceil(sem / 2);
   const getCurrentProgram = () => programs.find(p => p.id === selectedProgram) || programs[0];
 
   return (
@@ -648,7 +666,7 @@ function StudentView() {
         {/* Selection */}
         <Card className="mb-4 sm:mb-6">
           <CardContent className="p-3 sm:p-4">
-            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
               <div className="space-y-1 sm:space-y-2">
                 <Label className="text-xs sm:text-sm font-medium">Program</Label>
                 <Select value={selectedProgram} onValueChange={(v) => setSelectedProgram(v)}>
@@ -668,11 +686,7 @@ function StudentView() {
                 <Label className="text-xs sm:text-sm font-medium">Semester</Label>
                 <Select
                   value={selectedSemester.toString()}
-                  onValueChange={(v) => {
-                    const sem = parseInt(v);
-                    setSelectedSemester(sem);
-                    setSelectedYear(getYearFromSemester(sem));
-                  }}
+                  onValueChange={(v) => setSelectedSemester(parseInt(v))}
                 >
                   <SelectTrigger className="h-9 sm:h-10">
                     <SelectValue />
@@ -680,25 +694,7 @@ function StudentView() {
                   <SelectContent>
                     {Array.from({ length: getCurrentProgram().semesters }, (_, i) => i + 1).map((sem) => (
                       <SelectItem key={sem} value={sem.toString()} className="text-sm">
-                        {sem}{getOrdinalSuffix(sem)} Sem
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1 sm:space-y-2">
-                <Label className="text-xs sm:text-sm font-medium">Year</Label>
-                <Select
-                  value={selectedYear.toString()}
-                  onValueChange={(v) => setSelectedYear(parseInt(v))}
-                >
-                  <SelectTrigger className="h-9 sm:h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4].map((y) => (
-                      <SelectItem key={y} value={y.toString()} className="text-sm">
-                        {y}{getOrdinalSuffix(y)} Year
+                        {sem}{getOrdinalSuffix(sem)} Semester
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -754,7 +750,7 @@ function StudentView() {
               {[
                 { label: "Classes", value: filteredSchedules.length, icon: CalendarDays, color: "text-blue-500 bg-blue-100 dark:bg-blue-900/30" },
                 { label: "Days", value: Object.values(schedulesByDay).filter((s) => s.length > 0).length, icon: Clock, color: "text-green-500 bg-green-100 dark:bg-green-900/30" },
-                { label: "Year", value: `${selectedYear}${getOrdinalSuffix(selectedYear)}`, icon: GraduationCap, color: "text-purple-500 bg-purple-100 dark:bg-purple-900/30" },
+                { label: "Semester", value: `${selectedSemester}${getOrdinalSuffix(selectedSemester)}`, icon: GraduationCap, color: "text-purple-500 bg-purple-100 dark:bg-purple-900/30" },
                 { label: "Program", value: getCurrentProgram().shortName, icon: Users, color: "text-amber-500 bg-amber-100 dark:bg-amber-900/30" },
               ].map((stat) => (
                 <Card key={stat.label}>
@@ -781,7 +777,7 @@ function StudentView() {
                   Weekly Routine
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
-                  {getCurrentProgram().shortName} - {selectedYear}{getOrdinalSuffix(selectedYear)} Year, {selectedSemester}{getOrdinalSuffix(selectedSemester)} Semester
+                  {getCurrentProgram().shortName} - {selectedSemester}{getOrdinalSuffix(selectedSemester)} Semester
                 </CardDescription>
               </CardHeader>
               <CardContent>

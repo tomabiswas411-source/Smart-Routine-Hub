@@ -1,38 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // In-memory notifications store (in production, use database)
-let notifications: NotificationItem[] = [
-  {
-    id: "1",
-    type: "class_cancelled",
-    title: "Class Cancelled",
-    message: "CSE-101 class scheduled for today at 10:00 AM has been cancelled by Dr. Rahman",
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-    isRead: false,
-  },
-  {
-    id: "2",
-    type: "class_rescheduled",
-    title: "Class Rescheduled",
-    message: "CSE-205 Lab class moved from Room 301 to Room 305 for tomorrow",
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
-    isRead: false,
-  },
-  {
-    id: "3",
-    type: "room_changed",
-    title: "Room Changed",
-    message: "ICE-301 class room changed from Room 201 to Room 401",
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-    isRead: true,
-  },
-];
+let notifications: NotificationItem[] = [];
 
 interface NotificationItem {
   id: string;
   type: "class_cancelled" | "class_rescheduled" | "room_changed" | "general";
   title: string;
   message: string;
+  semester?: number;
+  program?: string;
+  courseCode?: string;
   timestamp: string;
   isRead: boolean;
 }
@@ -40,6 +18,45 @@ interface NotificationItem {
 // GET - Fetch all notifications
 export async function GET(request: NextRequest) {
   try {
+    // If no notifications, add some demo ones
+    if (notifications.length === 0) {
+      notifications = [
+        {
+          id: "1",
+          type: "class_cancelled",
+          title: "Class Cancelled",
+          message: "CSE-101 class scheduled for today at 10:00 AM has been cancelled by Dr. Rahman",
+          semester: 1,
+          program: "BSc",
+          courseCode: "CSE-101",
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          isRead: false,
+        },
+        {
+          id: "2",
+          type: "class_rescheduled",
+          title: "Class Rescheduled",
+          message: "CSE-205 Lab class moved from Room 301 to Room 305 for tomorrow",
+          semester: 2,
+          program: "BSc",
+          courseCode: "CSE-205",
+          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+          isRead: false,
+        },
+        {
+          id: "3",
+          type: "room_changed",
+          title: "Room Changed",
+          message: "ICE-301 class room changed from Room 201 to Room 401",
+          semester: 3,
+          program: "BSc",
+          courseCode: "ICE-301",
+          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          isRead: true,
+        },
+      ];
+    }
+
     // Sort by timestamp (newest first)
     const sortedNotifications = [...notifications].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -62,7 +79,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, title, message } = body;
+    const { type, title, message, semester, program, courseCode } = body;
 
     if (!type || !title || !message) {
       return NextResponse.json(
@@ -76,6 +93,9 @@ export async function POST(request: NextRequest) {
       type,
       title,
       message,
+      semester,
+      program,
+      courseCode,
       timestamp: new Date().toISOString(),
       isRead: false,
     };
