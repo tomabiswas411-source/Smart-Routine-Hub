@@ -17,6 +17,30 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import type { Schedule, Notice, User, DashboardStats, AcademicCalendar } from "@/types";
 
+// Helper to safely convert Firestore timestamp to Date
+function toDate(timestamp: unknown): Date {
+  if (!timestamp) return new Date();
+  
+  // If it's already a Date
+  if (timestamp instanceof Date) return timestamp;
+  
+  // If it's a Firestore Timestamp object with seconds and nanoseconds
+  if (typeof timestamp === "object" && timestamp !== null) {
+    const ts = timestamp as { seconds?: number; nanoseconds?: number; _seconds?: number; _nanoseconds?: number };
+    if (ts.seconds || ts._seconds) {
+      return new Date((ts.seconds || ts._seconds || 0) * 1000);
+    }
+  }
+  
+  // If it's a string or number
+  if (typeof timestamp === "string" || typeof timestamp === "number") {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) return date;
+  }
+  
+  return new Date();
+}
+
 // Get current day name
 function getCurrentDay(): string {
   const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -355,16 +379,16 @@ export default function HomePage() {
                     event.eventType === "event" && "bg-purple-500/10 text-purple-500",
                     event.eventType === "class" && "bg-blue-500/10 text-blue-500"
                   )}>
-                    {format(new Date(event.date), "dd")}
+                    {format(toDate(event.date), "dd")}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-foreground truncate">{event.title}</h4>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{format(new Date(event.date), "MMM yyyy")}</span>
+                      <span>{format(toDate(event.date), "MMM yyyy")}</span>
                       {event.endDate && (
                         <>
                           <span>-</span>
-                          <span>{format(new Date(event.endDate), "MMM dd, yyyy")}</span>
+                          <span>{format(toDate(event.endDate), "MMM dd, yyyy")}</span>
                         </>
                       )}
                     </div>

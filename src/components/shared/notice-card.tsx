@@ -7,6 +7,30 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { Notice } from "@/types";
 
+// Helper to safely convert Firestore timestamp to Date
+function toDate(timestamp: unknown): Date {
+  if (!timestamp) return new Date();
+  
+  // If it's already a Date
+  if (timestamp instanceof Date) return timestamp;
+  
+  // If it's a Firestore Timestamp object with seconds and nanoseconds
+  if (typeof timestamp === "object" && timestamp !== null) {
+    const ts = timestamp as { seconds?: number; nanoseconds?: number; _seconds?: number; _nanoseconds?: number };
+    if (ts.seconds || ts._seconds) {
+      return new Date((ts.seconds || ts._seconds || 0) * 1000);
+    }
+  }
+  
+  // If it's a string or number
+  if (typeof timestamp === "string" || typeof timestamp === "number") {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) return date;
+  }
+  
+  return new Date();
+}
+
 interface NoticeCardProps {
   notice: Notice;
   index?: number;
@@ -90,10 +114,10 @@ export function NoticeCard({ notice, index = 0, compact = false }: NoticeCardPro
             {/* Meta Row */}
             <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
               <Calendar className="w-3.5 h-3.5" />
-              <span>{format(new Date(notice.createdAt), "MMM d, yyyy")}</span>
+              <span>{format(toDate(notice.createdAt), "MMM d, yyyy")}</span>
               <span>•</span>
               <Clock className="w-3.5 h-3.5" />
-              <span>{format(new Date(notice.createdAt), "h:mm a")}</span>
+              <span>{format(toDate(notice.createdAt), "h:mm a")}</span>
             </div>
           </div>
         </div>

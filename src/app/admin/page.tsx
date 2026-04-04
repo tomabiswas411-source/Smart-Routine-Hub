@@ -17,6 +17,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
+// Helper to safely convert Firestore timestamp to Date
+function toDate(timestamp: unknown): Date {
+  if (!timestamp) return new Date();
+  
+  // If it's already a Date
+  if (timestamp instanceof Date) return timestamp;
+  
+  // If it's a Firestore Timestamp object with seconds and nanoseconds
+  if (typeof timestamp === "object" && timestamp !== null) {
+    const ts = timestamp as { seconds?: number; nanoseconds?: number; _seconds?: number; _nanoseconds?: number };
+    if (ts.seconds || ts._seconds) {
+      return new Date((ts.seconds || ts._seconds || 0) * 1000);
+    }
+  }
+  
+  // If it's a string or number
+  if (typeof timestamp === "string" || typeof timestamp === "number") {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) return date;
+  }
+  
+  return new Date();
+}
+
 interface Stats {
   totalTeachers: number;
   activeCourses: number;
@@ -226,7 +250,7 @@ export default function AdminDashboard() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{notice.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(notice.createdAt), "MMM d, yyyy")}
+                            {format(toDate(notice.createdAt), "MMM d, yyyy")}
                           </p>
                         </div>
                       </div>
@@ -304,7 +328,7 @@ export default function AdminDashboard() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{notice.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            By {notice.postedByName} • {format(new Date(notice.createdAt), "MMM d, yyyy")}
+                            By {notice.postedByName} • {format(toDate(notice.createdAt), "MMM d, yyyy")}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
