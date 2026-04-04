@@ -1,133 +1,126 @@
 import { NextRequest, NextResponse } from "next/server";
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy,
-  limit,
-  serverTimestamp 
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
-// GET - Fetch notifications for a user
+// In-memory notifications store (in production, use database)
+let notifications: NotificationItem[] = [
+  {
+    id: "1",
+    type: "class_cancelled",
+    title: "Class Cancelled",
+    message: "CSE-101 class scheduled for today at 10:00 AM has been cancelled by Dr. Rahman",
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    isRead: false,
+  },
+  {
+    id: "2",
+    type: "class_rescheduled",
+    title: "Class Rescheduled",
+    message: "CSE-205 Lab class moved from Room 301 to Room 305 for tomorrow",
+    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
+    isRead: false,
+  },
+  {
+    id: "3",
+    type: "room_changed",
+    title: "Room Changed",
+    message: "ICE-301 class room changed from Room 201 to Room 401",
+    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+    isRead: true,
+  },
+];
+
+interface NotificationItem {
+  id: string;
+  type: "class_cancelled" | "class_rescheduled" | "room_changed" | "general";
+  title: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+}
+
+// GET - Fetch all notifications
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const unreadOnly = searchParams.get("unreadOnly") === "true";
-    const limitCount = parseInt(searchParams.get("limit") || "50");
-
-    if (!userId) {
-      return NextResponse.json({ success: false, error: "User ID required" }, { status: 400 });
-    }
-
-    const constraints = [where("userId", "==", userId)];
-    
-    if (unreadOnly) {
-      constraints.push(where("isRead", "==", false));
-    }
-
-    const q = query(collection(db, "notifications"), ...constraints, limit(limitCount));
-    const querySnapshot = await getDocs(q);
-    
-    const notifications = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-    }));
-
-    // Sort by createdAt descending
-    notifications.sort((a, b) => {
-      const aTime = a.createdAt ? new Date(a.createdAt as unknown as string).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt as unknown as string).getTime() : 0;
-      return bTime - aTime;
-    });
-
-    // Count unread
-    const unreadCount = notifications.filter((n) => !n.isRead).length;
+    // Sort by timestamp (newest first)
+    const sortedNotifications = [...notifications].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
 
     return NextResponse.json({
       success: true,
-      data: notifications,
-      unreadCount,
+      data: sortedNotifications,
     });
   } catch (error) {
     console.error("Error fetching notifications:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch notifications" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Failed to fetch notifications" },
+      { status: 500 }
+    );
   }
 }
 
-// POST - Create a new notification
+// POST - Add a new notification
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, title, body: message, type, data } = body;
+    const { type, title, message } = body;
 
-    if (!userId || !title || !message) {
-      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    if (!type || !title || !message) {
+      return NextResponse.json(
+        { success: false, message: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    const docRef = await addDoc(collection(db, "notifications"), {
-      userId,
+    const newNotification: NotificationItem = {
+      id: Date.now().toString(),
+      type,
       title,
-      body: message,
-      type: type || "general",
-      data: data || {},
+      message,
+      timestamp: new Date().toISOString(),
       isRead: false,
-      createdAt: serverTimestamp(),
-    });
+    };
+
+    notifications.unshift(newNotification);
 
     return NextResponse.json({
       success: true,
-      data: { id: docRef.id },
+      data: newNotification,
     });
   } catch (error) {
     console.error("Error creating notification:", error);
-    return NextResponse.json({ success: false, error: "Failed to create notification" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Failed to create notification" },
+      { status: 500 }
+    );
   }
 }
 
-// PATCH - Mark notification as read
-export async function PATCH(request: NextRequest) {
+// PUT - Mark notification as read
+export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { notificationId, markAllRead, userId } = body;
+    const { id } = body;
 
-    if (markAllRead && userId) {
-      // Mark all as read for user
-      const q = query(
-        collection(db, "notifications"),
-        where("userId", "==", userId),
-        where("isRead", "==", false)
+    const notificationIndex = notifications.findIndex((n) => n.id === id);
+    if (notificationIndex === -1) {
+      return NextResponse.json(
+        { success: false, message: "Notification not found" },
+        { status: 404 }
       );
-      const querySnapshot = await getDocs(q);
-      
-      const batch = [];
-      querySnapshot.docs.forEach((docSnap) => {
-        batch.push(updateDoc(doc(db, "notifications", docSnap.id), { isRead: true }));
-      });
-      
-      await Promise.all(batch);
-      
-      return NextResponse.json({ success: true, message: "All notifications marked as read" });
     }
 
-    if (!notificationId) {
-      return NextResponse.json({ success: false, error: "Notification ID required" }, { status: 400 });
-    }
+    notifications[notificationIndex].isRead = true;
 
-    await updateDoc(doc(db, "notifications", notificationId), { isRead: true });
-
-    return NextResponse.json({ success: true, message: "Notification marked as read" });
+    return NextResponse.json({
+      success: true,
+      data: notifications[notificationIndex],
+    });
   } catch (error) {
     console.error("Error updating notification:", error);
-    return NextResponse.json({ success: false, error: "Failed to update notification" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Failed to update notification" },
+      { status: 500 }
+    );
   }
 }
 
@@ -135,17 +128,34 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const notificationId = searchParams.get("id");
+    const id = searchParams.get("id");
 
-    if (!notificationId) {
-      return NextResponse.json({ success: false, error: "Notification ID required" }, { status: 400 });
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "Notification ID required" },
+        { status: 400 }
+      );
     }
 
-    await deleteDoc(doc(db, "notifications", notificationId));
+    const initialLength = notifications.length;
+    notifications = notifications.filter((n) => n.id !== id);
 
-    return NextResponse.json({ success: true, message: "Notification deleted" });
+    if (notifications.length === initialLength) {
+      return NextResponse.json(
+        { success: false, message: "Notification not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Notification deleted",
+    });
   } catch (error) {
     console.error("Error deleting notification:", error);
-    return NextResponse.json({ success: false, error: "Failed to delete notification" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Failed to delete notification" },
+      { status: 500 }
+    );
   }
 }

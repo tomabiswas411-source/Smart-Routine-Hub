@@ -299,6 +299,128 @@ function ScheduleCard({ schedule, compact = false }: { schedule: Schedule; compa
   );
 }
 
+// Notification Data Type
+interface NotificationItem {
+  id: string;
+  type: "class_cancelled" | "class_rescheduled" | "room_changed" | "general";
+  title: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+}
+
+// Notification Section Component
+function NotificationSection() {
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch("/api/notifications");
+        const data = await res.json();
+        if (data.success) {
+          setNotifications(data.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "class_cancelled":
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case "class_rescheduled":
+        return <CalendarClock className="w-4 h-4 text-amber-500" />;
+      case "room_changed":
+        return <MapPin className="w-4 h-4 text-blue-500" />;
+      default:
+        return <Bell className="w-4 h-4 text-emerald-500" />;
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+          Notifications
+          {notifications.filter(n => !n.isRead).length > 0 && (
+            <Badge className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 ml-auto">
+              {notifications.filter(n => !n.isRead).length} new
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : notifications.length > 0 ? (
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.map((notification, index) => (
+              <div
+                key={notification.id}
+                className={cn(
+                  "flex items-start gap-3 p-3 sm:p-4 border-b last:border-b-0",
+                  !notification.isRead && "bg-emerald-50/50 dark:bg-emerald-900/10"
+                )}
+              >
+                <div className="mt-0.5 shrink-0">
+                  {getNotificationIcon(notification.type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-xs sm:text-sm text-foreground">
+                    {notification.title}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                    {notification.message}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/70 mt-1">
+                    {formatTime(notification.timestamp)}
+                  </p>
+                </div>
+                {!notification.isRead && (
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1.5" />
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <BellOff className="w-8 h-8 text-muted-foreground/50 mb-2" />
+            <p className="text-xs sm:text-sm text-muted-foreground">No notifications yet</p>
+            <p className="text-[10px] text-muted-foreground/70 mt-1">
+              Class changes and updates will appear here
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // Home Page Component
 function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, semester: number) => void }) {
   return (
@@ -322,13 +444,30 @@ function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, se
               Select your program and semester to view class schedules
             </p>
             
+            {/* Login Button - Visible on Mobile */}
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-4">
+              <Link href="/login" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg">
+                  <LogIn className="w-4 h-4" />
+                  <span>Teacher/Admin Login</span>
+                </Button>
+              </Link>
+            </div>
+            
             {/* PWA Install & Notification */}
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
               <PWAInstallButton />
               <NotificationButton />
               <OnlineStatus />
             </div>
           </motion.div>
+        </div>
+      </section>
+      
+      {/* Notifications Section */}
+      <section className="py-4 sm:py-6">
+        <div className="container mx-auto px-4">
+          <NotificationSection />
         </div>
       </section>
 
