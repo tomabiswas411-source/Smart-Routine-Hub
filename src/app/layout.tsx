@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -22,11 +22,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Smart Routine Hub - Academic Schedule Management",
   description: "Smart Routine Hub - Your complete academic companion for class schedules, routines, and academic activities. Manage and view class schedules with real-time updates.",
-  keywords: ["Routine", "Schedule", "Academic", "Class", "University", "Smart Routine Hub"],
+  keywords: ["Routine", "Schedule", "Academic", "Class", "University", "Smart Routine Hub", "ICE", "Rajshahi University"],
   authors: [{ name: "Smart Routine Hub" }],
   icons: {
     icon: "/logo.svg",
+    apple: "/icons/icon-192x192.svg",
   },
+  manifest: "/manifest.json",
   openGraph: {
     title: "Smart Routine Hub - Academic Schedule Management",
     description: "Your complete academic companion for managing class schedules",
@@ -39,6 +41,25 @@ export const metadata: Metadata = {
     title: "Smart Routine Hub - Academic Schedule Management",
     description: "Your complete academic companion for managing class schedules",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Smart Routine Hub",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#10b981" },
+    { media: "(prefers-color-scheme: dark)", color: "#059669" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -48,6 +69,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Smart Routine Hub" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const year = searchParams.get("year");
     const semester = searchParams.get("semester");
-    const section = searchParams.get("section");
+    const program = searchParams.get("program");
     const day = searchParams.get("day");
     const teacherId = searchParams.get("teacherId");
 
@@ -19,14 +19,14 @@ export async function GET(request: NextRequest) {
     const filters: {
       year?: number;
       semester?: number;
-      section?: string;
+      program?: string;
       day?: string;
       teacherId?: string;
     } = {};
 
     if (year) filters.year = parseInt(year);
     if (semester) filters.semester = parseInt(semester);
-    if (section) filters.section = section;
+    if (program) filters.program = program;
     if (day) filters.day = day;
     if (teacherId) filters.teacherId = teacherId;
 

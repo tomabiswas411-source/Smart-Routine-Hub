@@ -124,7 +124,7 @@ interface Schedule {
   dayOfWeek: string;
   year: number;
   semester: number;
-  section: string;
+  program: string; // Changed from section to program (bsc/msc)
   classType: string;
   isActive: boolean;
 }
@@ -256,7 +256,7 @@ export default function AdminDashboard() {
     dayOfWeek: "sunday",
     year: 1,
     semester: 1,
-    section: "A",
+    program: "bsc", // Changed from section to program
   });
   
   const [noticeForm, setNoticeForm] = useState({
@@ -601,7 +601,7 @@ export default function AdminDashboard() {
   };
 
   const resetScheduleForm = () => {
-    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "sunday", year: 1, semester: 1, section: "A" });
+    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "sunday", year: 1, semester: 1, program: "bsc" });
     setEditingItem(null);
   };
 
@@ -1080,7 +1080,7 @@ export default function AdminDashboard() {
                               {schedule.teacherName} • {schedule.roomNumber} • {schedule.dayOfWeek}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {schedule.startTime} - {schedule.endTime} • Year {schedule.year}, Sem {schedule.semester}, Sec {schedule.section}
+                              {schedule.startTime} - {schedule.endTime} • Year {schedule.year}, Sem {schedule.semester}, {schedule.program?.toUpperCase() || 'BSC'}
                             </p>
                           </div>
                         </div>
@@ -1098,7 +1098,7 @@ export default function AdminDashboard() {
                                 dayOfWeek: schedule.dayOfWeek,
                                 year: schedule.year,
                                 semester: schedule.semester,
-                                section: schedule.section,
+                                program: schedule.program || "bsc",
                               });
                               setShowScheduleDialog(true);
                             }}
@@ -1865,15 +1865,14 @@ export default function AdminDashboard() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Section</Label>
-                <Select value={scheduleForm.section} onValueChange={(v) => setScheduleForm({ ...scheduleForm, section: v })}>
+                <Label>Program</Label>
+                <Select value={scheduleForm.program} onValueChange={(v) => setScheduleForm({ ...scheduleForm, program: v })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {["A", "B", "C"].map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
+                    <SelectItem value="bsc">BSc - Bachelor</SelectItem>
+                    <SelectItem value="msc">MSc - Master</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

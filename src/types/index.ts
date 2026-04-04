@@ -64,7 +64,7 @@ export interface Schedule {
   dayOfWeek: string;
   year: number;
   semester: number;
-  section: string;
+  program: string; // Changed from section to program (bsc/msc)
   classType: "theory" | "lab";
   isActive: boolean;
   createdAt: string;
@@ -101,7 +101,7 @@ export interface ScheduleChange {
   teacherName: string;
   year: number;
   semester: number;
-  section: string;
+  program: string; // Changed from section to program
   changedBy: string;
   changedByName: string;
   isActive: boolean;
@@ -118,7 +118,7 @@ export interface Notice {
   scheduleChangeId?: string;
   affectedYear?: number;
   affectedSemester?: number;
-  affectedSection?: string;
+  affectedProgram?: string; // Changed from affectedSection
   postedBy: string;
   postedByName: string;
   isPinned: boolean;
@@ -185,7 +185,7 @@ export interface RoomAvailability {
 // Conflict Check Result
 export interface ConflictCheckResult {
   hasConflict: boolean;
-  conflictType: "room" | "teacher" | "section" | null;
+  conflictType: "room" | "teacher" | "program" | null; // Changed from section
   conflictingSchedule?: Schedule;
   message: string;
 }

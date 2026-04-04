@@ -82,7 +82,7 @@ export interface Schedule {
   dayOfWeek: string;
   year: number;
   semester: number;
-  section: string;
+  program: string; // Changed from section to program (bsc/msc)
   classType: "theory" | "lab";
   isActive: boolean;
   createdAt: Date;
@@ -113,7 +113,7 @@ export interface ScheduleChange {
   teacherName: string;
   year: number;
   semester: number;
-  section: string;
+  program: string; // Changed from section to program
   changedBy: string;
   changedByName: string;
   isActive: boolean;
@@ -129,7 +129,7 @@ export interface Notice {
   scheduleChangeId?: string;
   affectedYear?: number;
   affectedSemester?: number;
-  affectedSection?: string;
+  affectedProgram?: string; // Changed from affectedSection
   postedBy: string;
   postedByName: string;
   isPinned: boolean;
@@ -343,7 +343,7 @@ export async function createTimeSlot(data: Omit<TimeSlot, "id" | "createdAt">): 
 export async function getSchedules(filters?: {
   year?: number;
   semester?: number;
-  section?: string;
+  program?: string;
   day?: string;
   teacherId?: string;
 }): Promise<Schedule[]> {
@@ -360,8 +360,8 @@ export async function getSchedules(filters?: {
     if (filters?.semester) {
       schedules = schedules.filter(s => s.semester === filters.semester);
     }
-    if (filters?.section) {
-      schedules = schedules.filter(s => s.section === filters.section);
+    if (filters?.program) {
+      schedules = schedules.filter(s => s.program === filters.program);
     }
     if (filters?.day) {
       schedules = schedules.filter(s => s.dayOfWeek === filters.day);

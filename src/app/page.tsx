@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   GraduationCap, CalendarDays, User, BookOpen, LogIn, RefreshCw,
   Building, Clock, XCircle, CalendarClock, ChevronLeft, ChevronRight,
-  LayoutGrid, Kanban, Filter, Funnel, Users
+  LayoutGrid, Kanban, Filter, Funnel, Users, Download, Bell, BellOff,
+  Smartphone, CheckCircle, Wifi, WifiOff
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useCallback, Suspense } from "react";
@@ -22,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePWA, usePushNotifications } from "@/hooks/use-pwa";
 
 // Types
 interface Schedule {
@@ -38,7 +40,7 @@ interface Schedule {
   dayOfWeek: string;
   year: number;
   semester: number;
-  section: string;
+  program: string; // Changed from section to program (bsc/msc)
   classType: "theory" | "lab";
   isActive: boolean;
 }
@@ -126,6 +128,117 @@ function getOrdinalSuffix(n: number): string {
   return (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
+// PWA Install Button Component
+function PWAInstallButton() {
+  const { canInstall, installPWA, isInstalled, isStandalone } = usePWA();
+  const [installing, setInstalling] = useState(false);
+
+  const handleInstall = async () => {
+    setInstalling(true);
+    const success = await installPWA();
+    setInstalling(false);
+  };
+
+  if (isStandalone || isInstalled) {
+    return (
+      <Badge className="bg-green-500 text-white gap-1">
+        <CheckCircle className="w-3 h-3" />
+        App Installed
+      </Badge>
+    );
+  }
+
+  if (!canInstall) return null;
+
+  return (
+    <Button
+      onClick={handleInstall}
+      disabled={installing}
+      className="gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+    >
+      {installing ? (
+        <RefreshCw className="w-4 h-4 animate-spin" />
+      ) : (
+        <Download className="w-4 h-4" />
+      )}
+      Install App
+    </Button>
+  );
+}
+
+// Notification Button Component
+function NotificationButton() {
+  const { hasNotificationPermission, requestNotificationPermission } = usePWA();
+  const { isSubscribed, subscribe, unsubscribe } = usePushNotifications();
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async () => {
+    setLoading(true);
+    if (!hasNotificationPermission) {
+      await requestNotificationPermission();
+    }
+    if (isSubscribed) {
+      await unsubscribe();
+    } else {
+      await subscribe();
+    }
+    setLoading(false);
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleClick}
+      disabled={loading}
+      className={cn(
+        "gap-2",
+        hasNotificationPermission && isSubscribed && "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800"
+      )}
+    >
+      {loading ? (
+        <RefreshCw className="w-4 h-4 animate-spin" />
+      ) : hasNotificationPermission && isSubscribed ? (
+        <>
+          <Bell className="w-4 h-4" />
+          Notifications On
+        </>
+      ) : (
+        <>
+          <BellOff className="w-4 h-4" />
+          Enable Notifications
+        </>
+      )}
+    </Button>
+  );
+}
+
+// Online Status Indicator
+function OnlineStatus() {
+  const { isOnline } = usePWA();
+  
+  return (
+    <div className={cn(
+      "flex items-center gap-1 text-xs px-2 py-1 rounded-full",
+      isOnline 
+        ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" 
+        : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+    )}>
+      {isOnline ? (
+        <>
+          <Wifi className="w-3 h-3" />
+          Online
+        </>
+      ) : (
+        <>
+          <WifiOff className="w-3 h-3" />
+          Offline
+        </>
+      )}
+    </div>
+  );
+}
+
 // Home Page Component
 function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, semester: number) => void }) {
   return (
@@ -148,6 +261,13 @@ function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, se
             <p className="text-muted-foreground mb-8">
               Select your program and semester to view class schedules, routines, and more
             </p>
+            
+            {/* PWA Install & Notification */}
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+              <PWAInstallButton />
+              <NotificationButton />
+              <OnlineStatus />
+            </div>
           </motion.div>
         </div>
       </section>
@@ -204,6 +324,44 @@ function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, se
         </div>
       </section>
 
+      {/* PWA Feature Section */}
+      <section className="py-8 md:py-12 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <Card className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-200 dark:border-emerald-800">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                  <Smartphone className="w-8 h-8 text-white" />
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-xl font-bold text-foreground mb-2">Install as Mobile App</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Install Smart Routine Hub on your phone for quick access, offline viewing, and instant notifications when class schedules change.
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                    <Badge variant="outline" className="gap-1">
+                      <Download className="w-3 h-3" />
+                      One-tap install
+                    </Badge>
+                    <Badge variant="outline" className="gap-1">
+                      <Bell className="w-3 h-3" />
+                      Push notifications
+                    </Badge>
+                    <Badge variant="outline" className="gap-1">
+                      <WifiOff className="w-3 h-3" />
+                      Works offline
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex-shrink-0">
+                  <PWAInstallButton />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="py-8 md:py-12 bg-muted/30">
         <div className="container mx-auto px-4">
@@ -252,7 +410,7 @@ function StudentView() {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(1);
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
-  const [selectedSection, setSelectedSection] = useState<string>("A");
+  const [selectedProgram, setSelectedProgram] = useState<string>("bsc"); // Changed from section to program
 
   // Fetch schedules
   useEffect(() => {
@@ -276,7 +434,8 @@ function StudentView() {
     if (!s.isActive) return false;
     if (s.year !== selectedYear) return false;
     if (s.semester !== selectedSemester) return false;
-    if (s.section !== selectedSection) return false;
+    // Use program filter (bsc/msc) instead of section
+    if (s.program && s.program !== selectedProgram) return false;
     return true;
   });
 
@@ -291,6 +450,11 @@ function StudentView() {
   // Calculate year from semester
   const getYearFromSemester = (sem: number): number => {
     return Math.ceil(sem / 2);
+  };
+
+  // Get program info
+  const getCurrentProgram = () => {
+    return programs.find(p => p.id === selectedProgram) || programs[0];
   };
 
   return (
@@ -308,12 +472,15 @@ function StudentView() {
                 View your weekly class routine
               </p>
             </div>
-            <Link href="/">
-              <Button variant="outline" className="gap-2">
-                <ChevronLeft className="w-4 h-4" />
-                Back to Home
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <NotificationButton />
+              <Link href="/">
+                <Button variant="outline" className="gap-2">
+                  <ChevronLeft className="w-4 h-4" />
+                  Back to Home
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -323,6 +490,24 @@ function StudentView() {
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Program</Label>
+                <Select
+                  value={selectedProgram}
+                  onValueChange={(v) => setSelectedProgram(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programs.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.shortName} - {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Semester</Label>
                 <Select
@@ -337,7 +522,7 @@ function StudentView() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                    {Array.from({ length: getCurrentProgram().semesters }, (_, i) => i + 1).map((sem) => (
                       <SelectItem key={sem} value={sem.toString()}>
                         {sem}{getOrdinalSuffix(sem)} Semester
                       </SelectItem>
@@ -363,24 +548,6 @@ function StudentView() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Section</Label>
-                <Select
-                  value={selectedSection}
-                  onValueChange={setSelectedSection}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["A", "B", "C"].map((s) => (
-                      <SelectItem key={s} value={s}>
-                        Section {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -398,7 +565,7 @@ function StudentView() {
                 { label: "Total Classes", value: filteredSchedules.length, icon: CalendarDays, color: "text-blue-500 bg-blue-100 dark:bg-blue-900/30" },
                 { label: "Days with Classes", value: Object.values(schedulesByDay).filter((s) => s.length > 0).length, icon: Clock, color: "text-green-500 bg-green-100 dark:bg-green-900/30" },
                 { label: "Year", value: `${selectedYear}${getOrdinalSuffix(selectedYear)}`, icon: GraduationCap, color: "text-purple-500 bg-purple-100 dark:bg-purple-900/30" },
-                { label: "Section", value: selectedSection, icon: Users, color: "text-amber-500 bg-amber-100 dark:bg-amber-900/30" },
+                { label: "Program", value: getCurrentProgram().shortName, icon: Users, color: "text-amber-500 bg-amber-100 dark:bg-amber-900/30" },
               ].map((stat) => (
                 <Card key={stat.label}>
                   <CardContent className="p-4">
@@ -424,7 +591,7 @@ function StudentView() {
                   Weekly Routine
                 </CardTitle>
                 <CardDescription>
-                  {selectedYear}{getOrdinalSuffix(selectedYear)} Year, {selectedSemester}{getOrdinalSuffix(selectedSemester)} Semester, Section {selectedSection}
+                  {getCurrentProgram().shortName} - {selectedYear}{getOrdinalSuffix(selectedYear)} Year, {selectedSemester}{getOrdinalSuffix(selectedSemester)} Semester
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -515,6 +682,7 @@ function MasterRoutineCalendar() {
   const [viewMode, setViewMode] = useState<"timeline" | "kanban">("timeline");
   
   // Filters
+  const [filterProgram, setFilterProgram] = useState<string>("all"); // Changed from semester to program
   const [filterSemester, setFilterSemester] = useState<string>("all");
   const [filterTeacher, setFilterTeacher] = useState<string>("all");
   const [filterRoom, setFilterRoom] = useState<string>("all");
@@ -553,6 +721,7 @@ function MasterRoutineCalendar() {
   // Filter schedules
   const filteredSchedules = schedules.filter((s) => {
     if (!s.isActive) return false;
+    if (filterProgram !== "all" && s.program !== filterProgram) return false;
     if (filterSemester !== "all" && s.semester !== parseInt(filterSemester)) return false;
     if (filterTeacher !== "all" && s.teacherId !== filterTeacher) return false;
     if (filterRoom !== "all" && s.roomId !== filterRoom) return false;
@@ -572,6 +741,7 @@ function MasterRoutineCalendar() {
   const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
   const resetFilters = () => {
+    setFilterProgram("all");
     setFilterSemester("all");
     setFilterTeacher("all");
     setFilterRoom("all");
@@ -604,26 +774,29 @@ function MasterRoutineCalendar() {
               </p>
             </div>
 
-            {/* View Toggle */}
-            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-              <Button
-                variant={viewMode === "timeline" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("timeline")}
-                className="gap-2"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                Timeline
-              </Button>
-              <Button
-                variant={viewMode === "kanban" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("kanban")}
-                className="gap-2"
-              >
-                <Kanban className="w-4 h-4" />
-                Kanban
-              </Button>
+            <div className="flex items-center gap-2">
+              <NotificationButton />
+              {/* View Toggle */}
+              <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+                <Button
+                  variant={viewMode === "timeline" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("timeline")}
+                  className="gap-2"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Timeline
+                </Button>
+                <Button
+                  variant={viewMode === "kanban" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("kanban")}
+                  className="gap-2"
+                >
+                  <Kanban className="w-4 h-4" />
+                  Kanban
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -639,7 +812,22 @@ function MasterRoutineCalendar() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              {/* Program Filter (BSC/MSC) */}
+              <Select value={filterProgram} onValueChange={setFilterProgram}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Program" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Programs</SelectItem>
+                  {programs.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.shortName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <Select value={filterSemester} onValueChange={setFilterSemester}>
                 <SelectTrigger>
                   <SelectValue placeholder="Semester" />
