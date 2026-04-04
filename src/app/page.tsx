@@ -250,17 +250,58 @@ function OnlineStatus() {
   );
 }
 
+// Schedule Change type for views
+interface ScheduleChangeForView {
+  id: string;
+  scheduleId: string;
+  changeType: "cancelled" | "rescheduled" | "room_changed";
+  isActive: boolean;
+  originalDay?: string;
+  originalStartTime?: string;
+  originalEndTime?: string;
+  originalRoomNumber?: string;
+  newDay?: string;
+  newStartTime?: string;
+  newEndTime?: string;
+  newRoomNumber?: string;
+  reason?: string;
+  createdAt?: any;
+}
+
 // Schedule Card Component (Reusable)
-function ScheduleCard({ schedule, compact = false }: { schedule: Schedule; compact?: boolean }) {
+function ScheduleCard({ 
+  schedule, 
+  compact = false,
+  scheduleChange,
+  showStatus = false
+}: { 
+  schedule: Schedule; 
+  compact?: boolean;
+  scheduleChange?: ScheduleChangeForView;
+  showStatus?: boolean;
+}) {
+  // Determine card status
+  const isRescheduled = scheduleChange?.changeType === "rescheduled" && scheduleChange?.isActive;
+  const wasMoved = isRescheduled && scheduleChange?.newDay && 
+                   scheduleChange.newDay.toLowerCase() !== scheduleChange.originalDay?.toLowerCase();
+
   return (
     <div
       className={cn(
-        "rounded-lg border overflow-hidden",
+        "rounded-lg border overflow-hidden relative",
         schedule.classType === "lab"
           ? "border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20"
           : "border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20"
       )}
     >
+      {/* Status Badge for rescheduled classes */}
+      {showStatus && wasMoved && (
+        <div className="absolute -top-1 -right-1 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md z-10 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+          <CalendarClock className="w-3 h-3" />
+          Moved
+        </div>
+      )}
+      
       <div className={cn("p-3", compact && "p-2")}>
         {/* Course Info */}
         <div className="flex items-start justify-between gap-2">
@@ -300,6 +341,15 @@ function ScheduleCard({ schedule, compact = false }: { schedule: Schedule; compa
             </div>
           )}
         </div>
+        
+        {/* Show original schedule info if moved */}
+        {showStatus && wasMoved && scheduleChange && (
+          <div className="mt-2 p-2 rounded bg-amber-50 dark:bg-amber-900/20 text-[10px]">
+            <p className="text-muted-foreground">
+              Moved from <span className="capitalize font-medium text-foreground">{scheduleChange.originalDay}</span>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -791,19 +841,43 @@ function HomePage({
 // Student View Component
 function StudentView() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [scheduleChanges, setScheduleChanges] = useState<Record<string, ScheduleChangeForView>>({});
   const [loading, setLoading] = useState(true);
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
   const [selectedProgram, setSelectedProgram] = useState<string>("bsc");
   const [viewMode, setViewMode] = useState<"cards" | "list" | "timeline">("cards");
+  const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
 
-  // Fetch schedules
+  // Fetch schedules and schedule changes
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/schedules");
-        const data = await res.json();
-        if (data.success) setSchedules(data.data || []);
+        const [schedulesRes, changesRes] = await Promise.all([
+          fetch("/api/schedules"),
+          fetch("/api/schedule-changes"),
+        ]);
+        
+        const schedulesData = await schedulesRes.json();
+        const changesData = await changesRes.json();
+        
+        if (schedulesData.success) setSchedules(schedulesData.data || []);
+        
+        // Create a map of scheduleId -> active change
+        if (changesData.success && changesData.data) {
+          const changeMap: Record<string, ScheduleChangeForView> = {};
+          changesData.data.forEach((change: ScheduleChangeForView) => {
+            if (change.isActive && change.scheduleId) {
+              // Only keep the most recent change per schedule
+              if (!changeMap[change.scheduleId] || 
+                  (change.createdAt && changeMap[change.scheduleId].createdAt &&
+                   new Date(change.createdAt) > new Date(changeMap[change.scheduleId].createdAt))) {
+                changeMap[change.scheduleId] = change;
+              }
+            }
+          });
+          setScheduleChanges(changeMap);
+        }
       } catch (error) {
         console.error("Error fetching schedules:", error);
       } finally {
@@ -813,9 +887,37 @@ function StudentView() {
     fetchData();
   }, []);
 
-  // Filter schedules based on selection
-  const filteredSchedules = schedules.filter((s) => {
+  // Get effective schedule based on schedule changes
+  const getEffectiveSchedule = (schedule: Schedule): Schedule => {
+    const change = scheduleChanges[schedule.id];
+    
+    if (change?.changeType === "rescheduled" && change?.isActive) {
+      return {
+        ...schedule,
+        dayOfWeek: change.newDay || schedule.dayOfWeek,
+        startTime: change.newStartTime || schedule.startTime,
+        endTime: change.newEndTime || schedule.endTime,
+        roomNumber: change.newRoomNumber || schedule.roomNumber,
+      };
+    }
+    
+    return schedule;
+  };
+
+  // Check if a schedule is cancelled
+  const isScheduleCancelled = (scheduleId: string): boolean => {
+    const change = scheduleChanges[scheduleId];
+    return change?.changeType === "cancelled" && change?.isActive;
+  };
+
+  // Create effective schedules list
+  const effectiveSchedules = schedules.map((s) => getEffectiveSchedule(s));
+
+  // Filter schedules based on selection - now using effective schedules
+  const filteredSchedules = effectiveSchedules.filter((s) => {
     if (!s.isActive) return false;
+    // Don't show cancelled classes
+    if (isScheduleCancelled(s.id)) return false;
     if (s.semester !== selectedSemester) return false;
     if (s.program && s.program !== selectedProgram) return false;
     return true;
@@ -1007,7 +1109,12 @@ function StudentView() {
                           {daySchedules.length > 0 ? (
                             <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                               {daySchedules.map((schedule) => (
-                                <ScheduleCard key={schedule.id} schedule={schedule} />
+                                <ScheduleCard 
+                                  key={schedule.id} 
+                                  schedule={schedule} 
+                                  scheduleChange={scheduleChanges[schedule.id]}
+                                  showStatus={true}
+                                />
                               ))}
                             </div>
                           ) : (
@@ -1120,7 +1227,11 @@ function StudentView() {
                                     {/* Time connector */}
                                     <div className="absolute -left-6 sm:-left-8 top-3 w-3 sm:w-4 h-0.5 bg-border" />
                                     
-                                    <ScheduleCard schedule={schedule} />
+                                    <ScheduleCard 
+                                      schedule={schedule} 
+                                      scheduleChange={scheduleChanges[schedule.id]}
+                                      showStatus={true}
+                                    />
                                   </div>
                                 ))}
                               </div>
@@ -1145,6 +1256,7 @@ function StudentView() {
 // Master Routine Calendar Component
 function MasterRoutineCalendar() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [scheduleChanges, setScheduleChanges] = useState<Record<string, ScheduleChangeForView>>({});
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1163,21 +1275,38 @@ function MasterRoutineCalendar() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [schedulesRes, teachersRes, roomsRes] = await Promise.all([
+        const [schedulesRes, teachersRes, roomsRes, changesRes] = await Promise.all([
           fetch("/api/schedules"),
           fetch("/api/teachers"),
           fetch("/api/rooms"),
+          fetch("/api/schedule-changes"),
         ]);
 
-        const [schedulesData, teachersData, roomsData] = await Promise.all([
+        const [schedulesData, teachersData, roomsData, changesData] = await Promise.all([
           schedulesRes.json(),
           teachersRes.json(),
           roomsRes.json(),
+          changesRes.json(),
         ]);
 
         if (schedulesData.success) setSchedules(schedulesData.data || []);
         if (teachersData.success) setTeachers(teachersData.data || []);
         if (roomsData.success) setRooms(roomsData.data || []);
+        
+        // Create a map of scheduleId -> active change
+        if (changesData.success && changesData.data) {
+          const changeMap: Record<string, ScheduleChangeForView> = {};
+          changesData.data.forEach((change: ScheduleChangeForView) => {
+            if (change.isActive && change.scheduleId) {
+              if (!changeMap[change.scheduleId] || 
+                  (change.createdAt && changeMap[change.scheduleId].createdAt &&
+                   new Date(change.createdAt) > new Date(changeMap[change.scheduleId].createdAt))) {
+                changeMap[change.scheduleId] = change;
+              }
+            }
+          });
+          setScheduleChanges(changeMap);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -1188,9 +1317,37 @@ function MasterRoutineCalendar() {
     fetchData();
   }, []);
 
-  // Filter schedules
-  const filteredSchedules = schedules.filter((s) => {
+  // Get effective schedule based on schedule changes
+  const getEffectiveSchedule = (schedule: Schedule): Schedule => {
+    const change = scheduleChanges[schedule.id];
+    
+    if (change?.changeType === "rescheduled" && change?.isActive) {
+      return {
+        ...schedule,
+        dayOfWeek: change.newDay || schedule.dayOfWeek,
+        startTime: change.newStartTime || schedule.startTime,
+        endTime: change.newEndTime || schedule.endTime,
+        roomNumber: change.newRoomNumber || schedule.roomNumber,
+      };
+    }
+    
+    return schedule;
+  };
+
+  // Check if a schedule is cancelled
+  const isScheduleCancelled = (scheduleId: string): boolean => {
+    const change = scheduleChanges[scheduleId];
+    return change?.changeType === "cancelled" && change?.isActive;
+  };
+
+  // Create effective schedules list
+  const effectiveSchedules = schedules.map((s) => getEffectiveSchedule(s));
+
+  // Filter schedules - now using effective schedules
+  const filteredSchedules = effectiveSchedules.filter((s) => {
     if (!s.isActive) return false;
+    // Don't show cancelled classes
+    if (isScheduleCancelled(s.id)) return false;
     if (filterProgram !== "all" && s.program !== filterProgram) return false;
     if (filterSemester !== "all" && s.semester !== parseInt(filterSemester)) return false;
     if (filterTeacher !== "all" && s.teacherId !== filterTeacher) return false;
