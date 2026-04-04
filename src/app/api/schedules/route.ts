@@ -145,6 +145,8 @@ export async function POST(request: NextRequest) {
     
     const schedule = await createSchedule({
       ...body,
+      courseId: body.courseId || `course-${Date.now()}`, // Generate if not provided
+      timeSlotId: body.timeSlotId || `slot-${body.startTime}-${body.endTime}`, // Generate if not provided
       teacherId,
       teacherName,
       isActive: true,

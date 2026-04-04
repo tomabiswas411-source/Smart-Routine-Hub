@@ -10,7 +10,7 @@ import {
   Building, AlignJustify, Grid3X3, BellOff, CheckCircle,
   Sparkles, GraduationCap, Funnel, FlaskConical, Presentation,
   XCircle, CalendarClock, Info, ChevronUp, Check,
-  AlertTriangle, Megaphone, Save
+  AlertTriangle, Megaphone, Save, Layers, Zap
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -69,27 +69,47 @@ interface Notification {
 // Days
 const days = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"];
 
-// Color palettes - Premium 3D Design
+// Premium 3D Color palettes with depth effects
 const classColors = {
   theory: {
-    bg: "bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 dark:from-teal-900/30 dark:via-emerald-900/20 dark:to-cyan-900/30",
-    border: "border-teal-300 dark:border-teal-600",
-    badge: "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md shadow-teal-500/30",
-    glow: "shadow-lg shadow-teal-500/10 hover:shadow-teal-500/20",
+    bg: "bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 dark:from-teal-900/40 dark:via-emerald-900/30 dark:to-cyan-900/40",
+    border: "border-teal-200/80 dark:border-teal-500/50",
+    badge: "bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500 text-white shadow-lg shadow-teal-500/40",
+    glow: "shadow-[0_8px_30px_rgb(0,150,136,0.12)] hover:shadow-[0_12px_40px_rgb(0,150,136,0.18)]",
+    innerGlow: "from-teal-200/30 via-transparent to-emerald-300/20",
   },
   lab: {
-    bg: "bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-900/30 dark:via-orange-900/20 dark:to-yellow-900/30",
-    border: "border-amber-300 dark:border-amber-600",
-    badge: "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30",
-    glow: "shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20",
+    bg: "bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-900/40 dark:via-orange-900/30 dark:to-yellow-900/40",
+    border: "border-amber-200/80 dark:border-amber-500/50",
+    badge: "bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white shadow-lg shadow-amber-500/40",
+    glow: "shadow-[0_8px_30px_rgb(245,158,11,0.12)] hover:shadow-[0_12px_40px_rgb(245,158,11,0.18)]",
+    innerGlow: "from-amber-200/30 via-transparent to-orange-300/20",
   }
 };
 
-// Status styles
+// Status styles with 3D effect
 const statusStyles = {
-  cancelled: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-300", border: "border-red-300 dark:border-red-700", icon: XCircle },
-  rescheduled: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-300", border: "border-amber-300 dark:border-amber-700", icon: CalendarClock },
-  room_changed: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-300", border: "border-blue-300 dark:border-blue-700", icon: MapPin }
+  cancelled: { 
+    bg: "bg-gradient-to-br from-red-100 to-rose-100 dark:from-red-900/40 dark:to-rose-900/30", 
+    text: "text-red-700 dark:text-red-300", 
+    border: "border-red-300 dark:border-red-600", 
+    icon: XCircle,
+    glow: "shadow-lg shadow-red-500/20"
+  },
+  rescheduled: { 
+    bg: "bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/40 dark:to-yellow-900/30", 
+    text: "text-amber-700 dark:text-amber-300", 
+    border: "border-amber-300 dark:border-amber-600", 
+    icon: CalendarClock,
+    glow: "shadow-lg shadow-amber-500/20"
+  },
+  room_changed: { 
+    bg: "bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/30", 
+    text: "text-blue-700 dark:text-blue-300", 
+    border: "border-blue-300 dark:border-blue-600", 
+    icon: MapPin,
+    glow: "shadow-lg shadow-blue-500/20"
+  }
 };
 
 // Room type icons
@@ -121,10 +141,10 @@ function CustomTimePicker({ value, onChange, label }: { value: string; onChange:
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-xs text-muted-foreground font-medium">{label}</Label>
       <div className="flex items-center gap-2">
         <Select value={hour} onValueChange={(h) => onChange(`${h}:${minute}`)}>
-          <SelectTrigger className="w-20 h-9"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-20 h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700"><SelectValue /></SelectTrigger>
           <SelectContent>
             {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map((h) => (
               <SelectItem key={h} value={h} className="text-sm">{h}</SelectItem>
@@ -133,7 +153,7 @@ function CustomTimePicker({ value, onChange, label }: { value: string; onChange:
         </Select>
         <span className="text-lg font-bold text-muted-foreground">:</span>
         <Select value={minute} onValueChange={(m) => onChange(`${hour}:${m}`)}>
-          <SelectTrigger className="w-20 h-9"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-20 h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700"><SelectValue /></SelectTrigger>
           <SelectContent>
             {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0")).map((m) => (
               <SelectItem key={m} value={m} className="text-sm">{m}</SelectItem>
@@ -164,14 +184,15 @@ function NotificationBar({ notifications, isOpen, onToggle, onMarkAsRead }: {
     <motion.div
       initial={false}
       animate={{ height: isOpen ? "auto" : "56px" }}
-      className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border shadow-lg z-50 overflow-hidden"
+      className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-40 overflow-hidden"
     >
       <div onClick={onToggle} className="flex items-center justify-between px-4 h-14 cursor-pointer hover:bg-muted/50 transition-colors">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Bell className="w-5 h-5 text-emerald-600" />
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full blur-md opacity-50" />
+            <Bell className="w-5 h-5 text-emerald-600 relative" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{unreadCount}</span>
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-red-500 to-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-lg shadow-red-500/30">{unreadCount}</span>
             )}
           </div>
           <div>
@@ -197,7 +218,7 @@ function NotificationBar({ notifications, isOpen, onToggle, onMarkAsRead }: {
                     key={notification.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={cn("p-3 rounded-lg border transition-all", notification.isRead ? "bg-muted/50 border-border" : "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800")}
+                    className={cn("p-3 rounded-xl border transition-all", notification.isRead ? "bg-muted/50 border-border" : "bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-200 dark:border-emerald-800")}
                   >
                     <div className="flex items-start gap-3">
                       <div className="shrink-0 mt-0.5">{getNotificationIcon(notification.changeType)}</div>
@@ -213,7 +234,7 @@ function NotificationBar({ notifications, isOpen, onToggle, onMarkAsRead }: {
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notification.content}</p>
                         {notification.affectedSemester && (
                           <div className="flex items-center gap-2 mt-2">
-                            <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px]">
+                            <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] shadow-md shadow-emerald-500/30">
                               {notification.affectedSemester}{notification.affectedSemester === 1 ? 'st' : notification.affectedSemester === 2 ? 'nd' : notification.affectedSemester === 3 ? 'rd' : 'th'} Semester
                             </Badge>
                             {notification.affectedProgram && (
@@ -235,7 +256,7 @@ function NotificationBar({ notifications, isOpen, onToggle, onMarkAsRead }: {
   );
 }
 
-// Schedule Card Component
+// Schedule Card Component with Premium 3D Design
 function ScheduleCard({ schedule, isSelected, onSelect, onCancel, onReschedule, scheduleChange }: { 
   schedule: TeacherSchedule; isSelected: boolean; onSelect: () => void; onCancel: () => void; onReschedule: () => void; scheduleChange?: ScheduleChange;
 }) {
@@ -265,56 +286,64 @@ function ScheduleCard({ schedule, isSelected, onSelect, onCancel, onReschedule, 
     <div className="relative">
       <motion.div
         className={cn(
-          "p-4 rounded-xl border-2 cursor-pointer transition-all duration-300",
+          "relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 overflow-hidden",
           typeColors.bg, typeColors.border, typeColors.glow,
-          isSelected && "ring-2 ring-teal-500 ring-offset-2 ring-offset-background",
+          isSelected && "ring-2 ring-teal-500 ring-offset-2 ring-offset-background scale-[1.02]",
           isCancelled && "opacity-60"
         )}
         onClick={onSelect}
-        whileHover={{ y: -4, scale: 1.01 }}
+        whileHover={{ y: -6, scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
       >
-        {/* 3D Card Effect - Inner Shadow */}
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/50 via-transparent to-black/5 dark:from-white/5 dark:via-transparent dark:to-black/10 pointer-events-none" />
+        {/* 3D Card Effect - Multi-layer gradients */}
+        <div className={cn("absolute inset-0 rounded-2xl bg-gradient-to-br pointer-events-none", typeColors.innerGlow)} />
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/5 via-transparent to-white/40 dark:from-black/20 dark:via-transparent dark:to-white/10 pointer-events-none" />
+        
+        {/* Decorative corner glow */}
+        <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-white/40 to-transparent dark:from-white/10 rounded-full blur-xl pointer-events-none" />
         
         {statusInfo && (
-          <div className={cn("absolute -top-2 -right-2 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg z-10 border backdrop-blur-sm", statusInfo.style.bg, statusInfo.text, statusInfo.style.border)}>
+          <div className={cn("absolute -top-2 -right-2 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg z-10 border backdrop-blur-sm", statusInfo.style.bg, statusInfo.style.text, statusInfo.style.border, statusInfo.style.glow)}>
             <statusInfo.icon className="w-3 h-3" />
             {statusInfo.label}
           </div>
         )}
         
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className={cn("font-bold text-sm", isCancelled && "line-through")}>{schedule.courseCode}</h3>
-              <Badge className={cn("text-[9px]", typeColors.badge)}>{schedule.classType === "lab" ? "LAB" : "THEORY"}</Badge>
+        <div className="relative z-10">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className={cn("font-bold text-base bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent", isCancelled && "line-through")}>{schedule.courseCode}</h3>
+                <Badge className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", typeColors.badge)}>
+                  {schedule.classType === "lab" ? "LAB" : "THEORY"}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground truncate mt-0.5 font-medium">{schedule.courseName}</p>
             </div>
-            <p className="text-xs text-muted-foreground truncate mt-0.5">{schedule.courseName}</p>
           </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Calendar className="w-3.5 h-3.5" />
-            <span className="capitalize">{schedule.dayOfWeek}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{formatTime(schedule.startTime)}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5" />
-            <span>{schedule.roomNumber}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>{schedule.semester}{schedule.semester === 1 ? 'st' : schedule.semester === 2 ? 'nd' : schedule.semester === 3 ? 'rd' : 'th'} Sem ({schedule.program?.toUpperCase()})</span>
+          
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center gap-1.5 text-muted-foreground bg-white/50 dark:bg-black/20 rounded-lg px-2 py-1">
+              <Calendar className="w-3.5 h-3.5 text-teal-500" />
+              <span className="capitalize font-medium">{schedule.dayOfWeek}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-muted-foreground bg-white/50 dark:bg-black/20 rounded-lg px-2 py-1">
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <span className="font-medium">{formatTime(schedule.startTime)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-muted-foreground bg-white/50 dark:bg-black/20 rounded-lg px-2 py-1">
+              <MapPin className="w-3.5 h-3.5 text-rose-500" />
+              <span className="font-medium">{schedule.roomNumber}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-muted-foreground bg-white/50 dark:bg-black/20 rounded-lg px-2 py-1">
+              <GraduationCap className="w-3.5 h-3.5 text-purple-500" />
+              <span className="font-medium">{schedule.semester}{schedule.semester === 1 ? 'st' : schedule.semester === 2 ? 'nd' : schedule.semester === 3 ? 'rd' : 'th'} Sem ({schedule.program?.toUpperCase()})</span>
+            </div>
           </div>
         </div>
         
         {isRescheduled && scheduleChange && wasMoved && (
-          <div className={cn("mt-3 p-2 rounded-lg text-[10px] border", statusStyles.rescheduled.bg, statusStyles.rescheduled.border)}>
+          <div className={cn("relative z-10 mt-3 p-2 rounded-xl text-[10px] border backdrop-blur-sm", statusStyles.rescheduled.bg, statusStyles.rescheduled.border)}>
             <div className="flex items-center gap-1 font-medium mb-1">
               <CalendarClock className="w-3 h-3" />
               Moved from original schedule
@@ -331,10 +360,10 @@ function ScheduleCard({ schedule, isSelected, onSelect, onCancel, onReschedule, 
       <AnimatePresence>
         {isSelected && !isCancelled && (
           <motion.div initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: "auto", marginTop: 8 }} exit={{ opacity: 0, height: 0, marginTop: 0 }} className="grid grid-cols-2 gap-2">
-            <Button variant="outline" size="sm" className="text-red-600 border-red-300 bg-red-50 hover:bg-red-100 h-9 text-xs font-medium" onClick={onCancel}>
+            <Button variant="outline" size="sm" className="text-red-600 border-red-300 bg-gradient-to-b from-red-50 to-rose-100 hover:from-red-100 hover:to-rose-200 h-9 text-xs font-medium shadow-md shadow-red-500/10" onClick={onCancel}>
               <Ban className="w-3.5 h-3.5 mr-1.5" />Cancel Class
             </Button>
-            <Button variant="outline" size="sm" className="text-cyan-600 border-cyan-300 bg-cyan-50 hover:bg-cyan-100 h-9 text-xs font-medium" onClick={onReschedule}>
+            <Button variant="outline" size="sm" className="text-cyan-600 border-cyan-300 bg-gradient-to-b from-cyan-50 to-sky-100 hover:from-cyan-100 hover:to-sky-200 h-9 text-xs font-medium shadow-md shadow-cyan-500/10" onClick={onReschedule}>
               <RefreshCw className="w-3.5 h-3.5 mr-1.5" />Reschedule
             </Button>
           </motion.div>
@@ -398,7 +427,7 @@ export default function TeacherDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   // Notice form
-  const [noticeForm, setNoticeForm] = useState({ title: "", content: "", category: "general", affectedYear: "", affectedSemester: "", affectedProgram: "bsc" });
+  const [noticeForm, setNoticeForm] = useState({ title: "", content: "", category: "general", affectedSemester: "", affectedProgram: "bsc" });
 
   // Auth redirect
   useEffect(() => {
@@ -549,6 +578,12 @@ export default function TeacherDashboard() {
       toast({ title: "Error", description: "Please provide a reason for cancellation", variant: "destructive" });
       return;
     }
+    
+    if (!session?.user?.id) {
+      toast({ title: "Error", description: "You must be logged in to cancel a class", variant: "destructive" });
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const res = await fetch("/api/schedule-changes", {
@@ -566,12 +601,12 @@ export default function TeacherDashboard() {
           reason: cancelReason,
           courseName: selectedSchedule.courseName,
           courseCode: selectedSchedule.courseCode,
-          teacherId: session?.user?.id,
-          teacherName: session?.user?.name,
+          teacherId: session.user.id,
+          teacherName: session.user.name,
           semester: selectedSchedule.semester,
           program: selectedSchedule.program,
-          changedBy: session?.user?.id,
-          changedByName: session?.user?.name,
+          changedBy: session.user.id,
+          changedByName: session.user.name,
           isActive: true,
         }),
       });
@@ -586,7 +621,7 @@ export default function TeacherDashboard() {
       }
     } catch (error) {
       console.error("Error cancelling class:", error);
-      toast({ title: "Error", description: "Failed to cancel class", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to cancel class. Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -597,6 +632,12 @@ export default function TeacherDashboard() {
       toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
       return;
     }
+    
+    if (!session?.user?.id) {
+      toast({ title: "Error", description: "You must be logged in to reschedule a class", variant: "destructive" });
+      return;
+    }
+    
     const { startTime, endTime } = getCurrentTimeValues();
     setSubmitting(true);
     try {
@@ -619,12 +660,12 @@ export default function TeacherDashboard() {
           reason: rescheduleData.reason,
           courseName: selectedSchedule.courseName,
           courseCode: selectedSchedule.courseCode,
-          teacherId: session?.user?.id,
-          teacherName: session?.user?.name,
+          teacherId: session.user.id,
+          teacherName: session.user.name,
           semester: selectedSchedule.semester,
           program: selectedSchedule.program,
-          changedBy: session?.user?.id,
-          changedByName: session?.user?.name,
+          changedBy: session.user.id,
+          changedByName: session.user.name,
           isActive: true,
         }),
       });
@@ -642,7 +683,7 @@ export default function TeacherDashboard() {
       }
     } catch (error) {
       console.error("Error rescheduling class:", error);
-      toast({ title: "Error", description: "Failed to reschedule class", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to reschedule class. Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -650,9 +691,15 @@ export default function TeacherDashboard() {
 
   const handleCreateNotice = async () => {
     if (!noticeForm.title.trim() || !noticeForm.content.trim()) {
-      toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
+      toast({ title: "Error", description: "Please fill title and content", variant: "destructive" });
       return;
     }
+    
+    if (!session?.user?.id) {
+      toast({ title: "Error", description: "You must be logged in to create a notice", variant: "destructive" });
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const res = await fetch("/api/notices", {
@@ -662,7 +709,6 @@ export default function TeacherDashboard() {
           title: noticeForm.title,
           content: noticeForm.content,
           category: noticeForm.category,
-          affectedYear: noticeForm.affectedYear ? parseInt(noticeForm.affectedYear) : undefined,
           affectedSemester: noticeForm.affectedSemester ? parseInt(noticeForm.affectedSemester) : undefined,
           affectedProgram: noticeForm.affectedProgram,
         }),
@@ -671,13 +717,13 @@ export default function TeacherDashboard() {
       if (data.success) {
         toast({ title: "✅ Notice Created", description: data.message || "Notice has been created successfully" });
         setShowNoticeDialog(false);
-        setNoticeForm({ title: "", content: "", category: "general", affectedYear: "", affectedSemester: "", affectedProgram: "bsc" });
+        setNoticeForm({ title: "", content: "", category: "general", affectedSemester: "", affectedProgram: "bsc" });
       } else {
         toast({ title: "Error", description: data.error || "Failed to create notice", variant: "destructive" });
       }
     } catch (error) {
       console.error("Error creating notice:", error);
-      toast({ title: "Error", description: "Failed to create notice", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to create notice. Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -689,7 +735,12 @@ export default function TeacherDashboard() {
   // Handle Add Class
   const handleAddClass = async () => {
     if (!newClassForm.courseCode.trim() || !newClassForm.courseName.trim() || !newClassForm.dayOfWeek || !newClassForm.roomId) {
-      toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
+      toast({ title: "Error", description: "Please fill all required fields (Course Code, Name, Day, Room)", variant: "destructive" });
+      return;
+    }
+    
+    if (!session?.user?.id) {
+      toast({ title: "Error", description: "You must be logged in to add a class", variant: "destructive" });
       return;
     }
     
@@ -736,7 +787,7 @@ export default function TeacherDashboard() {
       }
     } catch (error) {
       console.error("Error adding class:", error);
-      toast({ title: "Error", description: "Failed to add class", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to add class. Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -746,10 +797,13 @@ export default function TeacherDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading your dashboard...</p>
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full blur-xl opacity-50 animate-pulse" />
+            <Loader2 className="w-12 h-12 animate-spin text-teal-500 mx-auto relative" />
+          </div>
+          <p className="text-muted-foreground mt-4 font-medium">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -760,53 +814,83 @@ export default function TeacherDashboard() {
   const { startTime: currentTimeStart, endTime: currentTimeEnd } = getCurrentTimeValues();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white py-4 md:py-5 sticky top-0 z-30 shadow-lg">
-        <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-yellow-300" />
-                <p className="text-white/80 text-xs">Welcome back,</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 pb-20">
+      {/* Header with Premium 3D Design */}
+      <div className="relative overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.8'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+        
+        {/* Decorative circles */}
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-gradient-to-tr from-cyan-400/30 to-transparent rounded-full blur-3xl" />
+        
+        <div className="relative py-5 md:py-6 sticky top-0 z-30">
+          <div className="container mx-auto px-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Sparkles className="w-4 h-4 text-yellow-300" />
+                    <div className="absolute inset-0 bg-yellow-300 blur-md opacity-50" />
+                  </div>
+                  <p className="text-white/80 text-xs font-medium">Welcome back,</p>
+                </div>
+                <h1 className="text-lg md:text-2xl font-bold text-white truncate">{session.user?.name}</h1>
+                <p className="text-white/70 text-[10px] md:text-xs flex items-center gap-1.5">
+                  <Layers className="w-3 h-3" />
+                  Teacher Dashboard • ICE Department
+                </p>
               </div>
-              <h1 className="text-lg md:text-xl font-bold truncate">{session.user?.name}</h1>
-              <p className="text-white/80 text-[10px] md:text-xs">Teacher Dashboard • ICE Department</p>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 gap-1.5 h-8 px-3 bg-white/10" onClick={() => setShowAddClassDialog(true)}>
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline text-xs font-medium">Add Class</span>
-              </Button>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9" onClick={() => setShowNoticeDialog(true)}>
-                <Megaphone className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9" onClick={() => signOut({ callbackUrl: "/" })}>
-                <LogOut className="w-5 h-5" />
-              </Button>
-            </div>
-          </motion.div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-white hover:bg-white/20 gap-1.5 h-9 px-4 bg-white/10 backdrop-blur-sm border border-white/20 shadow-lg shadow-black/10" 
+                  onClick={() => setShowAddClassDialog(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline text-xs font-semibold">Add Class</span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-white hover:bg-white/20 gap-1.5 h-9 px-4 bg-white/10 backdrop-blur-sm border border-white/20 shadow-lg shadow-black/10" 
+                  onClick={() => setShowNoticeDialog(true)}
+                >
+                  <Megaphone className="w-4 h-4" />
+                  <span className="hidden sm:inline text-xs font-semibold">Notice</span>
+                </Button>
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-9 w-9 bg-white/10 backdrop-blur-sm border border-white/20" onClick={() => signOut({ callbackUrl: "/" })}>
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="container mx-auto px-4 -mt-3">
-        <div className="grid grid-cols-3 gap-2">
+      {/* Stats with 3D Cards */}
+      <div className="container mx-auto px-4 -mt-3 relative z-10">
+        <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Today", value: next7Days[0]?.schedules.length || 0, icon: Calendar, color: "from-rose-400 to-pink-500" },
-            { label: "This Week", value: filteredSchedules.length, icon: Clock, color: "from-cyan-400 to-sky-500" },
-            { label: "Courses", value: new Set(filteredSchedules.map(s => s.courseCode)).size, icon: BookOpen, color: "from-emerald-400 to-teal-500" },
+            { label: "Today", value: next7Days[0]?.schedules.length || 0, icon: Calendar, gradient: "from-rose-400 via-pink-500 to-fuchsia-500", shadow: "shadow-rose-500/30" },
+            { label: "This Week", value: filteredSchedules.length, icon: Clock, gradient: "from-cyan-400 via-sky-500 to-blue-500", shadow: "shadow-cyan-500/30" },
+            { label: "Courses", value: new Set(filteredSchedules.map(s => s.courseCode)).size, icon: BookOpen, gradient: "from-emerald-400 via-teal-500 to-green-500", shadow: "shadow-emerald-500/30" },
           ].map((stat, index) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-              <Card className="shadow-md">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br", stat.color)}>
-                      <stat.icon className="w-4 h-4 text-white" />
+              <Card className="shadow-xl border-0 overflow-hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl">
+                <CardContent className="p-4 relative">
+                  {/* Decorative gradient */}
+                  <div className={cn("absolute -top-4 -right-4 w-16 h-16 rounded-full bg-gradient-to-br blur-xl opacity-50", stat.gradient)} />
+                  
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-lg", stat.gradient, stat.shadow)}>
+                      <stat.icon className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-lg font-bold">{stat.value}</p>
-                      <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+                      <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">{stat.value}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium">{stat.label}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -816,19 +900,23 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters with Premium Design */}
       <div className="container mx-auto px-4 mt-4">
-        <Card className="shadow-md">
+        <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl overflow-hidden">
+          {/* Decorative top bar */}
+          <div className="h-1 bg-gradient-to-r from-teal-400 via-emerald-500 to-cyan-500" />
           <CardHeader className="py-3 px-4">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Funnel className="w-4 h-4 text-emerald-500" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center shadow-md shadow-teal-500/30">
+                <Funnel className="w-4 h-4 text-white" />
+              </div>
               Filter Classes
             </CardTitle>
           </CardHeader>
           <CardContent className="py-2 px-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <Select value={filterSemester} onValueChange={setFilterSemester}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Semester" /></SelectTrigger>
+                <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder="Semester" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Semesters</SelectItem>
                   {uniqueSemesters.map((sem) => (
@@ -837,7 +925,7 @@ export default function TeacherDashboard() {
                 </SelectContent>
               </Select>
               <Select value={filterProgram} onValueChange={setFilterProgram}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Program" /></SelectTrigger>
+                <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder="Program" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Programs</SelectItem>
                   {uniquePrograms.map((prog) => (
@@ -846,7 +934,7 @@ export default function TeacherDashboard() {
                 </SelectContent>
               </Select>
               <Select value={filterRoom} onValueChange={setFilterRoom}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Room" /></SelectTrigger>
+                <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder="Room" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Rooms</SelectItem>
                   {rooms.map((room) => (
@@ -855,7 +943,7 @@ export default function TeacherDashboard() {
                 </SelectContent>
               </Select>
               <Select value={filterDay} onValueChange={setFilterDay}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Day" /></SelectTrigger>
+                <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder="Day" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Days</SelectItem>
                   {days.map((day) => (
@@ -864,9 +952,9 @@ export default function TeacherDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-muted-foreground">Showing {filteredSchedules.length} classes</p>
-              <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 text-xs">Reset Filters</Button>
+            <div className="flex items-center justify-between mt-3">
+              <p className="text-xs text-muted-foreground font-medium">Showing <span className="font-bold text-foreground">{filteredSchedules.length}</span> classes</p>
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 text-xs font-medium text-teal-600 hover:text-teal-700">Reset Filters</Button>
             </div>
           </CardContent>
         </Card>
@@ -875,15 +963,18 @@ export default function TeacherDashboard() {
       {/* View Toggle */}
       <div className="container mx-auto px-4 mt-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Your Classes</h2>
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-            <Button variant={viewMode === "cards" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("cards")} className="h-7 gap-1 px-2">
+          <h2 className="text-base font-bold flex items-center gap-2">
+            <Zap className="w-4 h-4 text-amber-500" />
+            Your Classes
+          </h2>
+          <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
+            <Button variant={viewMode === "cards" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("cards")} className={cn("h-8 gap-1 px-3 rounded-lg", viewMode === "cards" && "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md")}>
               <Grid3X3 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline text-xs">Cards</span>
+              <span className="hidden sm:inline text-xs font-medium">Cards</span>
             </Button>
-            <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("list")} className="h-7 gap-1 px-2">
+            <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("list")} className={cn("h-8 gap-1 px-3 rounded-lg", viewMode === "list" && "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md")}>
               <AlignJustify className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline text-xs">List</span>
+              <span className="hidden sm:inline text-xs font-medium">List</span>
             </Button>
           </div>
         </div>
@@ -892,15 +983,18 @@ export default function TeacherDashboard() {
       {/* Classes Display */}
       <div className="container mx-auto px-4 mt-3">
         {filteredSchedules.length === 0 ? (
-          <Card className="shadow-md">
-            <CardContent className="py-8 text-center">
-              <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-              <p className="text-muted-foreground">No classes found</p>
-              <Button variant="outline" size="sm" onClick={resetFilters} className="mt-3">Reset Filters</Button>
+          <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl">
+            <CardContent className="py-12 text-center">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full blur-xl opacity-30" />
+                <BookOpen className="w-16 h-16 mx-auto text-muted-foreground/30 relative" />
+              </div>
+              <p className="text-muted-foreground mt-4 font-medium">No classes found</p>
+              <Button variant="outline" size="sm" onClick={resetFilters} className="mt-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-0 shadow-lg shadow-teal-500/30">Reset Filters</Button>
             </CardContent>
           </Card>
         ) : viewMode === "cards" ? (
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {filteredSchedules.sort((a, b) => {
               const dayOrder = days.indexOf(a.dayOfWeek?.toLowerCase() || "");
               const dayOrderB = days.indexOf(b.dayOfWeek?.toLowerCase() || "");
@@ -920,7 +1014,8 @@ export default function TeacherDashboard() {
             ))}
           </div>
         ) : (
-          <Card className="shadow-md">
+          <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-teal-400 via-emerald-500 to-cyan-500" />
             <CardContent className="p-0 divide-y divide-border">
               {filteredSchedules.sort((a, b) => {
                 const dayOrder = days.indexOf(a.dayOfWeek?.toLowerCase() || "");
@@ -934,15 +1029,15 @@ export default function TeacherDashboard() {
                 const isCancelled = change?.changeType === "cancelled" && change?.isActive;
                 return (
                   <div key={schedule.id}>
-                    <div onClick={() => setSelectedSchedule(isSelected ? null : schedule)} className={cn("flex items-center gap-3 p-3 cursor-pointer transition-all hover:bg-muted/50", isSelected && "bg-emerald-50 dark:bg-emerald-900/20")}>
+                    <div onClick={() => setSelectedSchedule(isSelected ? null : schedule)} className={cn("flex items-center gap-3 p-4 cursor-pointer transition-all hover:bg-muted/50", isSelected && "bg-gradient-to-r from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20")}>
                       <div className="w-12 shrink-0">
-                        <Badge variant="outline" className="text-[10px] w-full justify-center capitalize">{schedule.dayOfWeek?.substring(0, 3)}</Badge>
+                        <Badge variant="outline" className="text-[10px] w-full justify-center capitalize bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">{schedule.dayOfWeek?.substring(0, 3)}</Badge>
                       </div>
                       <div className="w-16 shrink-0">
-                        <p className="text-xs font-medium">{formatTime(schedule.startTime)}</p>
+                        <p className="text-xs font-bold">{formatTime(schedule.startTime)}</p>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={cn("text-sm font-medium truncate", isCancelled && "line-through")}>{schedule.courseCode}</p>
+                        <p className={cn("text-sm font-semibold truncate", isCancelled && "line-through")}>{schedule.courseCode}</p>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                           <span>{schedule.roomNumber}</span>
                           <span>•</span>
@@ -951,20 +1046,20 @@ export default function TeacherDashboard() {
                           <span className="uppercase">{schedule.program}</span>
                         </div>
                       </div>
-                      <Badge className={cn("text-[9px]", typeColors.badge)}>{schedule.classType === "lab" ? "LAB" : "THEORY"}</Badge>
+                      <Badge className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", typeColors.badge)}>{schedule.classType === "lab" ? "LAB" : "THEORY"}</Badge>
                       {change && change.isActive && (
-                        <Badge className={cn("text-[9px]", change.changeType === "cancelled" && "bg-red-500 text-white", change.changeType === "rescheduled" && "bg-amber-500 text-white")}>
+                        <Badge className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", change.changeType === "cancelled" && "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-md shadow-red-500/30", change.changeType === "rescheduled" && "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30")}>
                           {change.changeType === "cancelled" ? "CANCELLED" : "RESCHEDULED"}
                         </Badge>
                       )}
                     </div>
                     <AnimatePresence>
                       {isSelected && !isCancelled && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex items-center justify-end gap-2 px-3 pb-3">
-                          <Button variant="outline" size="sm" className="text-red-600 border-red-300 bg-red-50 hover:bg-red-100 h-8 text-xs" onClick={() => handleOpenCancel(schedule)}>
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex items-center justify-end gap-2 px-4 pb-4">
+                          <Button variant="outline" size="sm" className="text-red-600 border-red-300 bg-gradient-to-b from-red-50 to-rose-100 hover:from-red-100 hover:to-rose-200 h-8 text-xs shadow-md shadow-red-500/10" onClick={() => handleOpenCancel(schedule)}>
                             <Ban className="w-3.5 h-3.5 mr-1.5" />Cancel
                           </Button>
-                          <Button variant="outline" size="sm" className="text-cyan-600 border-cyan-300 bg-cyan-50 hover:bg-cyan-100 h-8 text-xs" onClick={() => handleOpenReschedule(schedule)}>
+                          <Button variant="outline" size="sm" className="text-cyan-600 border-cyan-300 bg-gradient-to-b from-cyan-50 to-sky-100 hover:from-cyan-100 hover:to-sky-200 h-8 text-xs shadow-md shadow-cyan-500/10" onClick={() => handleOpenReschedule(schedule)}>
                             <RefreshCw className="w-3.5 h-3.5 mr-1.5" />Reschedule
                           </Button>
                         </motion.div>
@@ -980,25 +1075,30 @@ export default function TeacherDashboard() {
 
       {/* Cancel Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600"><XCircle className="w-5 h-5" />Cancel Class</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30">
+                <XCircle className="w-4 h-4 text-white" />
+              </div>
+              Cancel Class
+            </DialogTitle>
             <DialogDescription>Cancel {selectedSchedule?.courseCode} - {selectedSchedule?.courseName}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="p-3 bg-muted rounded-lg space-y-1 text-sm">
-              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" /><span className="capitalize">{selectedSchedule?.dayOfWeek}</span></div>
-              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" /><span>{selectedSchedule?.startTime} - {selectedSchedule?.endTime}</span></div>
-              <div className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-muted-foreground" /><span>{selectedSchedule?.semester}{selectedSchedule?.semester === 1 ? 'st' : selectedSchedule?.semester === 2 ? 'nd' : selectedSchedule?.semester === 3 ? 'rd' : 'th'} Semester ({selectedSchedule?.program?.toUpperCase()})</span></div>
+            <div className="p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl space-y-1 text-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-teal-500" /><span className="capitalize font-medium">{selectedSchedule?.dayOfWeek}</span></div>
+              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /><span>{selectedSchedule?.startTime} - {selectedSchedule?.endTime}</span></div>
+              <div className="flex items-center gap-2"><GraduationCap className="w-4 h-4 text-purple-500" /><span>{selectedSchedule?.semester}{selectedSchedule?.semester === 1 ? 'st' : selectedSchedule?.semester === 2 ? 'nd' : selectedSchedule?.semester === 3 ? 'rd' : 'th'} Semester ({selectedSchedule?.program?.toUpperCase()})</span></div>
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Reason for Cancellation *</Label>
-              <Textarea placeholder="Please provide a reason for cancelling this class..." value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={3} className="resize-none" />
+              <Textarea placeholder="Please provide a reason for cancelling this class..." value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={3} className="resize-none bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
             </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowCancelDialog(false)} disabled={submitting}>Cancel</Button>
-            <Button variant="destructive" onClick={handleCancelClass} disabled={submitting || !cancelReason.trim()}>
+            <Button variant="destructive" onClick={handleCancelClass} disabled={submitting || !cancelReason.trim()} className="bg-gradient-to-r from-red-500 to-rose-500 shadow-lg shadow-red-500/30">
               {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Cancelling...</> : <><XCircle className="w-4 h-4 mr-2" />Confirm Cancellation</>}
             </Button>
           </DialogFooter>
@@ -1007,17 +1107,22 @@ export default function TeacherDashboard() {
 
       {/* Reschedule Dialog */}
       <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-cyan-600"><RefreshCw className="w-5 h-5" />Reschedule Class</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-cyan-600">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                <RefreshCw className="w-4 h-4 text-white" />
+              </div>
+              Reschedule Class
+            </DialogTitle>
             <DialogDescription>Reschedule {selectedSchedule?.courseCode} - {selectedSchedule?.courseName}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="p-3 bg-muted rounded-lg space-y-1 text-sm">
+            <div className="p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl space-y-1 text-sm border border-gray-200 dark:border-gray-700">
               <p className="font-medium text-xs mb-2 text-muted-foreground">Original Schedule</p>
-              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" /><span className="capitalize">{selectedSchedule?.dayOfWeek}</span></div>
-              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" /><span>{selectedSchedule?.startTime} - {selectedSchedule?.endTime}</span></div>
-              <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-muted-foreground" /><span>{selectedSchedule?.roomNumber}</span></div>
+              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-teal-500" /><span className="capitalize">{selectedSchedule?.dayOfWeek}</span></div>
+              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500" /><span>{selectedSchedule?.startTime} - {selectedSchedule?.endTime}</span></div>
+              <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-rose-500" /><span>{selectedSchedule?.roomNumber}</span></div>
             </div>
             <div className="space-y-3">
               <Label className="text-sm font-medium">New Schedule</Label>
@@ -1025,7 +1130,7 @@ export default function TeacherDashboard() {
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">New Day *</Label>
                   <Select value={rescheduleData.newDay} onValueChange={(value) => setRescheduleData({ ...rescheduleData, newDay: value })}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Select day" /></SelectTrigger>
+                    <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder="Select day" /></SelectTrigger>
                     <SelectContent>
                       {days.map((day) => (<SelectItem key={day} value={day} className="capitalize">{day}</SelectItem>))}
                     </SelectContent>
@@ -1034,7 +1139,7 @@ export default function TeacherDashboard() {
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Time Slot</Label>
                   <Select value={rescheduleData.timeSlotId} onValueChange={(value) => { setRescheduleData({ ...rescheduleData, timeSlotId: value }); setUseCustomTime(false); }}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Select slot" /></SelectTrigger>
+                    <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder="Select slot" /></SelectTrigger>
                     <SelectContent>
                       {timeSlots.map((slot) => (<SelectItem key={slot.id} value={slot.id}>{slot.label} ({slot.startTime} - {slot.endTime})</SelectItem>))}
                     </SelectContent>
@@ -1042,8 +1147,8 @@ export default function TeacherDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="customTime" checked={useCustomTime} onChange={(e) => setUseCustomTime(e.target.checked)} className="rounded" />
-                <Label htmlFor="customTime" className="text-xs">Use custom time</Label>
+                <input type="checkbox" id="customTime" checked={useCustomTime} onChange={(e) => setUseCustomTime(e.target.checked)} className="rounded border-gray-300" />
+                <Label htmlFor="customTime" className="text-xs font-medium">Use custom time</Label>
               </div>
               {useCustomTime && (
                 <div className="grid grid-cols-2 gap-3">
@@ -1055,7 +1160,7 @@ export default function TeacherDashboard() {
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">Select Room {loadingRooms && <Loader2 className="w-3 h-3 animate-spin inline ml-1" />}</Label>
                   <Select value={newRoomId} onValueChange={setNewRoomId} disabled={loadingRooms}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder={loadingRooms ? "Loading rooms..." : "Select room"} /></SelectTrigger>
+                    <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder={loadingRooms ? "Loading rooms..." : "Select room"} /></SelectTrigger>
                     <SelectContent>
                       {availableRooms.length > 0 ? (
                         availableRooms.map((room) => (
@@ -1076,12 +1181,12 @@ export default function TeacherDashboard() {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Reason for Reschedule *</Label>
-              <Textarea placeholder="Please provide a reason for rescheduling..." value={rescheduleData.reason} onChange={(e) => setRescheduleData({ ...rescheduleData, reason: e.target.value })} rows={2} className="resize-none" />
+              <Textarea placeholder="Please provide a reason for rescheduling..." value={rescheduleData.reason} onChange={(e) => setRescheduleData({ ...rescheduleData, reason: e.target.value })} rows={2} className="resize-none bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
             </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowRescheduleDialog(false)} disabled={submitting}>Cancel</Button>
-            <Button onClick={handleRescheduleClass} disabled={submitting || !rescheduleData.newDay || !rescheduleData.reason} className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600">
+            <Button onClick={handleRescheduleClass} disabled={submitting || !rescheduleData.newDay || !rescheduleData.reason} className="bg-gradient-to-r from-cyan-500 to-teal-500 shadow-lg shadow-cyan-500/30">
               {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Rescheduling...</> : <><RefreshCw className="w-4 h-4 mr-2" />Confirm Reschedule</>}
             </Button>
           </DialogFooter>
@@ -1090,25 +1195,30 @@ export default function TeacherDashboard() {
 
       {/* Notice Dialog */}
       <Dialog open={showNoticeDialog} onOpenChange={setShowNoticeDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Megaphone className="w-5 h-5 text-emerald-500" />Create Notice</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <Megaphone className="w-4 h-4 text-white" />
+              </div>
+              Create Notice
+            </DialogTitle>
             <DialogDescription>Post an announcement for students</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Title *</Label>
-              <Input placeholder="Notice title..." value={noticeForm.title} onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })} />
+              <Input placeholder="Notice title..." value={noticeForm.title} onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })} className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Content *</Label>
-              <Textarea placeholder="Notice content..." value={noticeForm.content} onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })} rows={4} />
+              <Textarea placeholder="Notice content..." value={noticeForm.content} onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })} rows={4} className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Category</Label>
                 <Select value={noticeForm.category} onValueChange={(v) => setNoticeForm({ ...noticeForm, category: v })}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="general">General</SelectItem>
                     <SelectItem value="academic">Academic</SelectItem>
@@ -1120,7 +1230,7 @@ export default function TeacherDashboard() {
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Program</Label>
                 <Select value={noticeForm.affectedProgram} onValueChange={(v) => setNoticeForm({ ...noticeForm, affectedProgram: v })}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="bsc">BSc</SelectItem>
                     <SelectItem value="msc">MSc</SelectItem>
@@ -1128,16 +1238,14 @@ export default function TeacherDashboard() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Semester (Optional)</Label>
-                <Input type="number" min="1" max="8" placeholder="e.g. 1" value={noticeForm.affectedSemester} onChange={(e) => setNoticeForm({ ...noticeForm, affectedSemester: e.target.value })} />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Semester (Optional)</Label>
+              <Input type="number" min="1" max="8" placeholder="e.g. 1" value={noticeForm.affectedSemester} onChange={(e) => setNoticeForm({ ...noticeForm, affectedSemester: e.target.value })} className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
             </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowNoticeDialog(false)} disabled={submitting}>Cancel</Button>
-            <Button onClick={handleCreateNotice} disabled={submitting || !noticeForm.title.trim() || !noticeForm.content.trim()} className="bg-gradient-to-r from-emerald-500 to-teal-500">
+            <Button onClick={handleCreateNotice} disabled={submitting || !noticeForm.title.trim() || !noticeForm.content.trim()} className="bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30">
               {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : <><Plus className="w-4 h-4 mr-2" />Create Notice</>}
             </Button>
           </DialogFooter>
@@ -1146,10 +1254,12 @@ export default function TeacherDashboard() {
 
       {/* Add Class Dialog */}
       <Dialog open={showAddClassDialog} onOpenChange={setShowAddClassDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-teal-600">
-              <Plus className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-teal-500/30">
+                <Plus className="w-4 h-4 text-white" />
+              </div>
               Add New Class
             </DialogTitle>
             <DialogDescription>
@@ -1160,12 +1270,12 @@ export default function TeacherDashboard() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Course Code *</Label>
-                <Input placeholder="e.g. ICE-301" value={newClassForm.courseCode} onChange={(e) => setNewClassForm({ ...newClassForm, courseCode: e.target.value })} />
+                <Input placeholder="e.g. ICE-301" value={newClassForm.courseCode} onChange={(e) => setNewClassForm({ ...newClassForm, courseCode: e.target.value })} className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Class Type</Label>
                 <Select value={newClassForm.classType} onValueChange={(v: "theory" | "lab") => setNewClassForm({ ...newClassForm, classType: v })}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="theory">Theory</SelectItem>
                     <SelectItem value="lab">Lab</SelectItem>
@@ -1175,22 +1285,22 @@ export default function TeacherDashboard() {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Course Name *</Label>
-              <Input placeholder="e.g. Digital Signal Processing" value={newClassForm.courseName} onChange={(e) => setNewClassForm({ ...newClassForm, courseName: e.target.value })} />
+              <Input placeholder="e.g. Digital Signal Processing" value={newClassForm.courseName} onChange={(e) => setNewClassForm({ ...newClassForm, courseName: e.target.value })} className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Day *</Label>
+                <Label className="text-xs text-muted-foreground font-medium">Day *</Label>
                 <Select value={newClassForm.dayOfWeek} onValueChange={(v) => setNewClassForm({ ...newClassForm, dayOfWeek: v })}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Select day" /></SelectTrigger>
+                  <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder="Select day" /></SelectTrigger>
                   <SelectContent>
                     {days.map((day) => (<SelectItem key={day} value={day} className="capitalize">{day}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Room *</Label>
+                <Label className="text-xs text-muted-foreground font-medium">Room *</Label>
                 <Select value={newClassForm.roomId} onValueChange={(v) => setNewClassForm({ ...newClassForm, roomId: v })}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Select room" /></SelectTrigger>
+                  <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder="Select room" /></SelectTrigger>
                   <SelectContent>
                     {rooms.map((room) => (
                       <SelectItem key={room.id} value={room.id}>
@@ -1207,19 +1317,19 @@ export default function TeacherDashboard() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Start Time</Label>
-                <Input type="time" value={newClassForm.startTime} onChange={(e) => setNewClassForm({ ...newClassForm, startTime: e.target.value })} className="h-9" />
+                <Label className="text-xs text-muted-foreground font-medium">Start Time</Label>
+                <Input type="time" value={newClassForm.startTime} onChange={(e) => setNewClassForm({ ...newClassForm, startTime: e.target.value })} className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">End Time</Label>
-                <Input type="time" value={newClassForm.endTime} onChange={(e) => setNewClassForm({ ...newClassForm, endTime: e.target.value })} className="h-9" />
+                <Label className="text-xs text-muted-foreground font-medium">End Time</Label>
+                <Input type="time" value={newClassForm.endTime} onChange={(e) => setNewClassForm({ ...newClassForm, endTime: e.target.value })} className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Program</Label>
+                <Label className="text-xs text-muted-foreground font-medium">Program</Label>
                 <Select value={newClassForm.program} onValueChange={(v) => setNewClassForm({ ...newClassForm, program: v })}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="bsc">BSc</SelectItem>
                     <SelectItem value="msc">MSc</SelectItem>
@@ -1227,9 +1337,9 @@ export default function TeacherDashboard() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Semester</Label>
+                <Label className="text-xs text-muted-foreground font-medium">Semester</Label>
                 <Select value={newClassForm.semester.toString()} onValueChange={(v) => setNewClassForm({ ...newClassForm, semester: parseInt(v) })}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {[1,2,3,4,5,6,7,8].map((sem) => (
                       <SelectItem key={sem} value={sem.toString()}>{sem}{sem === 1 ? 'st' : sem === 2 ? 'nd' : sem === 3 ? 'rd' : 'th'} Semester</SelectItem>
@@ -1241,7 +1351,7 @@ export default function TeacherDashboard() {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowAddClassDialog(false)} disabled={submitting}>Cancel</Button>
-            <Button onClick={handleAddClass} disabled={submitting || !newClassForm.courseCode || !newClassForm.courseName || !newClassForm.dayOfWeek || !newClassForm.roomId} className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600">
+            <Button onClick={handleAddClass} disabled={submitting || !newClassForm.courseCode || !newClassForm.courseName || !newClassForm.dayOfWeek || !newClassForm.roomId} className="bg-gradient-to-r from-teal-500 to-emerald-500 shadow-lg shadow-teal-500/30">
               {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : <><Plus className="w-4 h-4 mr-2" />Add Class</>}
             </Button>
           </DialogFooter>
@@ -1249,7 +1359,12 @@ export default function TeacherDashboard() {
       </Dialog>
 
       {/* Notification Bar */}
-      <NotificationBar notifications={notifications} isOpen={showNotifications} onToggle={() => setShowNotifications(!showNotifications)} onMarkAsRead={handleMarkAsRead} />
+      <NotificationBar 
+        notifications={notifications} 
+        isOpen={showNotifications} 
+        onToggle={() => setShowNotifications(!showNotifications)} 
+        onMarkAsRead={handleMarkAsRead}
+      />
     </div>
   );
 }
