@@ -5,12 +5,15 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Calendar, Clock, Users, BookOpen, LogOut, ChevronRight, Loader2, 
+  Calendar, Clock, Users, BookOpen, LogOut, Loader2, 
   Ban, RefreshCw, MapPin, Plus, X, Check, AlertCircle, Bell,
-  Building, Timer, Edit, Send, ChevronLeft, ChevronDown, 
-  AlignJustify, Grid3X3, AlignLeft, BellOff, Trash2, CheckCircle
+  Building, Edit, ChevronLeft, ChevronDown, 
+  AlignJustify, Grid3X3, AlignLeft, BellOff, Trash2, CheckCircle,
+  DoorOpen, DoorClosed, Timer, Settings, Sparkles, Sun, Moon,
+  MonitorPlay, FlaskConical, Presentation, GraduationCap
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -31,10 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { format, addDays, startOfWeek, isToday } from "date-fns";
+import { format, addDays, startOfWeek, isToday, addWeeks, subWeeks } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
+// Types
 interface TeacherSchedule {
   id: string;
   courseId: string;
@@ -65,6 +71,19 @@ interface Room {
   roomNumber: string;
   building: string;
   type: string;
+  capacity: number;
+}
+
+interface RoomAvailability {
+  room: Room;
+  isAvailable: boolean;
+  occupiedBy: {
+    courseCode: string;
+    courseName: string;
+    teacherName: string;
+    startTime?: string;
+    endTime?: string;
+  } | null;
 }
 
 interface Notification {
@@ -77,7 +96,38 @@ interface Notification {
   createdAt: Date | string;
 }
 
-const days = ["sunday", "monday", "tuesday", "wednesday", "thursday"];
+// Days including Friday and Saturday
+const days = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"];
+
+// Beautiful color palettes for different contexts
+const colorPalettes = {
+  courses: [
+    { bg: "from-rose-400 to-pink-500", text: "text-rose-600", light: "bg-rose-50 dark:bg-rose-900/20", border: "border-rose-200 dark:border-rose-800" },
+    { bg: "from-orange-400 to-amber-500", text: "text-orange-600", light: "bg-orange-50 dark:bg-orange-900/20", border: "border-orange-200 dark:border-orange-800" },
+    { bg: "from-emerald-400 to-teal-500", text: "text-emerald-600", light: "bg-emerald-50 dark:bg-emerald-900/20", border: "border-emerald-200 dark:border-emerald-800" },
+    { bg: "from-cyan-400 to-sky-500", text: "text-cyan-600", light: "bg-cyan-50 dark:bg-cyan-900/20", border: "border-cyan-200 dark:border-cyan-800" },
+    { bg: "from-violet-400 to-purple-500", text: "text-violet-600", light: "bg-violet-50 dark:bg-violet-900/20", border: "border-violet-200 dark:border-violet-800" },
+    { bg: "from-fuchsia-400 to-pink-500", text: "text-fuchsia-600", light: "bg-fuchsia-50 dark:bg-fuchsia-900/20", border: "border-fuchsia-200 dark:border-fuchsia-800" },
+  ],
+  lab: { bg: "from-purple-500 to-violet-600", text: "text-purple-600", light: "bg-purple-50 dark:bg-purple-900/20", border: "border-purple-200 dark:border-purple-800" },
+  theory: { bg: "from-emerald-500 to-teal-600", text: "text-emerald-600", light: "bg-emerald-50 dark:bg-emerald-900/20", border: "border-emerald-200 dark:border-emerald-800" },
+  days: [
+    { bg: "bg-gradient-to-r from-rose-500 to-pink-500", accent: "text-rose-500" },
+    { bg: "bg-gradient-to-r from-orange-500 to-amber-500", accent: "text-orange-500" },
+    { bg: "bg-gradient-to-r from-emerald-500 to-teal-500", accent: "text-emerald-500" },
+    { bg: "bg-gradient-to-r from-cyan-500 to-sky-500", accent: "text-cyan-500" },
+    { bg: "bg-gradient-to-r from-violet-500 to-purple-500", accent: "text-violet-500" },
+    { bg: "bg-gradient-to-r from-fuchsia-500 to-pink-500", accent: "text-fuchsia-500" },
+    { bg: "bg-gradient-to-r from-rose-400 to-red-500", accent: "text-rose-400" },
+  ]
+};
+
+// Room type icons
+const roomTypeIcons: Record<string, React.ReactNode> = {
+  classroom: <GraduationCap className="w-3.5 h-3.5" />,
+  lab: <FlaskConical className="w-3.5 h-3.5" />,
+  seminar: <Presentation className="w-3.5 h-3.5" />,
+};
 
 // Helper to safely convert Firestore timestamp to Date
 function toDate(timestamp: unknown): Date {
@@ -96,7 +146,196 @@ function toDate(timestamp: unknown): Date {
   return new Date();
 }
 
-// Notification Center Component for Teacher Dashboard
+// Custom Time Picker Component
+function CustomTimePicker({ 
+  value, 
+  onChange, 
+  label 
+}: { 
+  value: string; 
+  onChange: (time: string) => void; 
+  label: string;
+}) {
+  // Derive hour and minute from value prop directly
+  const hour = value ? value.split(":")[0] : "09";
+  const minute = value ? value.split(":")[1] : "00";
+
+  const handleHourChange = (h: string) => {
+    onChange(`${h}:${minute}`);
+  };
+
+  const handleMinuteChange = (m: string) => {
+    onChange(`${hour}:${m}`);
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="flex items-center gap-2">
+        <Select value={hour} onValueChange={handleHourChange}>
+          <SelectTrigger className="w-20 h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map((h) => (
+              <SelectItem key={h} value={h} className="text-sm">{h}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-lg font-bold text-muted-foreground">:</span>
+        <Select value={minute} onValueChange={handleMinuteChange}>
+          <SelectTrigger className="w-20 h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0")).map((m) => (
+              <SelectItem key={m} value={m} className="text-sm">{m}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+// Room Availability Checker Component
+function RoomAvailabilityChecker({ 
+  day, 
+  startTime, 
+  endTime,
+  excludeScheduleId,
+  onRoomSelect,
+  selectedRoomId 
+}: { 
+  day: string;
+  startTime: string;
+  endTime: string;
+  excludeScheduleId?: string;
+  onRoomSelect: (roomId: string) => void;
+  selectedRoomId: string;
+}) {
+  const [rooms, setRooms] = useState<RoomAvailability[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchAvailability = useCallback(async () => {
+    if (!day || !startTime || !endTime) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `/api/rooms/availability?day=${day}&startTime=${startTime}&endTime=${endTime}${excludeScheduleId ? `&excludeScheduleId=${excludeScheduleId}` : ""}`
+      );
+      const data = await res.json();
+      if (data.success) {
+        setRooms(data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching room availability:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [day, startTime, endTime, excludeScheduleId]);
+
+  useEffect(() => {
+    fetchAvailability();
+  }, [fetchAvailability]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-medium flex items-center gap-2">
+          <DoorOpen className="w-3.5 h-3.5" />
+          Select Room
+        </Label>
+        <Button variant="ghost" size="sm" onClick={fetchAvailability} className="h-6 text-[10px]">
+          <RefreshCw className={cn("w-3 h-3", loading && "animate-spin")} />
+        </Button>
+      </div>
+      
+      {loading ? (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-1">
+          {rooms.map((item) => {
+            const isSelected = selectedRoomId === item.room.id;
+            const isAvailable = item.isAvailable;
+            
+            return (
+              <motion.button
+                key={item.room.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => isAvailable && onRoomSelect(item.room.id)}
+                disabled={!isAvailable}
+                className={cn(
+                  "p-2.5 rounded-lg border-2 text-left transition-all relative overflow-hidden",
+                  isSelected && isAvailable && "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20",
+                  isAvailable && !isSelected && "border-border hover:border-emerald-300 bg-background",
+                  !isAvailable && "border-red-200 bg-red-50/50 dark:bg-red-900/10 cursor-not-allowed opacity-70"
+                )}
+              >
+                {/* Status indicator */}
+                <div className={cn(
+                  "absolute top-1 right-1 w-2 h-2 rounded-full",
+                  isAvailable ? "bg-emerald-500" : "bg-red-500"
+                )} />
+                
+                <div className="flex items-start gap-2">
+                  <div className={cn(
+                    "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                    isAvailable ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30" : "bg-red-100 text-red-600 dark:bg-red-900/30"
+                  )}>
+                    {roomTypeIcons[item.room.type] || <Building className="w-3.5 h-3.5" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold truncate">{item.room.roomNumber}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{item.room.building}</p>
+                  </div>
+                </div>
+                
+                {!isAvailable && item.occupiedBy && (
+                  <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800">
+                    <p className="text-[9px] text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <DoorClosed className="w-2.5 h-2.5" />
+                      {item.occupiedBy.courseCode}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground truncate">
+                      {item.occupiedBy.teacherName}
+                    </p>
+                  </div>
+                )}
+                
+                {isAvailable && (
+                  <div className="mt-1.5 flex items-center gap-1 text-[9px] text-emerald-600">
+                    <CheckCircle className="w-2.5 h-2.5" />
+                    Available
+                  </div>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+      )}
+      
+      {!loading && rooms.length > 0 && (
+        <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            Available
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            Occupied
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Notification Center Component
 function TeacherNotificationCenter({ userId }: { userId: string }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -142,30 +381,6 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
     }
   };
 
-  const markAllAsRead = async () => {
-    if (!userId) return;
-    try {
-      await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ markAllRead: true, userId }),
-      });
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-    } catch (error) {
-      console.error("Error marking all as read:", error);
-    }
-  };
-
-  const deleteNotification = async (notificationId: string) => {
-    try {
-      await fetch(`/api/notifications?id=${notificationId}`, { method: "DELETE" });
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-    } catch (error) {
-      console.error("Error deleting notification:", error);
-    }
-  };
-
   const formatTime = (date: Date | string) => {
     const d = toDate(date);
     const now = new Date();
@@ -182,7 +397,6 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
 
   return (
     <>
-      {/* Notification Badge in Header */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -199,11 +413,9 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
         )}
       </button>
 
-      {/* Notification Panel */}
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -212,7 +424,6 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
               onClick={() => setIsOpen(false)}
             />
             
-            {/* Panel */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -220,7 +431,6 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-background border-l border-border z-50 shadow-2xl"
             >
-              {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
                 <div className="flex items-center gap-2">
                   <Bell className="w-5 h-5" />
@@ -229,30 +439,16 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
                     <Badge className="bg-white text-emerald-600 text-xs">{unreadCount}</Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  {unreadCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={markAllAsRead}
-                      className="text-white hover:bg-white/20 h-8 text-xs"
-                    >
-                      <Check className="w-3 h-3 mr-1" />
-                      Mark all read
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsOpen(false)}
-                    className="text-white hover:bg-white/20"
-                  >
-                    <X className="w-5 h-5" />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsOpen(false)}
+                  className="text-white hover:bg-white/20"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
               </div>
 
-              {/* Notifications List */}
               <div className="overflow-y-auto h-[calc(100vh-80px)] p-3 space-y-2">
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
@@ -284,21 +480,10 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
                            <Bell className="w-4 h-4" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className={cn(
-                              "text-sm font-medium leading-tight",
-                              !notification.isRead && "text-foreground"
-                            )}>
-                              {notification.title}
-                            </p>
-                            <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                              {formatTime(notification.createdAt)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {notification.body}
-                          </p>
+                          <p className="text-sm font-medium leading-tight">{notification.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.body}</p>
                           <div className="flex items-center gap-2 mt-2">
+                            <span className="text-[10px] text-muted-foreground">{formatTime(notification.createdAt)}</span>
                             {!notification.isRead && (
                               <Button
                                 variant="ghost"
@@ -310,15 +495,6 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
                                 Read
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteNotification(notification.id)}
-                              className="h-6 text-[10px] px-2 text-red-500 hover:text-red-600"
-                            >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Delete
-                            </Button>
                           </div>
                         </div>
                       </div>
@@ -328,7 +504,6 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
                   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                     <BellOff className="w-12 h-12 mb-3 opacity-50" />
                     <p className="text-sm">No notifications</p>
-                    <p className="text-xs mt-1">You're all caught up!</p>
                   </div>
                 )}
               </div>
@@ -340,6 +515,7 @@ function TeacherNotificationCenter({ userId }: { userId: string }) {
   );
 }
 
+// Main Teacher Dashboard Component
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -349,30 +525,46 @@ export default function TeacherDashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"cards" | "list" | "timeline">("cards");
+  const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
   
   // Dialog states
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [showRoomDialog, setShowRoomDialog] = useState(false);
-  const [showExtraDialog, setShowExtraDialog] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<TeacherSchedule | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Custom time states for dialogs
+  const [useCustomTime, setUseCustomTime] = useState(false);
+  const [customStartTime, setCustomStartTime] = useState("09:00");
+  const [customEndTime, setCustomEndTime] = useState("10:00");
   
   // Form states
   const [cancelReason, setCancelReason] = useState("");
   const [rescheduleData, setRescheduleData] = useState({
     newDay: "",
-    newTimeSlotId: "",
+    timeSlotId: "",
     reason: ""
   });
   const [newRoomId, setNewRoomId] = useState("");
   const [roomChangeReason, setRoomChangeReason] = useState("");
-  const [extraClassData, setExtraClassData] = useState({
+  
+  // Add class form
+  const [addClassData, setAddClassData] = useState({
     day: "",
     timeSlotId: "",
     roomId: "",
+    courseId: "",
+    year: 1,
+    semester: 1,
+    program: "bsc",
+    classType: "theory" as "theory" | "lab",
     reason: ""
   });
+
+  // Courses state
+  const [courses, setCourses] = useState<{ id: string; code: string; name: string; type: string }[]>([]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -391,19 +583,22 @@ export default function TeacherDashboard() {
   const fetchTeacherData = async () => {
     setLoading(true);
     try {
-      const [schedulesRes, timeSlotsRes, roomsRes] = await Promise.all([
+      const [schedulesRes, timeSlotsRes, roomsRes, coursesRes] = await Promise.all([
         fetch(`/api/schedules?teacherId=${session?.user?.id}`),
         fetch("/api/timeslots"),
         fetch("/api/rooms"),
+        fetch("/api/courses"),
       ]);
       
       const schedulesData = await schedulesRes.json();
       const timeSlotsData = await timeSlotsRes.json();
       const roomsData = await roomsRes.json();
+      const coursesData = await coursesRes.json();
       
       if (schedulesData.success) setSchedules(schedulesData.data || []);
       if (timeSlotsData.success) setTimeSlots(timeSlotsData.data || []);
       if (roomsData.success) setRooms(roomsData.data || []);
+      if (coursesData.success) setCourses(coursesData.data || []);
     } catch (error) {
       console.error("Error fetching teacher data:", error);
     } finally {
@@ -411,17 +606,34 @@ export default function TeacherDashboard() {
     }
   };
 
-  // Get today's schedules
-  const today = days[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] || "sunday";
-  const todaySchedules = schedules.filter(s => s.dayOfWeek?.toLowerCase() === today.toLowerCase() && s.isActive);
-
-  // Group schedules by day for weekly view
+  // Get schedules grouped by day
   const schedulesByDay: Record<string, TeacherSchedule[]> = {};
   days.forEach((day) => {
     schedulesByDay[day] = schedules
       .filter((s) => s.dayOfWeek?.toLowerCase() === day.toLowerCase() && s.isActive)
       .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
   });
+
+  // Get schedules for next 7 days from today
+  const getNext7Days = () => {
+    const today = new Date();
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const result = [];
+    
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(today, i);
+      const dayName = dayNames[date.getDay()];
+      result.push({
+        date,
+        dayName,
+        schedules: schedulesByDay[dayName] || []
+      });
+    }
+    
+    return result;
+  };
+
+  const next7Days = getNext7Days();
 
   // Format time
   const formatTime = (time: string) => {
@@ -436,7 +648,6 @@ export default function TeacherDashboard() {
   // Create notification for students
   const createStudentNotifications = async (changeType: string, schedule: TeacherSchedule, details: Record<string, unknown>) => {
     try {
-      // Create notification record
       await fetch("/api/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -456,25 +667,6 @@ export default function TeacherDashboard() {
             program: schedule.program,
             teacherName: session?.user?.name,
             ...details
-          }
-        })
-      });
-
-      // Also send push notification
-      await fetch("/api/notifications/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: changeType === "cancelled" ? "❌ Class Cancelled" :
-                 changeType === "rescheduled" ? "🔄 Class Rescheduled" :
-                 changeType === "room_changed" ? "📍 Room Changed" :
-                 "📢 Extra Class Added",
-          body: `${schedule.courseCode}: ${details.message || ""}`,
-          data: {
-            url: "/?view=student",
-            semester: schedule.semester,
-            year: schedule.year,
-            program: schedule.program,
           }
         })
       });
@@ -520,84 +712,19 @@ export default function TeacherDashboard() {
 
       const data = await res.json();
       if (data.success) {
-        // Create notifications for students
         await createStudentNotifications("cancelled", selectedSchedule, {
           message: `Cancelled: ${selectedSchedule.dayOfWeek} at ${formatTime(selectedSchedule.startTime)}\nReason: ${cancelReason}`
         });
         
-        toast({ 
-          title: "Class Cancelled", 
-          description: `${selectedSchedule.courseCode} has been cancelled. Students will be notified.` 
-        });
+        toast({ title: "Class Cancelled", description: `${selectedSchedule.courseCode} has been cancelled. Students will be notified.` });
         setShowCancelDialog(false);
         setCancelReason("");
         setSelectedSchedule(null);
+        fetchTeacherData();
       }
     } catch (error) {
       console.error("Error cancelling class:", error);
       toast({ title: "Error", description: "Failed to cancel class", variant: "destructive" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Handle Reschedule Class
-  const handleRescheduleClass = async () => {
-    if (!selectedSchedule || !rescheduleData.newDay || !rescheduleData.newTimeSlotId || !rescheduleData.reason) {
-      toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
-      return;
-    }
-
-    const newTimeSlot = timeSlots.find(t => t.id === rescheduleData.newTimeSlotId);
-    if (!newTimeSlot) return;
-
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/schedule-changes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scheduleId: selectedSchedule.id,
-          changeType: "rescheduled",
-          originalDay: selectedSchedule.dayOfWeek,
-          originalStartTime: selectedSchedule.startTime,
-          originalEndTime: selectedSchedule.endTime,
-          newDay: rescheduleData.newDay,
-          newStartTime: newTimeSlot.startTime,
-          newEndTime: newTimeSlot.endTime,
-          effectiveDate: new Date().toISOString().split("T")[0],
-          reason: rescheduleData.reason,
-          courseName: selectedSchedule.courseName,
-          courseCode: selectedSchedule.courseCode,
-          teacherId: session?.user?.id,
-          teacherName: session?.user?.name,
-          year: selectedSchedule.year,
-          semester: selectedSchedule.semester,
-          program: selectedSchedule.program,
-          changedBy: session?.user?.id,
-          changedByName: session?.user?.name,
-          isActive: true,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        // Create notifications for students
-        await createStudentNotifications("rescheduled", selectedSchedule, {
-          message: `Moved from ${selectedSchedule.dayOfWeek} to ${rescheduleData.newDay} at ${formatTime(newTimeSlot.startTime)}\nReason: ${rescheduleData.reason}`
-        });
-        
-        toast({ 
-          title: "Class Rescheduled", 
-          description: `${selectedSchedule.courseCode} has been rescheduled to ${rescheduleData.newDay}` 
-        });
-        setShowRescheduleDialog(false);
-        setRescheduleData({ newDay: "", newTimeSlotId: "", reason: "" });
-        setSelectedSchedule(null);
-      }
-    } catch (error) {
-      console.error("Error rescheduling class:", error);
-      toast({ title: "Error", description: "Failed to reschedule class", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -642,19 +769,16 @@ export default function TeacherDashboard() {
 
       const data = await res.json();
       if (data.success) {
-        // Create notifications for students
         await createStudentNotifications("room_changed", selectedSchedule, {
           message: `Room changed from ${selectedSchedule.roomNumber} to ${newRoom.roomNumber}\nReason: ${roomChangeReason}`
         });
         
-        toast({ 
-          title: "Room Changed", 
-          description: `${selectedSchedule.courseCode} moved to ${newRoom.roomNumber}` 
-        });
+        toast({ title: "Room Changed", description: `${selectedSchedule.courseCode} moved to ${newRoom.roomNumber}` });
         setShowRoomDialog(false);
         setNewRoomId("");
         setRoomChangeReason("");
         setSelectedSchedule(null);
+        fetchTeacherData();
       }
     } catch (error) {
       console.error("Error changing room:", error);
@@ -664,63 +788,69 @@ export default function TeacherDashboard() {
     }
   };
 
-  // Handle Add Extra Class
-  const handleAddExtraClass = async () => {
-    if (!extraClassData.day || !extraClassData.timeSlotId || !extraClassData.roomId) {
-      toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
+  // Handle Reschedule Class
+  const handleRescheduleClass = async () => {
+    if (!selectedSchedule || !rescheduleData.newDay || !rescheduleData.reason) {
+      toast({ title: "Error", description: "Please fill all fields", variant: "destructive" });
       return;
     }
 
-    const timeSlot = timeSlots.find(t => t.id === extraClassData.timeSlotId);
-    const room = rooms.find(r => r.id === extraClassData.roomId);
+    // Get time from either time slot or custom time
+    let startTime = customStartTime;
+    let endTime = customEndTime;
     
-    if (!timeSlot || !room || schedules.length === 0) return;
+    if (!useCustomTime && rescheduleData.timeSlotId) {
+      const timeSlot = timeSlots.find(t => t.id === rescheduleData.timeSlotId);
+      if (timeSlot) {
+        startTime = timeSlot.startTime;
+        endTime = timeSlot.endTime;
+      }
+    }
 
     setSubmitting(true);
     try {
-      const template = schedules[0];
-      
-      const res = await fetch("/api/schedules", {
+      const res = await fetch("/api/schedule-changes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          courseId: template.courseId,
-          courseName: template.courseName,
-          courseCode: template.courseCode,
+          scheduleId: selectedSchedule.id,
+          changeType: "rescheduled",
+          originalDay: selectedSchedule.dayOfWeek,
+          originalStartTime: selectedSchedule.startTime,
+          originalEndTime: selectedSchedule.endTime,
+          newDay: rescheduleData.newDay,
+          newStartTime: startTime,
+          newEndTime: endTime,
+          effectiveDate: new Date().toISOString().split("T")[0],
+          reason: rescheduleData.reason,
+          courseName: selectedSchedule.courseName,
+          courseCode: selectedSchedule.courseCode,
           teacherId: session?.user?.id,
           teacherName: session?.user?.name,
-          roomId: extraClassData.roomId,
-          roomNumber: room.roomNumber,
-          timeSlotId: extraClassData.timeSlotId,
-          startTime: timeSlot.startTime,
-          endTime: timeSlot.endTime,
-          dayOfWeek: extraClassData.day,
-          year: template.year,
-          semester: template.semester,
-          program: template.program,
-          classType: template.classType,
+          year: selectedSchedule.year,
+          semester: selectedSchedule.semester,
+          program: selectedSchedule.program,
+          changedBy: session?.user?.id,
+          changedByName: session?.user?.name,
           isActive: true,
         }),
       });
 
       const data = await res.json();
       if (data.success) {
-        // Create notifications for students
-        await createStudentNotifications("extra_class", template, {
-          message: `Extra class on ${extraClassData.day} at ${formatTime(timeSlot.startTime)} in ${room.roomNumber}\n${extraClassData.reason ? `Reason: ${extraClassData.reason}` : ""}`
+        await createStudentNotifications("rescheduled", selectedSchedule, {
+          message: `Moved from ${selectedSchedule.dayOfWeek} to ${rescheduleData.newDay} at ${formatTime(startTime)}\nReason: ${rescheduleData.reason}`
         });
         
-        toast({ 
-          title: "Extra Class Added", 
-          description: `Extra class scheduled for ${extraClassData.day}` 
-        });
-        setShowExtraDialog(false);
-        setExtraClassData({ day: "", timeSlotId: "", roomId: "", reason: "" });
+        toast({ title: "Class Rescheduled", description: `${selectedSchedule.courseCode} has been rescheduled` });
+        setShowRescheduleDialog(false);
+        setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
+        setSelectedSchedule(null);
         fetchTeacherData();
       }
     } catch (error) {
-      console.error("Error adding extra class:", error);
-      toast({ title: "Error", description: "Failed to add extra class", variant: "destructive" });
+      console.error("Error rescheduling class:", error);
+      toast({ title: "Error", description: "Failed to reschedule class", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -728,8 +858,11 @@ export default function TeacherDashboard() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -739,9 +872,9 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-4 md:py-6 sticky top-0 z-30">
+      <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white py-4 md:py-6 sticky top-0 z-30 shadow-lg">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -749,9 +882,15 @@ export default function TeacherDashboard() {
             className="flex items-center justify-between"
           >
             <div className="min-w-0 flex-1">
-              <p className="text-white/80 text-xs">Welcome back,</p>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-yellow-300" />
+                <p className="text-white/80 text-xs">Welcome back,</p>
+              </div>
               <h1 className="text-lg md:text-xl lg:text-2xl font-bold truncate">{session.user?.name}</h1>
-              <p className="text-white/80 text-[10px] md:text-xs">Teacher Dashboard</p>
+              <p className="text-white/80 text-[10px] md:text-xs flex items-center gap-1">
+                <GraduationCap className="w-3 h-3" />
+                Teacher Dashboard • ICE Department
+              </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <TeacherNotificationCenter userId={session.user?.id || ""} />
@@ -772,10 +911,10 @@ export default function TeacherDashboard() {
       <div className="container mx-auto px-4 -mt-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
           {[
-            { label: "Today", value: todaySchedules.length, icon: Calendar, color: "text-primary bg-primary/10" },
-            { label: "Courses", value: new Set(schedules.map(s => s.courseCode)).size, icon: BookOpen, color: "text-green-500 bg-green-500/10" },
-            { label: "Weekly", value: schedules.length, icon: Users, color: "text-amber-500 bg-amber-500/10" },
-            { label: "Programs", value: new Set(schedules.map(s => s.program)).size, icon: Clock, color: "text-blue-500 bg-blue-500/10" },
+            { label: "Today's Classes", value: next7Days[0]?.schedules.length || 0, icon: Calendar, color: "from-rose-400 to-pink-500", bg: "bg-white dark:bg-gray-800" },
+            { label: "This Week", value: schedules.filter(s => s.isActive).length, icon: Clock, color: "from-cyan-400 to-sky-500", bg: "bg-white dark:bg-gray-800" },
+            { label: "Courses", value: new Set(schedules.map(s => s.courseCode)).size, icon: BookOpen, color: "from-emerald-400 to-teal-500", bg: "bg-white dark:bg-gray-800" },
+            { label: "Programs", value: new Set(schedules.map(s => s.program)).size, icon: GraduationCap, color: "from-violet-400 to-purple-500", bg: "bg-white dark:bg-gray-800" },
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -783,14 +922,14 @@ export default function TeacherDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card>
+              <Card className={cn("shadow-md hover:shadow-lg transition-shadow", stat.bg)}>
                 <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", stat.color)}>
-                      <stat.icon className="w-4 h-4" />
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br", stat.color)}>
+                      <stat.icon className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-lg md:text-xl font-bold">{stat.value}</p>
+                      <p className="text-xl md:text-2xl font-bold">{stat.value}</p>
                       <p className="text-[10px] text-muted-foreground">{stat.label}</p>
                     </div>
                   </div>
@@ -803,551 +942,476 @@ export default function TeacherDashboard() {
 
       {/* Quick Actions */}
       <div className="container mx-auto px-4 mt-4">
-        <Card>
-          <CardContent className="p-3">
-            <div className="grid grid-cols-4 gap-2">
+        <Card className="shadow-md border-0 bg-white dark:bg-gray-800">
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-yellow-500" />
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-2 px-4">
+            <div className="grid grid-cols-3 gap-2">
               {[
-                { label: "Cancel", icon: Ban, color: "text-red-500 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800", action: () => setShowCancelDialog(true) },
-                { label: "Reschedule", icon: RefreshCw, color: "text-orange-500 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800", action: () => setShowRescheduleDialog(true) },
-                { label: "Room", icon: MapPin, color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800", action: () => setShowRoomDialog(true) },
-                { label: "Extra", icon: Plus, color: "text-green-500 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800", action: () => setShowExtraDialog(true) },
+                { label: "Cancel Class", icon: Ban, color: "from-red-400 to-rose-500", action: () => setShowCancelDialog(true) },
+                { label: "Change Room", icon: MapPin, color: "from-amber-400 to-orange-500", action: () => setShowRoomDialog(true) },
+                { label: "Reschedule", icon: RefreshCw, color: "from-cyan-400 to-blue-500", action: () => setShowRescheduleDialog(true) },
               ].map((action) => (
-                <button
+                <motion.button
                   key={action.label}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={action.action}
                   className={cn(
-                    "flex flex-col items-center gap-1 p-2 md:p-3 rounded-xl transition-all border",
+                    "flex flex-col items-center gap-2 p-3 rounded-xl transition-all",
+                    "bg-gradient-to-br text-white shadow-md hover:shadow-lg",
                     action.color
                   )}
                 >
-                  <action.icon className="w-4 h-4 md:w-5 md:h-5" />
+                  <action.icon className="w-5 h-5" />
                   <span className="text-[10px] md:text-xs font-medium">{action.label}</span>
-                </button>
+                </motion.button>
               ))}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* View Mode Toggle */}
+      {/* Next 7 Days Schedule */}
       <div className="container mx-auto px-4 mt-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Weekly Schedule</h2>
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-            <Button
-              variant={viewMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("cards")}
-              className="h-7 gap-1 px-2"
-            >
-              <Grid3X3 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline text-xs">Cards</span>
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="h-7 gap-1 px-2"
-            >
-              <AlignJustify className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline text-xs">List</span>
-            </Button>
-            <Button
-              variant={viewMode === "timeline" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("timeline")}
-              className="h-7 gap-1 px-2"
-            >
-              <AlignLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline text-xs">Timeline</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Weekly Schedule Display */}
-      <div className="container mx-auto px-4 mt-3">
-        {/* Cards View */}
-        {viewMode === "cards" && (
-          <div className="space-y-3">
-            {days.map((day) => {
-              const daySchedules = schedulesByDay[day] || [];
-              const isCurrentDay = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase() === day.toLowerCase();
-              
-              return (
-                <Card key={day} className={cn(isCurrentDay && "border-emerald-500 border-2")}>
-                  <CardHeader className="py-2 px-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className={cn(
-                        "text-sm capitalize",
-                        isCurrentDay && "text-emerald-600 dark:text-emerald-400"
+        <Card className="shadow-md border-0 bg-white dark:bg-gray-800">
+          <CardHeader className="py-3 px-4 border-b">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-emerald-500" />
+                Next 7 Days
+              </CardTitle>
+              <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+                <Button
+                  variant={viewMode === "cards" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("cards")}
+                  className="h-7 w-7 p-0"
+                >
+                  <Grid3X3 className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant={viewMode === "timeline" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("timeline")}
+                  className="h-7 w-7 p-0"
+                >
+                  <AlignLeft className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            {viewMode === "cards" ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                {next7Days.map((day, index) => (
+                  <motion.div
+                    key={day.date.toISOString()}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={cn(
+                      "p-3 rounded-xl border-2 transition-all",
+                      index === 0 ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20" : "border-border bg-background"
+                    )}
+                  >
+                    <div className="text-center mb-2">
+                      <p className="text-[10px] text-muted-foreground">{format(day.date, "MMM d")}</p>
+                      <p className={cn(
+                        "text-xs font-semibold capitalize",
+                        index === 0 && "text-emerald-600 dark:text-emerald-400"
                       )}>
-                        {day}
-                        {isCurrentDay && (
-                          <Badge className="ml-2 bg-emerald-500 text-white text-[10px]">Today</Badge>
-                        )}
-                      </CardTitle>
-                      <Badge variant="outline" className="text-[10px]">{daySchedules.length}</Badge>
+                        {day.dayName}
+                      </p>
+                      {index === 0 && (
+                        <Badge className="bg-emerald-500 text-white text-[9px] mt-1">Today</Badge>
+                      )}
                     </div>
-                  </CardHeader>
-                  <CardContent className="py-2 px-3">
-                    {daySchedules.length > 0 ? (
-                      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
-                        {daySchedules.map((schedule) => (
-                          <div
+                    <div className="space-y-1.5">
+                      {day.schedules.length > 0 ? (
+                        day.schedules.slice(0, 4).map((schedule, sIndex) => (
+                          <motion.div
                             key={schedule.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: sIndex * 0.05 }}
                             onClick={() => setSelectedSchedule(schedule)}
                             className={cn(
-                              "p-2.5 rounded-lg border cursor-pointer transition-all",
-                              "hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/10",
-                              selectedSchedule?.id === schedule.id && "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20",
-                              schedule.classType === "lab"
-                                ? "border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10"
-                                : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10"
+                              "p-1.5 rounded-lg text-[10px] cursor-pointer transition-all",
+                              "hover:scale-[1.02]",
+                              schedule.classType === "lab" 
+                                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" 
+                                : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
                             )}
                           >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-semibold text-xs">{schedule.courseCode}</span>
-                                  <Badge variant="outline" className="text-[9px] px-1">
-                                    {schedule.classType === "lab" ? "LAB" : "THEORY"}
-                                  </Badge>
-                                  <Badge variant="secondary" className="text-[9px] px-1">
-                                    {schedule.program?.toUpperCase()}
-                                  </Badge>
-                                </div>
-                                <p className="text-[10px] text-muted-foreground truncate mt-0.5">{schedule.courseName}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {formatTime(schedule.startTime)}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                {schedule.roomNumber}
-                              </span>
-                              <span>Y{schedule.year} S{schedule.semester}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground text-center py-3">No classes</p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        {/* List View */}
-        {viewMode === "list" && (
-          <Card>
-            <CardContent className="p-0 divide-y divide-border">
-              {schedules.length > 0 ? (
-                schedules
-                  .filter(s => s.isActive)
-                  .sort((a, b) => {
-                    const dayOrder = days.indexOf(a.dayOfWeek?.toLowerCase() || "");
-                    const dayOrderB = days.indexOf(b.dayOfWeek?.toLowerCase() || "");
-                    if (dayOrder !== dayOrderB) return dayOrder - dayOrderB;
-                    return (a.startTime || "").localeCompare(b.startTime || "");
-                  })
-                  .map((schedule) => (
-                    <div
-                      key={schedule.id}
-                      onClick={() => setSelectedSchedule(schedule)}
-                      className={cn(
-                        "flex items-center gap-3 p-3 cursor-pointer transition-all",
-                        "hover:bg-muted/50",
-                        selectedSchedule?.id === schedule.id && "bg-emerald-50 dark:bg-emerald-900/20"
+                            <p className="font-medium truncate">{schedule.courseCode}</p>
+                            <p className="text-[9px] opacity-75">{formatTime(schedule.startTime)}</p>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground text-center py-2">No classes</p>
                       )}
-                    >
-                      <div className="w-12 shrink-0">
-                        <Badge variant="outline" className="text-[10px] w-full justify-center capitalize">
-                          {schedule.dayOfWeek?.substring(0, 3)}
-                        </Badge>
-                      </div>
-                      <div className="w-16 shrink-0">
-                        <p className="text-xs font-medium">{formatTime(schedule.startTime)}</p>
-                        <p className="text-[10px] text-muted-foreground">{formatTime(schedule.endTime)}</p>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{schedule.courseCode}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">{schedule.roomNumber}</p>
-                      </div>
-                      <Badge variant={schedule.classType === "lab" ? "secondary" : "default"} className="text-[10px]">
-                        {schedule.classType}
-                      </Badge>
+                      {day.schedules.length > 4 && (
+                        <p className="text-[10px] text-muted-foreground text-center">
+                          +{day.schedules.length - 4} more
+                        </p>
+                      )}
                     </div>
-                  ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">No classes found</p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Timeline View */}
-        {viewMode === "timeline" && (
-          <div className="relative">
-            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
-            <div className="space-y-4">
-              {days.map((day) => {
-                const daySchedules = schedulesByDay[day] || [];
-                const isCurrentDay = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase() === day.toLowerCase();
-                
-                return (
-                  <div key={day} className="relative pl-10">
-                    <div className={cn(
-                      "absolute left-2 w-4 h-4 rounded-full border-2 border-background",
-                      isCurrentDay ? "bg-emerald-500" : "bg-muted"
-                    )} />
-                    <div className="mb-2">
-                      <h3 className={cn(
-                        "font-semibold text-sm capitalize",
-                        isCurrentDay && "text-emerald-600 dark:text-emerald-400"
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
+                <div className="space-y-4">
+                  {next7Days.map((day, index) => (
+                    <div key={day.date.toISOString()} className="relative pl-10">
+                      <div className={cn(
+                        "absolute left-2.5 w-3 h-3 rounded-full border-2 border-background",
+                        index === 0 ? "bg-emerald-500" : "bg-muted"
+                      )} />
+                      <div className={cn(
+                        "p-3 rounded-lg border",
+                        index === 0 && "border-emerald-300 bg-emerald-50 dark:bg-emerald-900/10"
                       )}>
-                        {day}
-                        {isCurrentDay && (
-                          <Badge className="ml-2 bg-emerald-500 text-white text-[10px]">Today</Badge>
-                        )}
-                      </h3>
-                    </div>
-                    {daySchedules.length > 0 ? (
-                      <div className="space-y-2">
-                        {daySchedules.map((schedule) => (
-                          <div key={schedule.id} className="relative">
-                            <div className="absolute -left-6 top-3 w-3 h-0.5 bg-border" />
-                            <div
-                              onClick={() => setSelectedSchedule(schedule)}
-                              className={cn(
-                                "p-2.5 rounded-lg border cursor-pointer transition-all",
-                                "hover:border-emerald-500",
-                                selectedSchedule?.id === schedule.id && "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20",
-                                schedule.classType === "lab"
-                                  ? "border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10"
-                                  : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10"
-                              )}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="min-w-0 flex-1">
-                                  <span className="font-semibold text-xs">{schedule.courseCode}</span>
-                                  <p className="text-[10px] text-muted-foreground truncate">{schedule.courseName}</p>
+                        <p className={cn(
+                          "text-xs font-semibold capitalize mb-2",
+                          index === 0 && "text-emerald-600 dark:text-emerald-400"
+                        )}>
+                          {day.dayName} • {format(day.date, "MMM d")}
+                          {index === 0 && <Badge className="ml-2 bg-emerald-500 text-white text-[9px]">Today</Badge>}
+                        </p>
+                        {day.schedules.length > 0 ? (
+                          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+                            {day.schedules.map((schedule) => (
+                              <div
+                                key={schedule.id}
+                                onClick={() => setSelectedSchedule(schedule)}
+                                className={cn(
+                                  "p-2 rounded-lg border cursor-pointer transition-all hover:border-emerald-300",
+                                  schedule.classType === "lab"
+                                    ? "border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10"
+                                    : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10",
+                                  selectedSchedule?.id === schedule.id && "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                                )}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-medium">{schedule.courseCode}</span>
+                                  <Badge variant="outline" className="text-[9px]">{schedule.roomNumber}</Badge>
                                 </div>
-                                <div className="text-right flex-shrink-0">
-                                  <p className="text-[10px] font-medium">{formatTime(schedule.startTime)}</p>
-                                  <p className="text-[10px] text-muted-foreground">{schedule.roomNumber}</p>
-                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+                                </p>
                               </div>
-                            </div>
+                            ))}
                           </div>
-                        ))}
+                        ) : (
+                          <p className="text-xs text-muted-foreground">No classes scheduled</p>
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground pl-2 py-2">No classes</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Selected Class Actions */}
+      {/* Selected Schedule Actions */}
       {selectedSchedule && (
         <motion.div
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="container mx-auto px-4 mt-4"
         >
-          <div className="container mx-auto">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm">{selectedSchedule.courseCode}</p>
-                <p className="text-xs text-muted-foreground truncate">{selectedSchedule.courseName} • {selectedSchedule.dayOfWeek} • {formatTime(selectedSchedule.startTime)}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    setShowCancelDialog(true);
-                  }}
-                  className="gap-1 h-8"
-                >
-                  <Ban className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Cancel</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setShowRescheduleDialog(true);
-                  }}
-                  className="gap-1 h-8"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Reschedule</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setShowRoomDialog(true);
-                  }}
-                  className="gap-1 h-8"
-                >
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Room</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedSchedule(null)}
-                  className="h-8"
-                >
+          <Card className="shadow-md border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-semibold">{selectedSchedule.courseCode}</h3>
+                  <p className="text-xs text-muted-foreground">{selectedSchedule.courseName}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedSchedule(null)}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
-            </div>
-          </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={() => setShowCancelDialog(true)}
+                >
+                  <Ban className="w-3.5 h-3.5 mr-1" />
+                  Cancel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                  onClick={() => setShowRoomDialog(true)}
+                >
+                  <MapPin className="w-3.5 h-3.5 mr-1" />
+                  Room
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-cyan-600 border-cyan-200 hover:bg-cyan-50"
+                  onClick={() => setShowRescheduleDialog(true)}
+                >
+                  <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                  Reschedule
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       )}
 
-      {/* Dialogs */}
+      {/* Cancel Class Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-500">
+            <DialogTitle className="flex items-center gap-2 text-red-600">
               <Ban className="w-5 h-5" />
               Cancel Class
             </DialogTitle>
+            <DialogDescription>
+              This will notify all students enrolled in this class.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedSchedule && (
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-sm">{selectedSchedule.courseCode}</p>
-                <p className="text-xs text-muted-foreground">{selectedSchedule.courseName}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+          {selectedSchedule && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 rounded-lg bg-muted">
+                <p className="font-medium">{selectedSchedule.courseCode}</p>
+                <p className="text-xs text-muted-foreground">
                   {selectedSchedule.dayOfWeek} • {formatTime(selectedSchedule.startTime)} • {selectedSchedule.roomNumber}
                 </p>
               </div>
-            )}
-            <div className="space-y-2">
-              <Label className="text-sm">Reason for Cancellation *</Label>
-              <Textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Enter reason for cancellation..."
-                rows={3}
-              />
+              <div className="space-y-2">
+                <Label>Reason for cancellation *</Label>
+                <Textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="e.g., Personal emergency, Official work..."
+                  rows={3}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-              <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-              <p className="text-xs text-amber-700 dark:text-amber-300">
-                Students will be notified via push notification
-              </p>
-            </div>
-          </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCancelDialog(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleCancelClass} disabled={submitting}>
-              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Ban className="w-4 h-4 mr-2" />}
-              Cancel Class
+            <Button 
+              variant="destructive" 
+              onClick={handleCancelClass}
+              disabled={submitting}
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
+              Confirm Cancellation
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-500">
-              <RefreshCw className="w-5 h-5" />
-              Reschedule Class
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedSchedule && (
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-sm">{selectedSchedule.courseCode}</p>
-                <p className="text-xs text-muted-foreground">Current: {selectedSchedule.dayOfWeek} at {formatTime(selectedSchedule.startTime)}</p>
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label className="text-sm">New Day *</Label>
-              <Select value={rescheduleData.newDay} onValueChange={(v) => setRescheduleData({...rescheduleData, newDay: v})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select day" />
-                </SelectTrigger>
-                <SelectContent>
-                  {days.map((day) => (
-                    <SelectItem key={day} value={day} className="capitalize">{day}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">New Time Slot *</Label>
-              <Select value={rescheduleData.newTimeSlotId} onValueChange={(v) => setRescheduleData({...rescheduleData, newTimeSlotId: v})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeSlots.filter(t => !t.isBreak).map((slot) => (
-                    <SelectItem key={slot.id} value={slot.id}>
-                      {slot.label} ({formatTime(slot.startTime)} - {formatTime(slot.endTime)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Reason *</Label>
-              <Textarea
-                value={rescheduleData.reason}
-                onChange={(e) => setRescheduleData({...rescheduleData, reason: e.target.value})}
-                placeholder="Enter reason for rescheduling..."
-                rows={2}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRescheduleDialog(false)}>Cancel</Button>
-            <Button onClick={handleRescheduleClass} disabled={submitting} className="bg-orange-500 hover:bg-orange-600">
-              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-              Reschedule
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      {/* Room Change Dialog */}
       <Dialog open={showRoomDialog} onOpenChange={setShowRoomDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-yellow-600">
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
               <MapPin className="w-5 h-5" />
               Change Room
             </DialogTitle>
+            <DialogDescription>
+              Select a new room. Only available rooms can be selected.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            {selectedSchedule && (
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-sm">{selectedSchedule.courseCode}</p>
-                <p className="text-xs text-muted-foreground">Current Room: {selectedSchedule.roomNumber}</p>
+          {selectedSchedule && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 rounded-lg bg-muted">
+                <p className="font-medium">{selectedSchedule.courseCode}</p>
+                <p className="text-xs text-muted-foreground">
+                  Current Room: <span className="font-medium">{selectedSchedule.roomNumber}</span>
+                </p>
               </div>
-            )}
-            <div className="space-y-2">
-              <Label className="text-sm">New Room *</Label>
-              <Select value={newRoomId} onValueChange={setNewRoomId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select room" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
-                      {room.roomNumber} ({room.type}) - {room.building}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Reason *</Label>
-              <Textarea
-                value={roomChangeReason}
-                onChange={(e) => setRoomChangeReason(e.target.value)}
-                placeholder="Enter reason for room change..."
-                rows={2}
+              
+              <RoomAvailabilityChecker
+                day={selectedSchedule.dayOfWeek}
+                startTime={selectedSchedule.startTime}
+                endTime={selectedSchedule.endTime}
+                excludeScheduleId={selectedSchedule.id}
+                onRoomSelect={setNewRoomId}
+                selectedRoomId={newRoomId}
               />
+              
+              <div className="space-y-2">
+                <Label>Reason for change *</Label>
+                <Textarea
+                  value={roomChangeReason}
+                  onChange={(e) => setRoomChangeReason(e.target.value)}
+                  placeholder="e.g., Equipment needed, More capacity required..."
+                  rows={2}
+                />
+              </div>
             </div>
-          </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRoomDialog(false)}>Cancel</Button>
-            <Button onClick={handleRoomChange} disabled={submitting} className="bg-yellow-500 hover:bg-yellow-600 text-black">
-              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MapPin className="w-4 h-4 mr-2" />}
+            <Button 
+              onClick={handleRoomChange}
+              disabled={submitting || !newRoomId}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MapPin className="w-4 h-4 mr-2" />}
               Change Room
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showExtraDialog} onOpenChange={setShowExtraDialog}>
-        <DialogContent className="max-w-md">
+      {/* Reschedule Dialog with Custom Time */}
+      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-500">
-              <Plus className="w-5 h-5" />
-              Add Extra Class
+            <DialogTitle className="flex items-center gap-2 text-cyan-600">
+              <RefreshCw className="w-5 h-5" />
+              Reschedule Class
             </DialogTitle>
+            <DialogDescription>
+              Choose a new day and time for this class.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-sm">Day *</Label>
-              <Select value={extraClassData.day} onValueChange={(v) => setExtraClassData({...extraClassData, day: v})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select day" />
-                </SelectTrigger>
-                <SelectContent>
-                  {days.map((day) => (
-                    <SelectItem key={day} value={day} className="capitalize">{day}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {selectedSchedule && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 rounded-lg bg-muted">
+                <p className="font-medium">{selectedSchedule.courseCode}</p>
+                <p className="text-xs text-muted-foreground">
+                  Current: {selectedSchedule.dayOfWeek} • {formatTime(selectedSchedule.startTime)}
+                </p>
+              </div>
+              
+              {/* Day Selection */}
+              <div className="space-y-2">
+                <Label>New Day</Label>
+                <Select value={rescheduleData.newDay} onValueChange={(v) => setRescheduleData(prev => ({ ...prev, newDay: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {days.map((day) => (
+                      <SelectItem key={day} value={day} className="capitalize">{day}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Time Mode Toggle */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Time Selection</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Slot</span>
+                    <Button
+                      variant={useCustomTime ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setUseCustomTime(!useCustomTime)}
+                      className="h-6 w-12 p-0"
+                    >
+                      {useCustomTime ? "Custom" : "Slot"}
+                    </Button>
+                  </div>
+                </div>
+                
+                {useCustomTime ? (
+                  <div className="p-4 rounded-lg border-2 border-cyan-200 bg-cyan-50/50 dark:bg-cyan-900/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Timer className="w-4 h-4 text-cyan-500" />
+                      <span className="text-xs font-medium">Custom Time Range</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <CustomTimePicker
+                        label="Start Time"
+                        value={customStartTime}
+                        onChange={setCustomStartTime}
+                      />
+                      <CustomTimePicker
+                        label="End Time"
+                        value={customEndTime}
+                        onChange={setCustomEndTime}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      Example: 09:33 to 10:44 (Random time supported)
+                    </p>
+                  </div>
+                ) : (
+                  <Select value={rescheduleData.timeSlotId} onValueChange={(v) => setRescheduleData(prev => ({ ...prev, timeSlotId: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time slot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeSlots.filter(t => !t.isBreak).map((slot) => (
+                        <SelectItem key={slot.id} value={slot.id}>
+                          {slot.label} ({slot.startTime} - {slot.endTime})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              
+              {/* Room Availability for new time */}
+              {rescheduleData.newDay && (useCustomTime ? (customStartTime && customEndTime) : rescheduleData.timeSlotId) && (
+                <RoomAvailabilityChecker
+                  day={rescheduleData.newDay}
+                  startTime={useCustomTime ? customStartTime : (timeSlots.find(t => t.id === rescheduleData.timeSlotId)?.startTime || "")}
+                  endTime={useCustomTime ? customEndTime : (timeSlots.find(t => t.id === rescheduleData.timeSlotId)?.endTime || "")}
+                  excludeScheduleId={selectedSchedule.id}
+                  onRoomSelect={setNewRoomId}
+                  selectedRoomId={newRoomId}
+                />
+              )}
+              
+              {/* Reason */}
+              <div className="space-y-2">
+                <Label>Reason for reschedule *</Label>
+                <Textarea
+                  value={rescheduleData.reason}
+                  onChange={(e) => setRescheduleData(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="e.g., Conflict with exam schedule..."
+                  rows={2}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Time Slot *</Label>
-              <Select value={extraClassData.timeSlotId} onValueChange={(v) => setExtraClassData({...extraClassData, timeSlotId: v})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeSlots.filter(t => !t.isBreak).map((slot) => (
-                    <SelectItem key={slot.id} value={slot.id}>
-                      {slot.label} ({formatTime(slot.startTime)} - {formatTime(slot.endTime)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Room *</Label>
-              <Select value={extraClassData.roomId} onValueChange={(v) => setExtraClassData({...extraClassData, roomId: v})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select room" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
-                      {room.roomNumber} ({room.type})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Reason</Label>
-              <Input
-                value={extraClassData.reason}
-                onChange={(e) => setExtraClassData({...extraClassData, reason: e.target.value})}
-                placeholder="Optional reason for extra class"
-              />
-            </div>
-          </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowExtraDialog(false)}>Cancel</Button>
-            <Button onClick={handleAddExtraClass} disabled={submitting} className="bg-green-500 hover:bg-green-600">
-              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              Add Class
+            <Button variant="outline" onClick={() => setShowRescheduleDialog(false)}>Cancel</Button>
+            <Button 
+              onClick={handleRescheduleClass}
+              disabled={submitting}
+              className="bg-cyan-500 hover:bg-cyan-600"
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              Confirm Reschedule
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Back to Home */}
+      <div className="fixed bottom-4 left-4 z-40">
+        <Link href="/">
+          <Button variant="outline" size="sm" className="gap-2 shadow-lg bg-white dark:bg-gray-800">
+            <ChevronLeft className="w-4 h-4" />
+            Home
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
