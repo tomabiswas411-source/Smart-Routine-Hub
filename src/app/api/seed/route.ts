@@ -36,7 +36,7 @@ export async function POST() {
       isActive: true,
     });
 
-    // 2. Create Teachers
+    // 2. Create Teachers (More teachers for testing)
     const teachers = await Promise.all([
       createUser({
         email: "rahman@ru.ac.bd",
@@ -98,6 +98,90 @@ export async function POST() {
         department: "Information & Communication Engineering",
         isActive: true,
       }),
+      createUser({
+        email: "rahim@ru.ac.bd",
+        password: hashedPassword,
+        fullName: "Dr. Abdur Rahim",
+        designation: "Professor",
+        phone: "01712345683",
+        officeRoom: "Room 406",
+        bio: "Expert in Computer Networks and Cybersecurity.",
+        role: "teacher",
+        department: "Information & Communication Engineering",
+        isActive: true,
+      }),
+      createUser({
+        email: "sabrina@ru.ac.bd",
+        password: hashedPassword,
+        fullName: "Dr. Sabrina Khan",
+        designation: "Associate Professor",
+        phone: "01712345684",
+        officeRoom: "Room 407",
+        bio: "Specializes in Artificial Intelligence and Machine Learning.",
+        role: "teacher",
+        department: "Information & Communication Engineering",
+        isActive: true,
+      }),
+      createUser({
+        email: "jamil@ru.ac.bd",
+        password: hashedPassword,
+        fullName: "Md. Jamil Hossain",
+        designation: "Assistant Professor",
+        phone: "01712345685",
+        officeRoom: "Room 408",
+        bio: "Research focus on Wireless Communication and 5G Technology.",
+        role: "teacher",
+        department: "Information & Communication Engineering",
+        isActive: true,
+      }),
+      createUser({
+        email: "rumana@ru.ac.bd",
+        password: hashedPassword,
+        fullName: "Dr. Rumana Begum",
+        designation: "Professor",
+        phone: "01712345686",
+        officeRoom: "Room 409",
+        bio: "Expert in Database Systems and Software Engineering.",
+        role: "teacher",
+        department: "Information & Communication Engineering",
+        isActive: true,
+      }),
+      createUser({
+        email: "asif@ru.ac.bd",
+        password: hashedPassword,
+        fullName: "Asif Mahmud",
+        designation: "Lecturer",
+        phone: "01712345687",
+        officeRoom: "Room 410",
+        bio: "Specializes in Web Technologies and Cloud Computing.",
+        role: "teacher",
+        department: "Information & Communication Engineering",
+        isActive: true,
+      }),
+      createUser({
+        email: "fatema@ru.ac.bd",
+        password: hashedPassword,
+        fullName: "Dr. Fatema Khatun",
+        designation: "Associate Professor",
+        phone: "01712345688",
+        officeRoom: "Room 411",
+        bio: "Expert in Control Systems and Robotics.",
+        role: "teacher",
+        department: "Information & Communication Engineering",
+        isActive: true,
+      }),
+      createUser({
+        email: "hasan@ru.ac.bd",
+        password: hashedPassword,
+        fullName: "Dr. Hasan Mahmud",
+        designation: "Professor",
+        phone: "01712345689",
+        officeRoom: "Room 412",
+        bio: "Specializes in Image Processing and Computer Vision.",
+        role: "teacher",
+        department: "Information & Communication Engineering",
+        isActive: true,
+      }),
     ]);
 
     // 3. Create Time Slots
@@ -107,78 +191,203 @@ export async function POST() {
       createTimeSlot({ label: "3rd Period", startTime: "10:00", endTime: "10:50", slotOrder: 3, isBreak: false, isActive: true }),
       createTimeSlot({ label: "4th Period", startTime: "11:00", endTime: "11:50", slotOrder: 4, isBreak: false, isActive: true }),
       createTimeSlot({ label: "5th Period", startTime: "12:00", endTime: "12:50", slotOrder: 5, isBreak: false, isActive: true }),
-      createTimeSlot({ label: "Break", startTime: "12:50", endTime: "14:00", slotOrder: 6, isBreak: true, isActive: true }),
+      createTimeSlot({ label: "Lunch Break", startTime: "12:50", endTime: "14:00", slotOrder: 6, isBreak: true, isActive: true }),
       createTimeSlot({ label: "6th Period", startTime: "14:00", endTime: "14:50", slotOrder: 7, isBreak: false, isActive: true }),
       createTimeSlot({ label: "7th Period", startTime: "15:00", endTime: "15:50", slotOrder: 8, isBreak: false, isActive: true }),
       createTimeSlot({ label: "8th Period", startTime: "16:00", endTime: "16:50", slotOrder: 9, isBreak: false, isActive: true }),
     ]);
 
-    // 4. Create Rooms
+    // 4. Create Rooms (More rooms)
     const rooms = await Promise.all([
       createRoom({ roomNumber: "301", building: "Main Building", type: "classroom", capacity: 60, isActive: true }),
       createRoom({ roomNumber: "302", building: "Main Building", type: "classroom", capacity: 60, isActive: true }),
       createRoom({ roomNumber: "303", building: "Main Building", type: "classroom", capacity: 40, isActive: true }),
-      createRoom({ roomNumber: "405", building: "Science Building", type: "classroom", capacity: 50, isActive: true }),
+      createRoom({ roomNumber: "304", building: "Main Building", type: "classroom", capacity: 50, isActive: true }),
+      createRoom({ roomNumber: "305", building: "Main Building", type: "classroom", capacity: 55, isActive: true }),
+      createRoom({ roomNumber: "401", building: "Science Building", type: "classroom", capacity: 50, isActive: true }),
+      createRoom({ roomNumber: "402", building: "Science Building", type: "classroom", capacity: 50, isActive: true }),
+      createRoom({ roomNumber: "403", building: "Science Building", type: "classroom", capacity: 45, isActive: true }),
+      createRoom({ roomNumber: "Lab 101", building: "ICE Building", type: "lab", capacity: 30, isActive: true }),
+      createRoom({ roomNumber: "Lab 102", building: "ICE Building", type: "lab", capacity: 30, isActive: true }),
       createRoom({ roomNumber: "Lab 201", building: "ICE Building", type: "lab", capacity: 30, isActive: true }),
       createRoom({ roomNumber: "Lab 202", building: "ICE Building", type: "lab", capacity: 30, isActive: true }),
+      createRoom({ roomNumber: "Computer Lab 1", building: "ICE Building", type: "lab", capacity: 40, isActive: true }),
+      createRoom({ roomNumber: "Computer Lab 2", building: "ICE Building", type: "lab", capacity: 40, isActive: true }),
       createRoom({ roomNumber: "Seminar Room", building: "Main Building", type: "seminar", capacity: 100, isActive: true }),
     ]);
 
-    // 5. Create Courses (1st Year, 1st Semester)
-    const courses = await Promise.all([
+    // 5. Create Courses for all years and semesters (BSC)
+    const coursesBSC = await Promise.all([
+      // 1st Year 1st Semester
       createCourse({ name: "Digital Electronics", code: "ICE-1101", creditHours: 3, type: "theory", year: 1, semester: 1, isActive: true }),
       createCourse({ name: "Digital Electronics Lab", code: "ICE-1102", creditHours: 1.5, type: "lab", year: 1, semester: 1, isActive: true }),
       createCourse({ name: "Electrical Circuit Analysis", code: "ICE-1103", creditHours: 3, type: "theory", year: 1, semester: 1, isActive: true }),
-      createCourse({ name: "Electrical Circuit Analysis Lab", code: "ICE-1104", creditHours: 1.5, type: "lab", year: 1, semester: 1, isActive: true }),
+      createCourse({ name: "Electrical Circuit Lab", code: "ICE-1104", creditHours: 1.5, type: "lab", year: 1, semester: 1, isActive: true }),
       createCourse({ name: "Mathematics-I", code: "ICE-1105", creditHours: 3, type: "theory", year: 1, semester: 1, isActive: true }),
-      createCourse({ name: "Physics", code: "ICE-1106", creditHours: 3, type: "theory", year: 1, semester: 1, isActive: true }),
+      createCourse({ name: "Physics-I", code: "ICE-1106", creditHours: 3, type: "theory", year: 1, semester: 1, isActive: true }),
       createCourse({ name: "English", code: "ICE-1107", creditHours: 2, type: "theory", year: 1, semester: 1, isActive: true }),
+      // 1st Year 2nd Semester
+      createCourse({ name: "Analog Electronics", code: "ICE-1201", creditHours: 3, type: "theory", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Analog Electronics Lab", code: "ICE-1202", creditHours: 1.5, type: "lab", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Signals and Systems", code: "ICE-1203", creditHours: 3, type: "theory", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Mathematics-II", code: "ICE-1204", creditHours: 3, type: "theory", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Physics-II", code: "ICE-1205", creditHours: 3, type: "theory", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Programming Fundamentals", code: "ICE-1206", creditHours: 3, type: "theory", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Programming Lab", code: "ICE-1207", creditHours: 1.5, type: "lab", year: 1, semester: 2, isActive: true }),
+      // 2nd Year 1st Semester
+      createCourse({ name: "Data Structures", code: "ICE-2101", creditHours: 3, type: "theory", year: 2, semester: 1, isActive: true }),
+      createCourse({ name: "Data Structures Lab", code: "ICE-2102", creditHours: 1.5, type: "lab", year: 2, semester: 1, isActive: true }),
+      createCourse({ name: "Microprocessors", code: "ICE-2103", creditHours: 3, type: "theory", year: 2, semester: 1, isActive: true }),
+      createCourse({ name: "Microprocessors Lab", code: "ICE-2104", creditHours: 1.5, type: "lab", year: 2, semester: 1, isActive: true }),
+      createCourse({ name: "Electromagnetic Fields", code: "ICE-2105", creditHours: 3, type: "theory", year: 2, semester: 1, isActive: true }),
+      createCourse({ name: "Mathematics-III", code: "ICE-2106", creditHours: 3, type: "theory", year: 2, semester: 1, isActive: true }),
+      // 2nd Year 2nd Semester
+      createCourse({ name: "Computer Networks", code: "ICE-2201", creditHours: 3, type: "theory", year: 2, semester: 2, isActive: true }),
+      createCourse({ name: "Networks Lab", code: "ICE-2202", creditHours: 1.5, type: "lab", year: 2, semester: 2, isActive: true }),
+      createCourse({ name: "Database Systems", code: "ICE-2203", creditHours: 3, type: "theory", year: 2, semester: 2, isActive: true }),
+      createCourse({ name: "Database Lab", code: "ICE-2204", creditHours: 1.5, type: "lab", year: 2, semester: 2, isActive: true }),
+      createCourse({ name: "Communication Systems", code: "ICE-2205", creditHours: 3, type: "theory", year: 2, semester: 2, isActive: true }),
+      createCourse({ name: "Communication Lab", code: "ICE-2206", creditHours: 1.5, type: "lab", year: 2, semester: 2, isActive: true }),
+      // 3rd Year 1st Semester
+      createCourse({ name: "Operating Systems", code: "ICE-3101", creditHours: 3, type: "theory", year: 3, semester: 1, isActive: true }),
+      createCourse({ name: "OS Lab", code: "ICE-3102", creditHours: 1.5, type: "lab", year: 3, semester: 1, isActive: true }),
+      createCourse({ name: "Digital Signal Processing", code: "ICE-3103", creditHours: 3, type: "theory", year: 3, semester: 1, isActive: true }),
+      createCourse({ name: "DSP Lab", code: "ICE-3104", creditHours: 1.5, type: "lab", year: 3, semester: 1, isActive: true }),
+      createCourse({ name: "Algorithms", code: "ICE-3105", creditHours: 3, type: "theory", year: 3, semester: 1, isActive: true }),
+      createCourse({ name: "VLSI Design", code: "ICE-3106", creditHours: 3, type: "theory", year: 3, semester: 1, isActive: true }),
+      // 3rd Year 2nd Semester
+      createCourse({ name: "Software Engineering", code: "ICE-3201", creditHours: 3, type: "theory", year: 3, semester: 2, isActive: true }),
+      createCourse({ name: "Software Eng Lab", code: "ICE-3202", creditHours: 1.5, type: "lab", year: 3, semester: 2, isActive: true }),
+      createCourse({ name: "Control Systems", code: "ICE-3203", creditHours: 3, type: "theory", year: 3, semester: 2, isActive: true }),
+      createCourse({ name: "Control Lab", code: "ICE-3204", creditHours: 1.5, type: "lab", year: 3, semester: 2, isActive: true }),
+      createCourse({ name: "Wireless Communication", code: "ICE-3205", creditHours: 3, type: "theory", year: 3, semester: 2, isActive: true }),
+      createCourse({ name: "Antenna Theory", code: "ICE-3206", creditHours: 3, type: "theory", year: 3, semester: 2, isActive: true }),
+      // 4th Year 1st Semester
+      createCourse({ name: "Artificial Intelligence", code: "ICE-4101", creditHours: 3, type: "theory", year: 4, semester: 1, isActive: true }),
+      createCourse({ name: "AI Lab", code: "ICE-4102", creditHours: 1.5, type: "lab", year: 4, semester: 1, isActive: true }),
+      createCourse({ name: "Image Processing", code: "ICE-4103", creditHours: 3, type: "theory", year: 4, semester: 1, isActive: true }),
+      createCourse({ name: "Image Proc Lab", code: "ICE-4104", creditHours: 1.5, type: "lab", year: 4, semester: 1, isActive: true }),
+      createCourse({ name: "Cybersecurity", code: "ICE-4105", creditHours: 3, type: "theory", year: 4, semester: 1, isActive: true }),
+      createCourse({ name: "IoT Systems", code: "ICE-4106", creditHours: 3, type: "theory", year: 4, semester: 1, isActive: true }),
+      // 4th Year 2nd Semester
+      createCourse({ name: "Machine Learning", code: "ICE-4201", creditHours: 3, type: "theory", year: 4, semester: 2, isActive: true }),
+      createCourse({ name: "ML Lab", code: "ICE-4202", creditHours: 1.5, type: "lab", year: 4, semester: 2, isActive: true }),
+      createCourse({ name: "Cloud Computing", code: "ICE-4203", creditHours: 3, type: "theory", year: 4, semester: 2, isActive: true }),
+      createCourse({ name: "Project Work", code: "ICE-4204", creditHours: 4, type: "theory", year: 4, semester: 2, isActive: true }),
+      createCourse({ name: "Mobile Computing", code: "ICE-4205", creditHours: 3, type: "theory", year: 4, semester: 2, isActive: true }),
     ]);
 
-    // 6. Create Sample Schedules with program (BSC/MSC)
-    // Using dayOfWeek field consistently
-    const scheduleData = [
-      // Sunday - BSC 1st Year
-      { dayOfWeek: "sunday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
-      { dayOfWeek: "sunday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
-      { dayOfWeek: "sunday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id, year: 1, semester: 1, program: "bsc" },
-      
-      // Monday - BSC 1st Year
-      { dayOfWeek: "monday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
-      { dayOfWeek: "monday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[2].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
-      { dayOfWeek: "monday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id, year: 1, semester: 1, program: "bsc" },
-      
-      // Tuesday - BSC 1st Year
-      { dayOfWeek: "tuesday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
-      { dayOfWeek: "tuesday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
-      { dayOfWeek: "tuesday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id, year: 1, semester: 1, program: "bsc" },
-      
-      // Wednesday - BSC 2nd Year  
-      { dayOfWeek: "wednesday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id, year: 2, semester: 3, program: "bsc" },
-      { dayOfWeek: "wednesday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id, year: 2, semester: 3, program: "bsc" },
-      { dayOfWeek: "wednesday", courseId: courses[3].id, teacherId: teachers[2].id, roomId: rooms[5].id, timeSlotId: timeSlots[6].id, year: 2, semester: 3, program: "bsc" },
-      
-      // Thursday - BSC 2nd Year
-      { dayOfWeek: "thursday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 2, semester: 3, program: "bsc" },
-      { dayOfWeek: "thursday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 2, semester: 3, program: "bsc" },
-      { dayOfWeek: "thursday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[2].id, timeSlotId: timeSlots[2].id, year: 2, semester: 3, program: "bsc" },
-      
-      // Sunday - MSC 1st Year
-      { dayOfWeek: "sunday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "msc" },
-      { dayOfWeek: "sunday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id, year: 1, semester: 1, program: "msc" },
-      { dayOfWeek: "sunday", courseId: courses[0].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "msc" },
-      
-      // Monday - MSC 2nd Year
-      { dayOfWeek: "monday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[3].id, year: 1, semester: 2, program: "msc" },
-      { dayOfWeek: "monday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[1].id, timeSlotId: timeSlots[4].id, year: 1, semester: 2, program: "msc" },
-      
-      // Tuesday - MSC 2nd Year
-      { dayOfWeek: "tuesday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[0].id, timeSlotId: timeSlots[3].id, year: 1, semester: 2, program: "msc" },
-      { dayOfWeek: "tuesday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[1].id, timeSlotId: timeSlots[4].id, year: 1, semester: 2, program: "msc" },
-    ];
+    // 6. Create Courses for MSC
+    const coursesMSC = await Promise.all([
+      // MSC 1st Year 1st Semester
+      createCourse({ name: "Advanced Digital Communication", code: "ICE-6101", creditHours: 3, type: "theory", year: 1, semester: 1, isActive: true }),
+      createCourse({ name: "Advanced Signal Processing", code: "ICE-6102", creditHours: 3, type: "theory", year: 1, semester: 1, isActive: true }),
+      createCourse({ name: "Research Methodology", code: "ICE-6103", creditHours: 3, type: "theory", year: 1, semester: 1, isActive: true }),
+      createCourse({ name: "Advanced Electronics", code: "ICE-6104", creditHours: 3, type: "theory", year: 1, semester: 1, isActive: true }),
+      createCourse({ name: "Advanced Electronics Lab", code: "ICE-6105", creditHours: 1.5, type: "lab", year: 1, semester: 1, isActive: true }),
+      // MSC 1st Year 2nd Semester
+      createCourse({ name: "Advanced Networking", code: "ICE-6201", creditHours: 3, type: "theory", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Deep Learning", code: "ICE-6202", creditHours: 3, type: "theory", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Deep Learning Lab", code: "ICE-6203", creditHours: 1.5, type: "lab", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Embedded Systems", code: "ICE-6204", creditHours: 3, type: "theory", year: 1, semester: 2, isActive: true }),
+      createCourse({ name: "Embedded Lab", code: "ICE-6205", creditHours: 1.5, type: "lab", year: 1, semester: 2, isActive: true }),
+      // MSC 2nd Year 1st Semester
+      createCourse({ name: "Fiber Optic Communication", code: "ICE-7101", creditHours: 3, type: "theory", year: 2, semester: 1, isActive: true }),
+      createCourse({ name: "Satellite Communication", code: "ICE-7102", creditHours: 3, type: "theory", year: 2, semester: 1, isActive: true }),
+      createCourse({ name: "Advanced VLSI", code: "ICE-7103", creditHours: 3, type: "theory", year: 2, semester: 1, isActive: true }),
+      createCourse({ name: "VLSI Lab", code: "ICE-7104", creditHours: 1.5, type: "lab", year: 2, semester: 1, isActive: true }),
+      // MSC 2nd Year 2nd Semester
+      createCourse({ name: "Thesis Research", code: "ICE-7201", creditHours: 6, type: "theory", year: 2, semester: 2, isActive: true }),
+      createCourse({ name: "Advanced IoT", code: "ICE-7202", creditHours: 3, type: "theory", year: 2, semester: 2, isActive: true }),
+    ]);
 
+    const allCourses = [...coursesBSC, ...coursesMSC];
+
+    // Days of the week (including Friday and Saturday)
+    const days = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"];
+
+    // 7. Create Comprehensive Schedules with Friday and Saturday
+    const scheduleData: any[] = [];
+
+    // Helper function to get random elements
+    const getTeacher = (index: number) => teachers[index % teachers.length];
+    const getRoom = (index: number, isLab: boolean) => {
+      if (isLab) return rooms[8 + (index % 6)]; // Labs are from index 8
+      return rooms[index % 8]; // Classrooms are from index 0-7
+    };
+    const getTimeSlot = (index: number) => timeSlots[index % 6]; // Periods 1-6 (skip break)
+
+    // Generate schedules for BSC - All 4 years, both semesters
+    for (let year = 1; year <= 4; year++) {
+      for (let semester = 1; semester <= 2; semester++) {
+        const yearCourses = coursesBSC.filter(c => c.year === year && c.semester === semester);
+        
+        // For each day of the week (including Friday and Saturday)
+        days.forEach((day, dayIndex) => {
+          // Assign 3-4 classes per day
+          const classesPerDay = 3 + Math.floor(Math.random() * 2);
+          
+          for (let i = 0; i < classesPerDay; i++) {
+            const courseIndex = (dayIndex * classesPerDay + i) % yearCourses.length;
+            const course = yearCourses[courseIndex];
+            
+            if (course) {
+              const teacherIndex = (year * 10 + semester * 5 + dayIndex + i) % teachers.length;
+              const slotIndex = i; // Spread across different time slots
+              
+              scheduleData.push({
+                dayOfWeek: day,
+                courseId: course.id,
+                teacherId: teachers[teacherIndex].id,
+                roomId: getRoom(dayIndex + i, course.type === "lab").id,
+                timeSlotId: timeSlots[slotIndex].id,
+                year: year,
+                semester: semester,
+                program: "bsc"
+              });
+            }
+          }
+        });
+      }
+    }
+
+    // Generate schedules for MSC - Both years, both semesters
+    for (let year = 1; year <= 2; year++) {
+      for (let semester = 1; semester <= 2; semester++) {
+        const yearCourses = coursesMSC.filter(c => c.year === year && c.semester === semester);
+        
+        // For each day (including Friday and Saturday)
+        days.forEach((day, dayIndex) => {
+          // Assign 2-3 classes per day for MSC
+          const classesPerDay = 2 + Math.floor(Math.random() * 2);
+          
+          for (let i = 0; i < classesPerDay; i++) {
+            const courseIndex = (dayIndex * classesPerDay + i) % yearCourses.length;
+            const course = yearCourses[courseIndex];
+            
+            if (course) {
+              const teacherIndex = (year * 10 + semester * 5 + dayIndex + i + 5) % teachers.length;
+              const slotIndex = (i + 2) % 6; // Different time slots
+              
+              scheduleData.push({
+                dayOfWeek: day,
+                courseId: course.id,
+                teacherId: teachers[teacherIndex].id,
+                roomId: getRoom(dayIndex + i + 7, course.type === "lab").id,
+                timeSlotId: timeSlots[slotIndex].id,
+                year: year,
+                semester: semester,
+                program: "msc"
+              });
+            }
+          }
+        });
+      }
+    }
+
+    // Create all schedules
     for (const sched of scheduleData) {
-      const course = courses.find(c => c.id === sched.courseId);
+      const course = allCourses.find(c => c.id === sched.courseId);
       const teacher = teachers.find(t => t.id === sched.teacherId);
       const room = rooms.find(r => r.id === sched.roomId);
       const timeSlot = timeSlots.find(t => t.id === sched.timeSlotId);
@@ -201,7 +410,7 @@ export async function POST() {
       }
     }
 
-    // 7. Create Sample Notices
+    // 8. Create Sample Notices
     await Promise.all([
       createNotice({
         title: "Mid-term Exam Schedule Published",
@@ -233,9 +442,42 @@ export async function POST() {
         isApproved: true,
         isAutoGenerated: false,
       }),
+      createNotice({
+        title: "Lab Class Rescheduled",
+        content: "The Digital Electronics Lab scheduled for Friday has been rescheduled to Saturday due to equipment maintenance. All students of 1st year are requested to note the change.",
+        category: "schedule_change",
+        postedBy: teachers[0].id,
+        postedByName: teachers[0].fullName,
+        isPinned: false,
+        isApproved: true,
+        isAutoGenerated: false,
+        affectedYear: 1,
+        affectedSemester: 1,
+        affectedProgram: "bsc",
+      }),
+      createNotice({
+        title: "Guest Lecture on IoT",
+        content: "A guest lecture on 'Internet of Things: Future Trends and Career Opportunities' will be delivered by industry experts on April 5, 2025. All ICE students are encouraged to attend.",
+        category: "event",
+        postedBy: teachers[2].id,
+        postedByName: teachers[2].fullName,
+        isPinned: false,
+        isApproved: true,
+        isAutoGenerated: false,
+      }),
+      createNotice({
+        title: "Assignment Submission Deadline Extended",
+        content: "The deadline for submission of the Signal Processing assignment has been extended to April 10, 2025. Students who have already submitted may revise their work if desired.",
+        category: "academic",
+        postedBy: teachers[1].id,
+        postedByName: teachers[1].fullName,
+        isPinned: false,
+        isApproved: true,
+        isAutoGenerated: false,
+      }),
     ]);
 
-    // 8. Create Academic Calendar Events
+    // 9. Create Academic Calendar Events
     await Promise.all([
       createCalendarEvent({
         title: "Spring 2025 Semester Begins",
@@ -269,9 +511,22 @@ export async function POST() {
         eventType: "exam",
         description: "Final examination for Spring 2025 semester",
       }),
+      createCalendarEvent({
+        title: "Summer Vacation",
+        date: new Date("2025-06-01"),
+        endDate: new Date("2025-06-15"),
+        eventType: "holiday",
+        description: "Summer vacation",
+      }),
+      createCalendarEvent({
+        title: "Fall Semester Begins",
+        date: new Date("2025-07-01"),
+        eventType: "class",
+        description: "Fall 2025 semester begins",
+      }),
     ]);
 
-    // 9. Create Site Settings
+    // 10. Create Site Settings
     await updateSiteSettings({
       departmentName: "Information & Communication Engineering",
       universityName: "Rajshahi University",
@@ -286,13 +541,16 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: "Database seeded successfully",
+      message: "Database seeded successfully with comprehensive data!",
       data: {
         teachers: teachers.length,
         timeSlots: timeSlots.length,
         rooms: rooms.length,
-        courses: courses.length,
+        coursesBSC: coursesBSC.length,
+        coursesMSC: coursesMSC.length,
+        totalCourses: allCourses.length,
         schedules: scheduleData.length,
+        days: days.length,
       },
     });
   } catch (error) {

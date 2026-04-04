@@ -85,8 +85,8 @@ const programs = [
   },
 ];
 
-const days = ["sunday", "monday", "tuesday", "wednesday", "thursday"];
-const daysShort = ["Sun", "Mon", "Tue", "Wed", "Thu"];
+const days = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"];
+const daysShort = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
 const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
 
 // Semester Card Component
@@ -874,8 +874,8 @@ function MasterRoutineCalendar() {
       .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
   });
 
-  const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
-  const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
+  const weekStart = startOfWeek(currentWeek, { weekStartsOn: 6 }); // Week starts on Saturday
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const resetFilters = () => {
     setFilterProgram("all");
@@ -1071,7 +1071,7 @@ function MasterRoutineCalendar() {
             <div className="text-center">
               <p className="font-medium text-sm text-foreground">This Week</p>
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {format(weekStart, "MMM d")} - {format(addDays(weekStart, 4), "MMM d")}
+                {format(weekStart, "MMM d")} - {format(addDays(weekStart, 6), "MMM d")}
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={() => setCurrentWeek(new Date())} className="h-8 text-xs">
@@ -1195,7 +1195,7 @@ function MasterRoutineCalendar() {
                   <div className="overflow-x-auto">
                     <div className="min-w-[640px] sm:min-w-0">
                       {/* Header Row */}
-                      <div className="grid grid-cols-6 border-b border-border">
+                      <div className="grid grid-cols-8 border-b border-border">
                         <div className="p-2 sm:p-3 bg-muted/50 font-medium text-[10px] sm:text-sm text-muted-foreground">Time</div>
                         {weekDays.map((day) => (
                           <div
@@ -1213,7 +1213,7 @@ function MasterRoutineCalendar() {
 
                       {/* Time Rows */}
                       {timeSlots.map((time) => (
-                        <div key={time} className="grid grid-cols-6 border-b border-border last:border-b-0">
+                        <div key={time} className="grid grid-cols-8 border-b border-border last:border-b-0">
                           <div className="p-2 sm:p-3 text-[10px] sm:text-sm text-muted-foreground bg-muted/30">
                             {time}
                           </div>
