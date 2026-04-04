@@ -38,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useSettingsStore } from "@/store/settings-store";
 
 // Helper to safely convert Firestore timestamp to Date
 function toDate(timestamp: unknown): Date {
@@ -331,9 +332,12 @@ export default function AdminDashboard() {
       
       const data = await res.json();
       if (data.success) {
+        // Update global settings store
+        useSettingsStore.getState().updateSettings(siteSettings);
+        
         toast({
           title: "Settings saved",
-          description: "Site settings have been updated successfully.",
+          description: "Site settings have been updated successfully. Changes are now live!",
         });
       } else {
         throw new Error(data.error);

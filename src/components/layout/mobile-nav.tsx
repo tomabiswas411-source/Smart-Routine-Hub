@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useSettingsStore } from "@/store/settings-store";
 
-const navItems = [
+const defaultNavItems = [
   { id: "home", label: "Home", icon: Home, href: "/" },
   { id: "master", label: "Routine", icon: CalendarDays, href: "/?view=master-calendar" },
   { id: "student", label: "Student", icon: User, href: "/?view=student" },
@@ -18,12 +19,23 @@ function MobileBottomNavContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const view = searchParams.get("view");
+  const { settings } = useSettingsStore();
+
+  // Use header links from settings, fallback to default
+  const navItems = settings.headerLinks?.length > 0 
+    ? settings.headerLinks.slice(0, 4).map((link, index) => ({
+        id: `mobile-nav-${index}`,
+        label: link.label.length > 10 ? link.label.slice(0, 8) + "..." : link.label,
+        icon: index === 0 ? Home : index === 1 ? CalendarDays : index === 2 ? User : BookOpen,
+        href: link.href,
+      }))
+    : defaultNavItems;
 
   const getActiveId = () => {
-    if (view === "master-calendar") return "master";
-    if (view === "student") return "student";
-    if (view === "library") return "library";
-    return "home";
+    if (view === "master-calendar") return "mobile-nav-1";
+    if (view === "student") return "mobile-nav-2";
+    if (view === "library") return "mobile-nav-3";
+    return "mobile-nav-0";
   };
 
   const activeId = getActiveId();

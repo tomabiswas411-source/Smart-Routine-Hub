@@ -1,14 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, CalendarDays, User, BookOpen, LogIn, Moon, Sun, RefreshCw } from "lucide-react";
+import { Home, CalendarDays, User, BookOpen, LogIn, Moon, Sun, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useSyncExternalStore, useCallback } from "react";
+import { useSyncExternalStore, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useSettingsStore } from "@/store/settings-store";
 
-const navItems = [
+const defaultNavItems = [
   { id: "home", label: "Home", icon: Home, href: "/" },
   { id: "master", label: "Master Routine", icon: CalendarDays, href: "/?view=master-calendar" },
   { id: "student", label: "Student View", icon: User, href: "/?view=student" },
@@ -26,6 +27,17 @@ function useMounted() {
 export function DesktopNav() {
   const { theme, setTheme } = useTheme();
   const mounted = useMounted();
+  const { settings } = useSettingsStore();
+  
+  // Use header links from settings, fallback to default
+  const navItems = settings.headerLinks?.length > 0 
+    ? settings.headerLinks.map((link, index) => ({
+        id: `nav-${index}`,
+        label: link.label,
+        icon: index === 0 ? Home : index === 1 ? CalendarDays : User,
+        href: link.href,
+      }))
+    : defaultNavItems;
 
   return (
     <header className="sticky top-0 z-50 w-full hidden md:block">
@@ -38,14 +50,14 @@ export function DesktopNav() {
                 <CalendarDays className="w-5 h-5 text-white" />
               </div>
               <div className="hidden lg:block">
-                <h1 className="font-bold text-lg text-foreground">Smart Routine Hub</h1>
-                <p className="text-xs text-muted-foreground">Academic Schedule Management</p>
+                <h1 className="font-bold text-lg text-foreground">{settings.siteName || "Smart Routine Hub"}</h1>
+                <p className="text-xs text-muted-foreground">{settings.siteTagline || "Academic Schedule Management"}</p>
               </div>
             </Link>
 
             {/* Desktop Navigation */}
             <nav className="flex items-center gap-1">
-              {navItems.map((item) => {
+              {navItems.slice(0, 5).map((item) => {
                 return (
                   <Link
                     key={item.id}
@@ -106,6 +118,7 @@ export function DesktopNav() {
 export function MobileHeader() {
   const { theme, setTheme } = useTheme();
   const mounted = useMounted();
+  const { settings } = useSettingsStore();
 
   return (
     <header className="sticky top-0 z-50 w-full md:hidden">
@@ -116,7 +129,7 @@ export function MobileHeader() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
               <CalendarDays className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-sm">Smart Routine Hub</span>
+            <span className="font-bold text-sm">{settings.siteName || "Smart Routine Hub"}</span>
           </Link>
 
           <div className="flex items-center gap-2">
