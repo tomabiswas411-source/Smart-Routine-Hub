@@ -364,6 +364,10 @@ function ScheduleCard({
   const isRescheduled = scheduleChange?.changeType === "rescheduled" && scheduleChange?.isActive;
   const isRoomChanged = scheduleChange?.changeType === "room_changed" && scheduleChange?.isActive;
   
+  // Check if the class was moved to a different day
+  const wasMoved = isRescheduled && scheduleChange?.newDay && 
+                   scheduleChange.newDay.toLowerCase() !== scheduleChange.originalDay?.toLowerCase();
+  
   const formatTime = (time: string) => {
     if (!time) return "";
     const [hours, minutes] = time.split(":");
@@ -384,7 +388,7 @@ function ScheduleCard({
     }
     if (isRescheduled) {
       return {
-        label: "Rescheduled",
+        label: wasMoved ? "Moved" : "Rescheduled",
         style: statusStyles.rescheduled,
         icon: CalendarClock,
       };
@@ -460,8 +464,8 @@ function ScheduleCard({
           </div>
         </div>
         
-        {/* Show new schedule info if rescheduled */}
-        {isRescheduled && scheduleChange && (
+        {/* Show original schedule info if rescheduled/moved */}
+        {isRescheduled && scheduleChange && wasMoved && (
           <div className={cn(
             "mt-3 p-2 rounded-lg text-[10px]",
             statusStyles.rescheduled.bg,
@@ -470,17 +474,40 @@ function ScheduleCard({
           )}>
             <div className="flex items-center gap-1 font-medium mb-1">
               <CalendarClock className="w-3 h-3" />
-              New Schedule
+              Moved from original schedule
             </div>
             <div className="space-y-0.5 text-muted-foreground">
-              {scheduleChange.newDay && (
-                <p>Day: <span className="capitalize font-medium text-foreground">{scheduleChange.newDay}</span></p>
+              {scheduleChange.originalDay && (
+                <p>Original Day: <span className="capitalize font-medium text-foreground">{scheduleChange.originalDay}</span></p>
               )}
-              {scheduleChange.newStartTime && scheduleChange.newEndTime && (
-                <p>Time: <span className="font-medium text-foreground">{formatTime(scheduleChange.newStartTime)} - {formatTime(scheduleChange.newEndTime)}</span></p>
+              {scheduleChange.originalStartTime && scheduleChange.originalEndTime && (
+                <p>Original Time: <span className="font-medium text-foreground">{formatTime(scheduleChange.originalStartTime)} - {formatTime(scheduleChange.originalEndTime)}</span></p>
               )}
-              {scheduleChange.newRoomNumber && (
-                <p>Room: <span className="font-medium text-foreground">{scheduleChange.newRoomNumber}</span></p>
+              {scheduleChange.reason && (
+                <p className="italic">Reason: {scheduleChange.reason}</p>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Show time change info if only time was changed */}
+        {isRescheduled && scheduleChange && !wasMoved && (
+          <div className={cn(
+            "mt-3 p-2 rounded-lg text-[10px]",
+            statusStyles.rescheduled.bg,
+            statusStyles.rescheduled.border,
+            "border"
+          )}>
+            <div className="flex items-center gap-1 font-medium mb-1">
+              <Clock className="w-3 h-3" />
+              Time Changed
+            </div>
+            <div className="space-y-0.5 text-muted-foreground">
+              {scheduleChange.originalStartTime && scheduleChange.originalEndTime && (
+                <p>Original: <span className="font-medium text-foreground">{formatTime(scheduleChange.originalStartTime)} - {formatTime(scheduleChange.originalEndTime)}</span></p>
+              )}
+              {scheduleChange.reason && (
+                <p className="italic">Reason: {scheduleChange.reason}</p>
               )}
             </div>
           </div>
@@ -685,9 +712,41 @@ export default function TeacherDashboard() {
     }
   }, [showRescheduleDialog, rescheduleData.newDay, rescheduleData.timeSlotId, customStartTime, customEndTime, useCustomTime, getCurrentTimeValues, fetchAvailableRooms]);
 
-  // Filter schedules
-  const filteredSchedules = schedules.filter((s) => {
-    if (!s.isActive) return false;
+  // Get effective schedule based on schedule changes
+  // For rescheduled classes, we create a virtual schedule with new day/time
+  // For cancelled classes, we mark them but still include for display
+  const getEffectiveSchedule = (schedule: TeacherSchedule): TeacherSchedule => {
+    const change = scheduleChanges[schedule.id];
+    
+    if (change?.changeType === "rescheduled" && change?.isActive) {
+      return {
+        ...schedule,
+        dayOfWeek: change.newDay || schedule.dayOfWeek,
+        startTime: change.newStartTime || schedule.startTime,
+        endTime: change.newEndTime || schedule.endTime,
+        roomNumber: change.newRoomNumber || schedule.roomNumber,
+      };
+    }
+    
+    return schedule;
+  };
+
+  // Check if a schedule is cancelled
+  const isScheduleCancelled = (scheduleId: string): boolean => {
+    const change = scheduleChanges[scheduleId];
+    return change?.changeType === "cancelled" && change?.isActive;
+  };
+
+  // Create effective schedules list (with rescheduled changes applied)
+  const effectiveSchedules = schedules
+    .filter((s) => s.isActive)
+    .map((s) => getEffectiveSchedule(s));
+
+  // Filter schedules - now using effective schedules
+  const filteredSchedules = effectiveSchedules.filter((s) => {
+    // Don't show cancelled classes in the normal schedule list
+    if (isScheduleCancelled(s.id)) return false;
+    
     if (filterSemester !== "all" && s.semester !== parseInt(filterSemester)) return false;
     if (filterProgram !== "all" && s.program !== filterProgram) return false;
     if (filterRoom !== "all" && s.roomId !== filterRoom) return false;
@@ -695,7 +754,7 @@ export default function TeacherDashboard() {
     return true;
   });
 
-  // Group by day
+  // Group by day - using effective schedules (rescheduled classes now appear on new day)
   const schedulesByDay: Record<string, TeacherSchedule[]> = {};
   days.forEach((day) => {
     schedulesByDay[day] = filteredSchedules
