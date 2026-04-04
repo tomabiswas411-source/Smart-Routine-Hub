@@ -5,8 +5,8 @@ import {
   GraduationCap, CalendarDays, User, BookOpen, LogIn, RefreshCw,
   Building, Clock, XCircle, CalendarClock, ChevronLeft, ChevronRight,
   LayoutGrid, Kanban, Filter, Funnel, Users, Download, Bell, BellOff,
-  Smartphone, CheckCircle, Wifi, WifiOff, List, Grid3X3, AlignLeft,
-  Calendar, MapPin, Timer
+  Smartphone, CheckCircle, Wifi, WifiOff, Grid3X3, AlignLeft,
+  Calendar, MapPin, Timer, AlignJustify
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useCallback, Suspense } from "react";
@@ -588,7 +588,7 @@ function StudentView() {
               onClick={() => setViewMode("list")}
               className="gap-1.5 h-8"
             >
-              <List className="w-3.5 h-3.5" />
+              <AlignJustify className="w-3.5 h-3.5" />
               <span className="hidden sm:inline text-xs">List</span>
             </Button>
             <Button
@@ -930,7 +930,7 @@ function MasterRoutineCalendar() {
                   onClick={() => setViewMode("list")}
                   className="gap-1 h-8"
                 >
-                  <List className="w-3.5 h-3.5" />
+                  <AlignJustify className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline text-xs">List</span>
                 </Button>
                 <Button
