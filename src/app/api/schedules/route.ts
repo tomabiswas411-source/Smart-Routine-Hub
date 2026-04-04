@@ -109,16 +109,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create a new schedule (Admin only, with conflict check)
+// POST - Create a new schedule (Admin or Teacher can create)
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id || session.user.role !== "admin") {
+    if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
+    
+    // If teacher, force their own ID as teacherId
+    const teacherId = session.user.role === 'teacher' ? session.user.id : body.teacherId;
+    const teacherName = session.user.role === 'teacher' ? session.user.name : body.teacherName;
     
     // Check for conflicts
     const conflictCheck = await checkScheduleConflicts({
@@ -126,7 +130,7 @@ export async function POST(request: NextRequest) {
       startTime: body.startTime,
       endTime: body.endTime,
       roomId: body.roomId,
-      teacherId: body.teacherId,
+      teacherId: teacherId,
       program: body.program,
       semester: body.semester,
     });
@@ -141,6 +145,8 @@ export async function POST(request: NextRequest) {
     
     const schedule = await createSchedule({
       ...body,
+      teacherId,
+      teacherName,
       isActive: true,
     });
 

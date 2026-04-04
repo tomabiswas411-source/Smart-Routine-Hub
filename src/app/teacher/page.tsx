@@ -10,7 +10,7 @@ import {
   Building, AlignJustify, Grid3X3, BellOff, CheckCircle,
   Sparkles, GraduationCap, Funnel, FlaskConical, Presentation,
   XCircle, CalendarClock, Info, ChevronUp, Check,
-  AlertTriangle, Megaphone
+  AlertTriangle, Megaphone, Save
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -69,17 +69,19 @@ interface Notification {
 // Days
 const days = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"];
 
-// Color palettes
+// Color palettes - Premium 3D Design
 const classColors = {
   theory: {
-    bg: "bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20",
-    border: "border-emerald-300 dark:border-emerald-700",
-    badge: "bg-emerald-500 text-white",
+    bg: "bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 dark:from-teal-900/30 dark:via-emerald-900/20 dark:to-cyan-900/30",
+    border: "border-teal-300 dark:border-teal-600",
+    badge: "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-md shadow-teal-500/30",
+    glow: "shadow-lg shadow-teal-500/10 hover:shadow-teal-500/20",
   },
   lab: {
-    bg: "bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20",
-    border: "border-purple-300 dark:border-purple-700",
-    badge: "bg-purple-500 text-white",
+    bg: "bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-900/30 dark:via-orange-900/20 dark:to-yellow-900/30",
+    border: "border-amber-300 dark:border-amber-600",
+    badge: "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30",
+    glow: "shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20",
   }
 };
 
@@ -261,12 +263,22 @@ function ScheduleCard({ schedule, isSelected, onSelect, onCancel, onReschedule, 
 
   return (
     <div className="relative">
-      <div
-        className={cn("p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-lg", typeColors.bg, typeColors.border, isSelected && "ring-2 ring-emerald-500", isCancelled && "opacity-75")}
+      <motion.div
+        className={cn(
+          "p-4 rounded-xl border-2 cursor-pointer transition-all duration-300",
+          typeColors.bg, typeColors.border, typeColors.glow,
+          isSelected && "ring-2 ring-teal-500 ring-offset-2 ring-offset-background",
+          isCancelled && "opacity-60"
+        )}
         onClick={onSelect}
+        whileHover={{ y: -4, scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
       >
+        {/* 3D Card Effect - Inner Shadow */}
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/50 via-transparent to-black/5 dark:from-white/5 dark:via-transparent dark:to-black/10 pointer-events-none" />
+        
         {statusInfo && (
-          <div className={cn("absolute -top-2 -right-2 flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold shadow-md z-10 border", statusInfo.style.bg, statusInfo.text, statusInfo.style.border)}>
+          <div className={cn("absolute -top-2 -right-2 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg z-10 border backdrop-blur-sm", statusInfo.style.bg, statusInfo.text, statusInfo.style.border)}>
             <statusInfo.icon className="w-3 h-3" />
             {statusInfo.label}
           </div>
@@ -314,7 +326,7 @@ function ScheduleCard({ schedule, isSelected, onSelect, onCancel, onReschedule, 
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
       
       <AnimatePresence>
         {isSelected && !isCancelled && (
@@ -354,8 +366,22 @@ export default function TeacherDashboard() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [showNoticeDialog, setShowNoticeDialog] = useState(false);
+  const [showAddClassDialog, setShowAddClassDialog] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<TeacherSchedule | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Add class form state
+  const [newClassForm, setNewClassForm] = useState({
+    courseCode: "",
+    courseName: "",
+    dayOfWeek: "",
+    startTime: "09:00",
+    endTime: "10:00",
+    roomId: "",
+    semester: 1,
+    program: "bsc",
+    classType: "theory" as "theory" | "lab"
+  });
   
   const [useCustomTime, setUseCustomTime] = useState(false);
   const [customStartTime, setCustomStartTime] = useState("09:00");
@@ -659,6 +685,62 @@ export default function TeacherDashboard() {
 
   const handleMarkAsRead = (id: string) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   const resetFilters = () => { setFilterSemester("all"); setFilterProgram("all"); setFilterRoom("all"); setFilterDay("all"); };
+  
+  // Handle Add Class
+  const handleAddClass = async () => {
+    if (!newClassForm.courseCode.trim() || !newClassForm.courseName.trim() || !newClassForm.dayOfWeek || !newClassForm.roomId) {
+      toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      const selectedRoom = rooms.find(r => r.id === newClassForm.roomId);
+      
+      const res = await fetch("/api/schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseCode: newClassForm.courseCode,
+          courseName: newClassForm.courseName,
+          dayOfWeek: newClassForm.dayOfWeek,
+          startTime: newClassForm.startTime,
+          endTime: newClassForm.endTime,
+          roomId: newClassForm.roomId,
+          roomNumber: selectedRoom?.roomNumber,
+          semester: newClassForm.semester,
+          program: newClassForm.program,
+          classType: newClassForm.classType,
+        }),
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "✅ Class Added", description: `${newClassForm.courseCode} has been added to your schedule` });
+        setShowAddClassDialog(false);
+        setNewClassForm({
+          courseCode: "",
+          courseName: "",
+          dayOfWeek: "",
+          startTime: "09:00",
+          endTime: "10:00",
+          roomId: "",
+          semester: 1,
+          program: "bsc",
+          classType: "theory"
+        });
+      } else if (data.conflicts) {
+        toast({ title: "⚠️ Conflicts Detected", description: data.conflicts.join(", "), variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to add class", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error adding class:", error);
+      toast({ title: "Error", description: "Failed to add class", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const loading = status === "loading" || schedulesLoading || changesLoading || timeSlotsLoading || roomsLoading;
 
@@ -692,6 +774,10 @@ export default function TeacherDashboard() {
               <p className="text-white/80 text-[10px] md:text-xs">Teacher Dashboard • ICE Department</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 gap-1.5 h-8 px-3 bg-white/10" onClick={() => setShowAddClassDialog(true)}>
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs font-medium">Add Class</span>
+              </Button>
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9" onClick={() => setShowNoticeDialog(true)}>
                 <Megaphone className="w-5 h-5" />
               </Button>
@@ -1053,6 +1139,110 @@ export default function TeacherDashboard() {
             <Button variant="outline" onClick={() => setShowNoticeDialog(false)} disabled={submitting}>Cancel</Button>
             <Button onClick={handleCreateNotice} disabled={submitting || !noticeForm.title.trim() || !noticeForm.content.trim()} className="bg-gradient-to-r from-emerald-500 to-teal-500">
               {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : <><Plus className="w-4 h-4 mr-2" />Create Notice</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Class Dialog */}
+      <Dialog open={showAddClassDialog} onOpenChange={setShowAddClassDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-teal-600">
+              <Plus className="w-5 h-5" />
+              Add New Class
+            </DialogTitle>
+            <DialogDescription>
+              Add a new class to your schedule. Conflicts will be automatically detected.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Course Code *</Label>
+                <Input placeholder="e.g. ICE-301" value={newClassForm.courseCode} onChange={(e) => setNewClassForm({ ...newClassForm, courseCode: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Class Type</Label>
+                <Select value={newClassForm.classType} onValueChange={(v: "theory" | "lab") => setNewClassForm({ ...newClassForm, classType: v })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="theory">Theory</SelectItem>
+                    <SelectItem value="lab">Lab</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Course Name *</Label>
+              <Input placeholder="e.g. Digital Signal Processing" value={newClassForm.courseName} onChange={(e) => setNewClassForm({ ...newClassForm, courseName: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Day *</Label>
+                <Select value={newClassForm.dayOfWeek} onValueChange={(v) => setNewClassForm({ ...newClassForm, dayOfWeek: v })}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Select day" /></SelectTrigger>
+                  <SelectContent>
+                    {days.map((day) => (<SelectItem key={day} value={day} className="capitalize">{day}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Room *</Label>
+                <Select value={newClassForm.roomId} onValueChange={(v) => setNewClassForm({ ...newClassForm, roomId: v })}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Select room" /></SelectTrigger>
+                  <SelectContent>
+                    {rooms.map((room) => (
+                      <SelectItem key={room.id} value={room.id}>
+                        <div className="flex items-center gap-2">
+                          {roomTypeIcons[room.type]}
+                          {room.roomNumber}
+                          <span className="text-muted-foreground text-xs">({room.capacity} seats)</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Start Time</Label>
+                <Input type="time" value={newClassForm.startTime} onChange={(e) => setNewClassForm({ ...newClassForm, startTime: e.target.value })} className="h-9" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">End Time</Label>
+                <Input type="time" value={newClassForm.endTime} onChange={(e) => setNewClassForm({ ...newClassForm, endTime: e.target.value })} className="h-9" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Program</Label>
+                <Select value={newClassForm.program} onValueChange={(v) => setNewClassForm({ ...newClassForm, program: v })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bsc">BSc</SelectItem>
+                    <SelectItem value="msc">MSc</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Semester</Label>
+                <Select value={newClassForm.semester.toString()} onValueChange={(v) => setNewClassForm({ ...newClassForm, semester: parseInt(v) })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[1,2,3,4,5,6,7,8].map((sem) => (
+                      <SelectItem key={sem} value={sem.toString()}>{sem}{sem === 1 ? 'st' : sem === 2 ? 'nd' : sem === 3 ? 'rd' : 'th'} Semester</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowAddClassDialog(false)} disabled={submitting}>Cancel</Button>
+            <Button onClick={handleAddClass} disabled={submitting || !newClassForm.courseCode || !newClassForm.courseName || !newClassForm.dayOfWeek || !newClassForm.roomId} className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600">
+              {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : <><Plus className="w-4 h-4 mr-2" />Add Class</>}
             </Button>
           </DialogFooter>
         </DialogContent>
