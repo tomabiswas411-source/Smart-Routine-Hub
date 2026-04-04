@@ -6,7 +6,7 @@ import {
   Building, Clock, XCircle, CalendarClock, ChevronLeft, ChevronRight,
   LayoutGrid, Kanban, Filter, Funnel, Users, Download, Bell, BellOff,
   Smartphone, CheckCircle, Wifi, WifiOff, Grid3X3, AlignLeft,
-  Calendar, MapPin, Timer, AlignJustify
+  Calendar, MapPin, Timer, AlignJustify, Home, X
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useCallback, Suspense } from "react";
@@ -25,6 +25,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { usePWA, usePushNotifications } from "@/hooks/use-pwa";
 
 // Types
@@ -311,7 +318,112 @@ interface NotificationItem {
   isRead: boolean;
 }
 
-// Notification Section Component
+// Shared helper functions for notifications
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case "class_cancelled":
+      return <XCircle className="w-4 h-4 text-red-500" />;
+    case "class_rescheduled":
+      return <CalendarClock className="w-4 h-4 text-amber-500" />;
+    case "room_changed":
+      return <MapPin className="w-4 h-4 text-blue-500" />;
+    default:
+      return <Bell className="w-4 h-4 text-emerald-500" />;
+  }
+};
+
+const formatNotificationTime = (timestamp: string) => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+};
+
+// Notification List Component - Reusable
+function NotificationList({ 
+  notifications, 
+  loading,
+  compact = false 
+}: { 
+  notifications: NotificationItem[];
+  loading: boolean;
+  compact?: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (notifications.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <BellOff className="w-8 h-8 text-muted-foreground/50 mb-2" />
+        <p className="text-xs sm:text-sm text-muted-foreground">No notifications yet</p>
+        <p className="text-[10px] text-muted-foreground/70 mt-1">
+          Class changes and updates will appear here
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("overflow-y-auto", compact ? "max-h-[60vh]" : "max-h-80")}>
+      {notifications.map((notification) => (
+        <div
+          key={notification.id}
+          className={cn(
+            "flex items-start gap-3 p-3 sm:p-4 border-b last:border-b-0",
+            !notification.isRead && "bg-emerald-50/50 dark:bg-emerald-900/10"
+          )}
+        >
+          <div className="mt-0.5 shrink-0">
+            {getNotificationIcon(notification.type)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-xs sm:text-sm text-foreground">
+              {notification.title}
+            </p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">
+              {notification.message}
+            </p>
+            {/* Semester Highlight */}
+            {notification.semester && (
+              <div className="flex items-center gap-2 mt-2">
+                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] px-2 py-0.5">
+                  {notification.semester}{notification.semester === 1 ? 'st' : notification.semester === 2 ? 'nd' : notification.semester === 3 ? 'rd' : 'th'} Semester
+                </Badge>
+                {notification.program && (
+                  <Badge variant="outline" className="text-[10px] uppercase px-2 py-0.5">
+                    {notification.program}
+                  </Badge>
+                )}
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground/70 mt-1">
+              {formatNotificationTime(notification.timestamp)}
+            </p>
+          </div>
+          {!notification.isRead && (
+            <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1.5" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Notification Section Component (for home page)
 function NotificationSection() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -333,40 +445,6 @@ function NotificationSection() {
     fetchNotifications();
   }, []);
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "class_cancelled":
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      case "class_rescheduled":
-        return <CalendarClock className="w-4 h-4 text-amber-500" />;
-      case "room_changed":
-        return <MapPin className="w-4 h-4 text-blue-500" />;
-      default:
-        return <Bell className="w-4 h-4 text-emerald-500" />;
-    }
-  };
-
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
-
-  const getOrdinalSuffix = (n: number): string => {
-    const s = ["th", "st", "nd", "rd"];
-    const v = n % 100;
-    return (s[(v - 20) % 10] || s[v] || s[0]);
-  };
-
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
@@ -381,71 +459,135 @@ function NotificationSection() {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : notifications.length > 0 ? (
-          <div className="max-h-80 overflow-y-auto">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={cn(
-                  "flex items-start gap-3 p-3 sm:p-4 border-b last:border-b-0",
-                  !notification.isRead && "bg-emerald-50/50 dark:bg-emerald-900/10"
-                )}
-              >
-                <div className="mt-0.5 shrink-0">
-                  {getNotificationIcon(notification.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-xs sm:text-sm text-foreground">
-                    {notification.title}
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                    {notification.message}
-                  </p>
-                  {/* Semester Highlight */}
-                  {notification.semester && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] px-2 py-0.5">
-                        {notification.semester}{getOrdinalSuffix(notification.semester)} Semester
-                      </Badge>
-                      {notification.program && (
-                        <Badge variant="outline" className="text-[10px] uppercase px-2 py-0.5">
-                          {notification.program}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                  <p className="text-[10px] text-muted-foreground/70 mt-1">
-                    {formatTime(notification.timestamp)}
-                  </p>
-                </div>
-                {!notification.isRead && (
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1.5" />
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <BellOff className="w-8 h-8 text-muted-foreground/50 mb-2" />
-            <p className="text-xs sm:text-sm text-muted-foreground">No notifications yet</p>
-            <p className="text-[10px] text-muted-foreground/70 mt-1">
-              Class changes and updates will appear here
-            </p>
-          </div>
-        )}
+        <NotificationList notifications={notifications} loading={loading} />
       </CardContent>
     </Card>
   );
 }
 
+// Mobile Bottom Navigation Component
+function MobileBottomNav({ 
+  unreadCount, 
+  onNotificationClick 
+}: { 
+  unreadCount: number;
+  onNotificationClick: () => void;
+}) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border shadow-lg z-50 sm:hidden">
+      <div className="flex items-center justify-around h-16">
+        {/* Home Button */}
+        <Link href="/" className="flex flex-col items-center justify-center w-full h-full">
+          <Home className="w-5 h-5 text-emerald-600" />
+          <span className="text-[10px] mt-1 text-emerald-600 font-medium">Home</span>
+        </Link>
+        
+        {/* Notification Button */}
+        <button 
+          onClick={onNotificationClick}
+          className="flex flex-col items-center justify-center w-full h-full relative"
+        >
+          <div className="relative">
+            <Bell className="w-5 h-5 text-muted-foreground" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] mt-1 text-muted-foreground font-medium">Notifications</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Notification Drawer Component (for mobile)
+function NotificationDrawer({ 
+  open, 
+  onOpenChange 
+}: { 
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (open) {
+      const fetchNotifications = async () => {
+        setLoading(true);
+        try {
+          const res = await fetch("/api/notifications");
+          const data = await res.json();
+          if (data.success) {
+            setNotifications(data.data || []);
+          }
+        } catch (error) {
+          console.error("Error fetching notifications:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchNotifications();
+    }
+  }, [open]);
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="h-[80vh] p-0">
+        <SheetHeader className="p-4 border-b bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2 text-lg">
+              <Bell className="w-5 h-5 text-emerald-600" />
+              Notifications
+              {notifications.filter(n => !n.isRead).length > 0 && (
+                <Badge className="bg-red-500 text-white text-[10px] px-1.5 py-0.5">
+                  {notifications.filter(n => !n.isRead).length} new
+                </Badge>
+              )}
+            </SheetTitle>
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </SheetHeader>
+        <div className="overflow-y-auto">
+          <NotificationList notifications={notifications} loading={loading} compact />
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 // Home Page Component
 function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, semester: number) => void }) {
+  const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await fetch("/api/notifications");
+        const data = await res.json();
+        if (data.success) {
+          const notifications = data.data || [];
+          setUnreadCount(notifications.filter((n: NotificationItem) => !n.isRead).length);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+    fetchUnreadCount();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20 sm:pb-0">
       {/* Hero Section */}
       <section className="py-8 sm:py-12 md:py-16 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-cyan-950/30">
         <div className="container mx-auto px-4">
@@ -586,6 +728,18 @@ function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, se
           </div>
         </div>
       </section>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav 
+        unreadCount={unreadCount} 
+        onNotificationClick={() => setNotificationDrawerOpen(true)} 
+      />
+
+      {/* Notification Drawer for Mobile */}
+      <NotificationDrawer 
+        open={notificationDrawerOpen} 
+        onOpenChange={setNotificationDrawerOpen} 
+      />
     </div>
   );
 }
