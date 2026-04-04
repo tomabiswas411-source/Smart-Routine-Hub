@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   Calendar, Clock, Users, BookOpen, Settings, Bell, 
-  LogOut, ChevronRight, Loader2, Ban, RefreshCw, MapPined, Timer, Plus
+  LogOut, ChevronRight, Loader2, Ban, RefreshCw, MapPin, Timer, Plus
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -166,7 +166,7 @@ export default function TeacherDashboard() {
               {[
                 { label: "Cancel Class", icon: Ban, color: "text-red-500 bg-red-500/10 hover:bg-red-500/20" },
                 { label: "Reschedule", icon: RefreshCw, color: "text-orange-500 bg-orange-500/10 hover:bg-orange-500/20" },
-                { label: "Change Room", icon: MapPined, color: "text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20" },
+                { label: "Change Room", icon: MapPin, color: "text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20" },
                 { label: "Add Extra", icon: Plus, color: "text-green-500 bg-green-500/10 hover:bg-green-500/20" },
               ].map((action) => (
                 <button

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getUser, getUsers, getSchedules } from "@/lib/firebase-services";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,24 +9,9 @@ export async function GET(request: NextRequest) {
 
     // Single teacher fetch
     if (teacherId) {
-      const teacher = await db.user.findUnique({
-        where: { id: teacherId, role: "teacher" },
-        select: {
-          id: true,
-          email: true,
-          fullName: true,
-          designation: true,
-          department: true,
-          phone: true,
-          photoURL: true,
-          officeRoom: true,
-          bio: true,
-          role: true,
-          isActive: true,
-        },
-      });
+      const teacher = await getUser(teacherId);
 
-      if (!teacher) {
+      if (!teacher || teacher.role !== "teacher") {
         return NextResponse.json(
           { success: false, error: "Teacher not found" },
           { status: 404 }
@@ -34,58 +19,40 @@ export async function GET(request: NextRequest) {
       }
 
       // Get teacher's schedules
-      const schedules = await db.schedule.findMany({
-        where: { teacherId, isActive: true },
-        include: {
-          timeSlot: true,
-        },
-        orderBy: [
-          { dayOfWeek: "asc" },
-          { timeSlot: { slotOrder: "asc" } },
-        ],
-      });
+      const schedules = await getSchedules({ teacherId });
+
+      // Remove password from response
+      const { password: _, ...teacherWithoutPassword } = teacher as { password?: string; [key: string]: unknown };
 
       return NextResponse.json({
         success: true,
-        data: { ...teacher, schedules },
+        data: { ...teacherWithoutPassword, schedules },
       });
     }
 
-    // Build where clause for list
-    const where: Record<string, unknown> = { role: "teacher", isActive: true };
+    // Fetch all teachers
+    const teachers = await getUsers("teacher");
 
+    // Filter by search if provided
+    let filteredTeachers = teachers;
     if (search) {
-      where.OR = [
-        { fullName: { contains: search } },
-        { designation: { contains: search } },
-      ];
+      const searchLower = search.toLowerCase();
+      filteredTeachers = teachers.filter(
+        (teacher) =>
+          teacher.fullName.toLowerCase().includes(searchLower) ||
+          teacher.designation?.toLowerCase().includes(searchLower)
+      );
     }
 
-    // Fetch all teachers
-    const teachers = await db.user.findMany({
-      where,
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        designation: true,
-        department: true,
-        phone: true,
-        photoURL: true,
-        officeRoom: true,
-        bio: true,
-        role: true,
-        isActive: true,
-      },
-      orderBy: [
-        { designation: "asc" },
-        { fullName: "asc" },
-      ],
+    // Remove passwords from response
+    const teachersWithoutPasswords = filteredTeachers.map((teacher) => {
+      const { password: _, ...teacherWithoutPassword } = teacher as { password?: string; [key: string]: unknown };
+      return teacherWithoutPassword;
     });
 
     return NextResponse.json({
       success: true,
-      data: teachers,
+      data: teachersWithoutPasswords,
     });
   } catch (error) {
     console.error("Error fetching teachers:", error);

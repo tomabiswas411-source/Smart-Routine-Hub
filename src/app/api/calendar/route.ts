@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getCalendarEvents } from "@/lib/firebase-services";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const eventType = searchParams.get("type");
 
-    // Build where clause
-    const where: Record<string, unknown> = {};
-    if (eventType) {
-      where.eventType = eventType;
-    }
-
     // Fetch calendar events
-    const events = await db.academicCalendar.findMany({
-      where,
-      orderBy: { date: "asc" },
-    });
+    const events = await getCalendarEvents(eventType || undefined);
 
     return NextResponse.json({
       success: true,

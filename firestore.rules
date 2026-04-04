@@ -1,0 +1,117 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isTeacher() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Public read for active users (for teacher directory)
+      allow read: if resource.data.isActive == true;
+      
+      // Users can update their own profile
+      allow update: if isOwner(userId);
+      
+      // Only admin can create/delete users
+      allow create, delete: if isAdmin();
+    }
+    
+    // Courses collection
+    match /courses/{courseId} {
+      // Public read for active courses
+      allow read: if resource.data.isActive == true;
+      
+      // Only admin can create/update/delete courses
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Rooms collection
+    match /rooms/{roomId} {
+      // Public read for active rooms
+      allow read: if resource.data.isActive == true;
+      
+      // Only admin can create/update/delete rooms
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Time slots collection
+    match /timeSlots/{timeSlotId} {
+      // Public read for active time slots
+      allow read: if resource.data.isActive == true;
+      
+      // Only admin can create/update/delete time slots
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Schedules collection
+    match /schedules/{scheduleId} {
+      // Public read for active schedules
+      allow read: if resource.data.isActive == true;
+      
+      // Teachers can update their own schedules
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      
+      // Only admin can create/delete schedules
+      allow create, delete: if isAdmin();
+    }
+    
+    // Schedule changes collection
+    match /scheduleChanges/{changeId} {
+      // Public read for active changes
+      allow read: if resource.data.isActive == true;
+      
+      // Teachers can create changes for their own schedules
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      
+      // Only admin can update/delete
+      allow update, delete: if isAdmin();
+    }
+    
+    // Notices collection
+    match /notices/{noticeId} {
+      // Public read for approved notices
+      allow read: if resource.data.isApproved == true;
+      
+      // Teachers can create notices (pending approval)
+      allow create: if isTeacher();
+      
+      // Admin can update (approve/reject) and delete notices
+      allow update, delete: if isAdmin();
+    }
+    
+    // Academic calendar collection
+    match /academicCalendar/{eventId} {
+      // Public read
+      allow read: if true;
+      
+      // Only admin can write
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Site settings
+    match /siteSettings/{settingsId} {
+      // Public read
+      allow read: if true;
+      
+      // Only admin can write
+      allow write: if isAdmin();
+    }
+  }
+}

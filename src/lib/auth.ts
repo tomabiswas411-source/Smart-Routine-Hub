@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { db } from "@/lib/db";
+import { getUserByEmail } from "@/lib/firebase-services";
 import { compare } from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
@@ -16,9 +16,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await db.user.findUnique({
-          where: { email: credentials.email },
-        });
+        const user = await getUserByEmail(credentials.email);
 
         if (!user || !user.password) {
           return null;

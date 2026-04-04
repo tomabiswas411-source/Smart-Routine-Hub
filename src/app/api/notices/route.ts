@@ -1,33 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getNotices } from "@/lib/firebase-services";
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get("category");
-    const limit = searchParams.get("limit");
+    const limitCount = searchParams.get("limit");
     const pinned = searchParams.get("pinned");
 
-    // Build where clause
-    const where: Record<string, unknown> = { isApproved: true };
+    // Build filters
+    const filters: {
+      category?: string;
+      limitCount?: number;
+      pinnedOnly?: boolean;
+    } = {};
 
-    if (category && category !== "all") {
-      where.category = category;
-    }
-
-    if (pinned === "true") {
-      where.isPinned = true;
-    }
+    if (category) filters.category = category;
+    if (limitCount) filters.limitCount = parseInt(limitCount);
+    if (pinned === "true") filters.pinnedOnly = true;
 
     // Fetch notices
-    const notices = await db.notice.findMany({
-      where,
-      orderBy: [
-        { isPinned: "desc" },
-        { createdAt: "desc" },
-      ],
-      take: limit ? parseInt(limit) : undefined,
-    });
+    const notices = await getNotices(filters);
 
     return NextResponse.json({
       success: true,

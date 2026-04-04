@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getSchedules, getScheduleChanges } from "@/lib/firebase-services";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,37 +10,27 @@ export async function GET(request: NextRequest) {
     const day = searchParams.get("day");
     const teacherId = searchParams.get("teacherId");
 
-    // Build where clause
-    const where: Record<string, unknown> = { isActive: true };
+    // Build filters
+    const filters: {
+      year?: number;
+      semester?: number;
+      section?: string;
+      day?: string;
+      teacherId?: string;
+    } = {};
 
-    if (year) where.year = parseInt(year);
-    if (semester) where.semester = parseInt(semester);
-    if (section) where.section = section;
-    if (day) where.dayOfWeek = day;
-    if (teacherId) where.teacherId = teacherId;
+    if (year) filters.year = parseInt(year);
+    if (semester) filters.semester = parseInt(semester);
+    if (section) filters.section = section;
+    if (day) filters.day = day;
+    if (teacherId) filters.teacherId = teacherId;
 
     // Fetch schedules
-    const schedules = await db.schedule.findMany({
-      where,
-      include: {
-        timeSlot: {
-          orderBy: { slotOrder: "asc" },
-        },
-      },
-      orderBy: [
-        { dayOfWeek: "asc" },
-        { timeSlot: { slotOrder: "asc" } },
-      ],
-    });
+    const schedules = await getSchedules(filters);
 
     // Get today's schedule changes
     const today = new Date().toISOString().split("T")[0];
-    const scheduleChanges = await db.scheduleChange.findMany({
-      where: {
-        isActive: true,
-        effectiveDate: today,
-      },
-    });
+    const scheduleChanges = await getScheduleChanges({ effectiveDate: today });
 
     // Map changes to schedules
     const changesMap = new Map(scheduleChanges.map((change) => [change.scheduleId, change]));

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getRoomAvailability } from "@/lib/firebase-services";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,43 +15,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all active rooms
-    const rooms = await db.room.findMany({
-      where: { isActive: true },
-      orderBy: { roomNumber: "asc" },
-    });
-
-    // Get schedules for the given day and time slot
-    const schedules = await db.schedule.findMany({
-      where: {
-        dayOfWeek: day,
-        timeSlotId,
-        isActive: true,
-        ...(excludeScheduleId && { id: { not: excludeScheduleId } }),
-      },
-      include: {
-        course: true,
-      },
-    });
-
-    // Create a map of occupied rooms
-    const occupiedRooms = new Map(
-      schedules.map((s) => [
-        s.roomId,
-        {
-          courseCode: s.courseCode,
-          courseName: s.courseName,
-          teacherName: s.teacherName,
-        },
-      ])
-    );
-
-    // Build availability response
-    const availability = rooms.map((room) => ({
-      room,
-      isAvailable: !occupiedRooms.has(room.id),
-      occupiedBy: occupiedRooms.get(room.id) || null,
-    }));
+    const availability = await getRoomAvailability(day, timeSlotId, excludeScheduleId || undefined);
 
     return NextResponse.json({
       success: true,

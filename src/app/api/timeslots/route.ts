@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getTimeSlots } from "@/lib/firebase-services";
 
 // GET - Fetch all time slots
 export async function GET() {
   try {
-    const timeSlots = await db.timeSlot.findMany({
-      where: { isActive: true },
-      orderBy: { slotOrder: "asc" },
-    });
+    const timeSlots = await getTimeSlots();
 
     return NextResponse.json({
       success: true,

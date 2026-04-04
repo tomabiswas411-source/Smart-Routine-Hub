@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getUser } from "@/lib/firebase-services";
 
 export async function GET() {
   try {
@@ -14,22 +14,7 @@ export async function GET() {
       );
     }
 
-    const user = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        designation: true,
-        department: true,
-        phone: true,
-        photoURL: true,
-        officeRoom: true,
-        bio: true,
-        role: true,
-        isActive: true,
-      },
-    });
+    const user = await getUser(session.user.id);
 
     if (!user) {
       return NextResponse.json(
@@ -38,9 +23,12 @@ export async function GET() {
       );
     }
 
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user as { password?: string; [key: string]: unknown };
+
     return NextResponse.json({
       success: true,
-      data: user,
+      data: userWithoutPassword,
     });
   } catch (error) {
     console.error("Error fetching user:", error);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getRooms, createRoom } from "@/lib/firebase-services";
 
 // GET - Fetch all rooms
 export async function GET(request: NextRequest) {
@@ -9,13 +9,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get("type");
 
-    const where: Record<string, unknown> = { isActive: true };
-    if (type) where.type = type;
-
-    const rooms = await db.room.findMany({
-      where,
-      orderBy: { roomNumber: "asc" },
-    });
+    const rooms = await getRooms(type || undefined);
 
     return NextResponse.json({
       success: true,
@@ -45,13 +39,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { roomNumber, building, type, capacity } = body;
 
-    const room = await db.room.create({
-      data: {
-        roomNumber,
-        building,
-        type,
-        capacity: parseInt(capacity),
-      },
+    const room = await createRoom({
+      roomNumber,
+      building,
+      type,
+      capacity: parseInt(capacity),
+      isActive: true,
     });
 
     return NextResponse.json({

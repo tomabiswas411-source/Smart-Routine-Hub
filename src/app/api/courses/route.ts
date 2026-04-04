@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getCourses, createCourse, getCourse } from "@/lib/firebase-services";
 
 // GET - Fetch all courses
 export async function GET(request: NextRequest) {
@@ -11,16 +11,12 @@ export async function GET(request: NextRequest) {
     const semester = searchParams.get("semester");
     const type = searchParams.get("type");
 
-    const where: Record<string, unknown> = { isActive: true };
+    const filters: { year?: number; semester?: number; type?: string } = {};
+    if (year) filters.year = parseInt(year);
+    if (semester) filters.semester = parseInt(semester);
+    if (type) filters.type = type;
 
-    if (year) where.year = parseInt(year);
-    if (semester) where.semester = parseInt(semester);
-    if (type) where.type = type;
-
-    const courses = await db.course.findMany({
-      where,
-      orderBy: [{ year: "asc" }, { semester: "asc" }, { code: "asc" }],
-    });
+    const courses = await getCourses(filters);
 
     return NextResponse.json({
       success: true,
@@ -51,26 +47,24 @@ export async function POST(request: NextRequest) {
     const { name, code, creditHours, type, year, semester } = body;
 
     // Check if course code already exists
-    const existingCourse = await db.course.findUnique({
-      where: { code },
-    });
+    const existingCourses = await getCourses();
+    const exists = existingCourses.some(c => c.code === code);
 
-    if (existingCourse) {
+    if (exists) {
       return NextResponse.json(
         { success: false, error: "Course code already exists" },
         { status: 400 }
       );
     }
 
-    const course = await db.course.create({
-      data: {
-        name,
-        code,
-        creditHours: parseFloat(creditHours),
-        type,
-        year,
-        semester,
-      },
+    const course = await createCourse({
+      name,
+      code,
+      creditHours: parseFloat(creditHours),
+      type,
+      year,
+      semester,
+      isActive: true,
     });
 
     return NextResponse.json({

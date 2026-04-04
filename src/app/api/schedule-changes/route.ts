@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { 
+  getSchedule, 
+  getScheduleChanges, 
+  createScheduleChange, 
+  createNotice, 
+  getRoom,
+  getUser 
+} from "@/lib/firebase-services";
 
 // GET - Fetch all schedule changes
 export async function GET(request: NextRequest) {
@@ -10,15 +17,11 @@ export async function GET(request: NextRequest) {
     const teacherId = searchParams.get("teacherId");
     const effectiveDate = searchParams.get("effectiveDate");
 
-    const where: Record<string, unknown> = { isActive: true };
+    const filters: { teacherId?: string; effectiveDate?: string } = {};
+    if (teacherId) filters.teacherId = teacherId;
+    if (effectiveDate) filters.effectiveDate = effectiveDate;
 
-    if (teacherId) where.teacherId = teacherId;
-    if (effectiveDate) where.effectiveDate = effectiveDate;
-
-    const changes = await db.scheduleChange.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
+    const changes = await getScheduleChanges(filters);
 
     return NextResponse.json({
       success: true,
@@ -49,10 +52,7 @@ export async function POST(request: NextRequest) {
     const { scheduleId, changeType, reason, effectiveDate, newDay, newTimeSlotId, newRoomId } = body;
 
     // Get the original schedule
-    const schedule = await db.schedule.findUnique({
-      where: { id: scheduleId },
-      include: { timeSlot: true, room: true },
-    });
+    const schedule = await getSchedule(scheduleId);
 
     if (!schedule) {
       return NextResponse.json(
@@ -72,70 +72,60 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user info
-    const user = await db.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    // Create schedule change record
-    const scheduleChange = await db.scheduleChange.create({
-      data: {
-        scheduleId,
-        changeType,
-        originalDay: schedule.dayOfWeek,
-        originalTimeSlotId: schedule.timeSlotId,
-        originalStartTime: schedule.startTime,
-        originalEndTime: schedule.endTime,
-        originalRoomId: schedule.roomId,
-        originalRoomNumber: schedule.roomNumber,
-        newDay,
-        newTimeSlotId,
-        newRoomId,
-        effectiveDate,
-        reason,
-        courseName: schedule.courseName,
-        courseCode: schedule.courseCode,
-        teacherId: schedule.teacherId,
-        teacherName: schedule.teacherName,
-        year: schedule.year,
-        semester: schedule.semester,
-        section: schedule.section,
-        changedBy: session.user.id,
-        changedByName: user?.fullName || "Unknown",
-      },
-    });
+    const user = await getUser(session.user.id);
 
     // Get new room number if room changed
     let newRoomNumber = null;
     if (newRoomId) {
-      const newRoom = await db.room.findUnique({ where: { id: newRoomId } });
+      const newRoom = await getRoom(newRoomId);
       newRoomNumber = newRoom?.roomNumber;
-      
-      // Update the schedule change with new room number
-      await db.scheduleChange.update({
-        where: { id: scheduleChange.id },
-        data: { newRoomNumber },
-      });
     }
+
+    // Create schedule change record
+    const scheduleChange = await createScheduleChange({
+      scheduleId,
+      changeType,
+      originalDay: schedule.dayOfWeek,
+      originalTimeSlotId: schedule.timeSlotId,
+      originalStartTime: schedule.startTime,
+      originalEndTime: schedule.endTime,
+      originalRoomId: schedule.roomId,
+      originalRoomNumber: schedule.roomNumber,
+      newDay,
+      newTimeSlotId,
+      newRoomId,
+      newRoomNumber,
+      effectiveDate,
+      reason,
+      courseName: schedule.courseName,
+      courseCode: schedule.courseCode,
+      teacherId: schedule.teacherId,
+      teacherName: schedule.teacherName,
+      year: schedule.year,
+      semester: schedule.semester,
+      section: schedule.section,
+      changedBy: session.user.id,
+      changedByName: user?.fullName || "Unknown",
+      isActive: true,
+    });
 
     // Create auto notification
     const notificationTitle = getNotificationTitle(changeType, schedule);
     
-    await db.notice.create({
-      data: {
-        title: notificationTitle,
-        content: `${user?.fullName} has ${changeType === "cancelled" ? "cancelled" : "modified"} ${schedule.courseName} (${schedule.courseCode}) on ${effectiveDate}. Reason: ${reason}`,
-        category: "schedule_change",
-        changeType,
-        scheduleChangeId: scheduleChange.id,
-        affectedYear: schedule.year,
-        affectedSemester: schedule.semester,
-        affectedSection: schedule.section,
-        postedBy: session.user.id,
-        postedByName: user?.fullName || "Unknown",
-        isPinned: false,
-        isApproved: true, // Auto-approved for schedule changes
-        isAutoGenerated: true,
-      },
+    await createNotice({
+      title: notificationTitle,
+      content: `${user?.fullName} has ${changeType === "cancelled" ? "cancelled" : "modified"} ${schedule.courseName} (${schedule.courseCode}) on ${effectiveDate}. Reason: ${reason}`,
+      category: "schedule_change",
+      changeType,
+      scheduleChangeId: scheduleChange.id,
+      affectedYear: schedule.year,
+      affectedSemester: schedule.semester,
+      affectedSection: schedule.section,
+      postedBy: session.user.id,
+      postedByName: user?.fullName || "Unknown",
+      isPinned: false,
+      isApproved: true, // Auto-approved for schedule changes
+      isAutoGenerated: true,
     });
 
     return NextResponse.json({
