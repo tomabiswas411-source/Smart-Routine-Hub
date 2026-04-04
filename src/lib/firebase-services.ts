@@ -6,6 +6,7 @@ import {
   addDoc, 
   updateDoc, 
   deleteDoc, 
+  setDoc,
   query, 
   where, 
   orderBy, 
@@ -549,7 +550,8 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
 
 export async function updateSiteSettings(data: Partial<SiteSettings>): Promise<void> {
   const docRef = doc(db, "siteSettings", "general");
-  await updateDoc(docRef, { ...data, updatedAt: serverTimestamp() });
+  // Use set with merge to create if not exists
+  await setDoc(docRef, { ...data, id: "general", updatedAt: serverTimestamp() }, { merge: true });
 }
 
 // ============ STATS ============

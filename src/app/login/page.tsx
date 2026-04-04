@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Database, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,31 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState("");
+
+  const handleSeedDatabase = async () => {
+    setIsSeeding(true);
+    setSeedMessage("");
+    setError("");
+    
+    try {
+      const response = await fetch("/api/seed", {
+        method: "POST",
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setSeedMessage(`Database seeded! Created ${data.data.teachers} teachers, ${data.data.courses} courses.`);
+      } else {
+        setSeedMessage(data.message || "Database already has data.");
+      }
+    } catch (err) {
+      setSeedMessage("Failed to seed database. Please try again.");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +56,7 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password. Please try again.");
+        setError("Invalid email or password. Please try again or seed the database first.");
       } else {
         // Check user role and redirect accordingly
         const response = await fetch("/api/auth/session");
@@ -74,6 +99,39 @@ export default function LoginPage() {
         {/* Login Card */}
         <div className="bg-card rounded-2xl border border-border p-6 shadow-lg">
           <h2 className="text-lg font-semibold text-foreground mb-4">Sign In</h2>
+
+          {/* Seed Database Button */}
+          <div className="mb-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleSeedDatabase}
+              disabled={isSeeding}
+            >
+              {isSeeding ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Seeding Database...
+                </>
+              ) : (
+                <>
+                  <Database className="w-4 h-4 mr-2" />
+                  Initialize Database (First Time Setup)
+                </>
+              )}
+            </Button>
+            {seedMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-600 dark:text-green-400 text-sm mt-2"
+              >
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                {seedMessage}
+              </motion.div>
+            )}
+          </div>
 
           {/* Error Message */}
           {error && (
@@ -150,7 +208,7 @@ export default function LoginPage() {
 
           {/* Demo Credentials */}
           <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-xs text-muted-foreground text-center mb-3">Demo Credentials:</p>
+            <p className="text-xs text-muted-foreground text-center mb-3">Demo Credentials (after seeding):</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="p-2 bg-muted rounded-lg">
                 <p className="font-medium text-foreground">Admin</p>
