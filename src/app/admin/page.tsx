@@ -93,7 +93,9 @@ interface Course {
   code: string;
   creditHours: number;
   type: string;
+  year?: number;
   semester: number;
+  program?: string;
   isActive: boolean;
 }
 
@@ -242,7 +244,9 @@ export default function AdminDashboard() {
     code: "",
     creditHours: 3,
     type: "theory",
+    year: 1,
     semester: 1,
+    program: "bsc",
   });
   
   const [roomForm, setRoomForm] = useState({
@@ -451,6 +455,11 @@ export default function AdminDashboard() {
 
   // Course CRUD
   const handleSaveCourse = async () => {
+    if (!courseForm.name.trim() || !courseForm.code.trim()) {
+      toast({ title: "Error", description: "Please fill course name and code", variant: "destructive" });
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const url = editingItem ? `/api/courses?id=${(editingItem as Course).id}` : "/api/courses";
@@ -468,8 +477,11 @@ export default function AdminDashboard() {
         setShowCourseDialog(false);
         resetCourseForm();
         fetchAllData();
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to save course", variant: "destructive" });
       }
-    } catch {
+    } catch (error) {
+      console.error("Error saving course:", error);
       toast({ title: "Error", description: "Failed to save course.", variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -491,7 +503,7 @@ export default function AdminDashboard() {
   };
 
   const resetCourseForm = () => {
-    setCourseForm({ name: "", code: "", creditHours: 3, type: "theory", semester: 1 });
+    setCourseForm({ name: "", code: "", creditHours: 3, type: "theory", year: 1, semester: 1, program: "bsc" });
     setEditingItem(null);
   };
 

@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get("id");
     const year = searchParams.get("year");
     const semester = searchParams.get("semester");
+    const program = searchParams.get("program");
     const type = searchParams.get("type");
 
     // Single course fetch
@@ -23,9 +24,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: course });
     }
 
-    const filters: { year?: number; semester?: number; type?: string } = {};
+    const filters: { year?: number; semester?: number; program?: string; type?: string } = {};
     if (year) filters.year = parseInt(year);
     if (semester) filters.semester = parseInt(semester);
+    if (program) filters.program = program;
     if (type) filters.type = type;
 
     const courses = await getCourses(filters);
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, code, creditHours, type, year, semester } = body;
+    const { name, code, creditHours, type, year, semester, program } = body;
 
     // Check if course code already exists
     const existingCourses = await getCourses();
@@ -62,8 +64,9 @@ export async function POST(request: NextRequest) {
       code,
       creditHours: parseFloat(creditHours),
       type,
-      year,
-      semester,
+      year: year ? parseInt(year) : undefined,
+      semester: semester ? parseInt(semester) : 1,
+      program: program || "bsc",
       isActive: true,
     });
 

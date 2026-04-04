@@ -268,6 +268,7 @@ export async function POST() {
           type: courseData.type,
           year: year,
           semester: semester,
+          program: "bsc",
           isActive: true,
         });
         allCourses.push({ ...course, teacherIdx: courseData.teacherIdx });
@@ -356,6 +357,7 @@ export async function POST() {
           type: courseData.type,
           year: year,
           semester: semester,
+          program: "msc",
           isActive: true,
         });
         allCourses.push({ ...course, teacherIdx: courseData.teacherIdx });

@@ -40,8 +40,9 @@ export interface Course {
   code: string;
   creditHours: number;
   type: "theory" | "lab";
+  year?: number; // Year of study (1-4 for BSc, 1-2 for MSc)
   semester: number;
-  program: string; // "bsc" or "msc"
+  program?: string; // "bsc" or "msc" - optional for backward compatibility
   isActive: boolean;
   createdAt: Date;
 }
@@ -234,7 +235,7 @@ export async function deleteUser(id: string): Promise<void> {
 }
 
 // ============ COURSES ============
-export async function getCourses(filters?: { semester?: number; program?: string; type?: string }): Promise<Course[]> {
+export async function getCourses(filters?: { semester?: number; program?: string; type?: string; year?: number }): Promise<Course[]> {
   try {
     const constraints = [where("isActive", "==", true)];
     
@@ -243,6 +244,12 @@ export async function getCourses(filters?: { semester?: number; program?: string
     }
     if (filters?.program) {
       constraints.push(where("program", "==", filters.program));
+    }
+    if (filters?.year) {
+      constraints.push(where("year", "==", filters.year));
+    }
+    if (filters?.type) {
+      constraints.push(where("type", "==", filters.type));
     }
     
     const q = query(collection(db, "courses"), ...constraints);
