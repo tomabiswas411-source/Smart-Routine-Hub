@@ -136,36 +136,45 @@ export async function POST() {
     ]);
 
     // 6. Create Sample Schedules with program (BSC/MSC)
+    // Using dayOfWeek field consistently
     const scheduleData = [
-      // Saturday - BSC 1st Year
-      { day: "saturday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
-      { day: "saturday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
-      { day: "saturday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id, year: 1, semester: 1, program: "bsc" },
-      
       // Sunday - BSC 1st Year
-      { day: "sunday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
-      { day: "sunday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[2].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
-      { day: "sunday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id, year: 1, semester: 1, program: "bsc" },
+      { dayOfWeek: "sunday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
+      { dayOfWeek: "sunday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
+      { dayOfWeek: "sunday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id, year: 1, semester: 1, program: "bsc" },
       
       // Monday - BSC 1st Year
-      { day: "monday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
-      { day: "monday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
-      { day: "monday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id, year: 1, semester: 1, program: "bsc" },
+      { dayOfWeek: "monday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
+      { dayOfWeek: "monday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[2].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
+      { dayOfWeek: "monday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id, year: 1, semester: 1, program: "bsc" },
       
-      // Tuesday - BSC 2nd Year  
-      { day: "tuesday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id, year: 2, semester: 3, program: "bsc" },
-      { day: "tuesday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id, year: 2, semester: 3, program: "bsc" },
-      { day: "tuesday", courseId: courses[3].id, teacherId: teachers[2].id, roomId: rooms[5].id, timeSlotId: timeSlots[6].id, year: 2, semester: 3, program: "bsc" },
+      // Tuesday - BSC 1st Year
+      { dayOfWeek: "tuesday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
+      { dayOfWeek: "tuesday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
+      { dayOfWeek: "tuesday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id, year: 1, semester: 1, program: "bsc" },
       
-      // Wednesday - BSC 2nd Year
-      { day: "wednesday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 2, semester: 3, program: "bsc" },
-      { day: "wednesday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 2, semester: 3, program: "bsc" },
-      { day: "wednesday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[2].id, timeSlotId: timeSlots[2].id, year: 2, semester: 3, program: "bsc" },
+      // Wednesday - BSC 2nd Year  
+      { dayOfWeek: "wednesday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id, year: 2, semester: 3, program: "bsc" },
+      { dayOfWeek: "wednesday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id, year: 2, semester: 3, program: "bsc" },
+      { dayOfWeek: "wednesday", courseId: courses[3].id, teacherId: teachers[2].id, roomId: rooms[5].id, timeSlotId: timeSlots[6].id, year: 2, semester: 3, program: "bsc" },
       
-      // Thursday - MSC 1st Year
-      { day: "thursday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "msc" },
-      { day: "thursday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id, year: 1, semester: 1, program: "msc" },
-      { day: "thursday", courseId: courses[0].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 1, semester: 2, program: "msc" },
+      // Thursday - BSC 2nd Year
+      { dayOfWeek: "thursday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 2, semester: 3, program: "bsc" },
+      { dayOfWeek: "thursday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 2, semester: 3, program: "bsc" },
+      { dayOfWeek: "thursday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[2].id, timeSlotId: timeSlots[2].id, year: 2, semester: 3, program: "bsc" },
+      
+      // Sunday - MSC 1st Year
+      { dayOfWeek: "sunday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "msc" },
+      { dayOfWeek: "sunday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id, year: 1, semester: 1, program: "msc" },
+      { dayOfWeek: "sunday", courseId: courses[0].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "msc" },
+      
+      // Monday - MSC 2nd Year
+      { dayOfWeek: "monday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[3].id, year: 1, semester: 2, program: "msc" },
+      { dayOfWeek: "monday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[1].id, timeSlotId: timeSlots[4].id, year: 1, semester: 2, program: "msc" },
+      
+      // Tuesday - MSC 2nd Year
+      { dayOfWeek: "tuesday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[0].id, timeSlotId: timeSlots[3].id, year: 1, semester: 2, program: "msc" },
+      { dayOfWeek: "tuesday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[1].id, timeSlotId: timeSlots[4].id, year: 1, semester: 2, program: "msc" },
     ];
 
     for (const sched of scheduleData) {
