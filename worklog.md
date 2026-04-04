@@ -106,3 +106,44 @@ Stage Summary:
 - Better UX with sticky headers and toggle buttons
 - Seed API fixed with correct field names
 - More test data added for different programs and semesters
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Teacher Dashboard Enhancement with Weekly View, Notification Center & Class Management
+
+Work Log:
+- Created comprehensive notification API (/api/notifications/route.ts):
+  - GET: Fetch notifications for a user with unread count
+  - POST: Create new notifications
+  - PATCH: Mark notifications as read (single or all)
+  - DELETE: Remove notifications
+- Created NotificationCenter component (/components/shared/notification-center.tsx):
+  - Mobile-style bottom notification bar
+  - Expandable notification panel
+  - Unread count badge
+  - Mark as read / Mark all read functionality
+  - Delete notifications
+  - Auto-refresh every 30 seconds
+- Completely rewrote Teacher Dashboard (/app/teacher/page.tsx):
+  - Weekly schedule view with 3 display modes (Cards, List, Timeline)
+  - Integrated notification center in header with bell icon and badge
+  - Class selection with bottom action bar
+  - Cancel class with student notification
+  - Reschedule class with new day/time
+  - Change room functionality
+  - Add extra class feature
+  - All changes trigger automatic student notifications
+- Added notification creation for students when:
+  - Class is cancelled
+  - Class is rescheduled
+  - Room is changed
+  - Extra class is added
+
+Stage Summary:
+- Teacher can see full weekly schedule in multiple views
+- Teacher can cancel/reschedule/change room for any class
+- Notification center shows all notifications with unread count
+- Students receive automatic notifications for all class changes
+- Mobile-responsive notification bar at bottom
+- Bell icon in header shows notification count badge
