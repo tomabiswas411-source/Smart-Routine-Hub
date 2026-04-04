@@ -7,7 +7,8 @@ import {
   createScheduleChange, 
   createNotice, 
   getRoom,
-  getUser 
+  getUser,
+  getSchedules
 } from "@/lib/firebase-services";
 
 // GET - Fetch all schedule changes
@@ -47,6 +48,54 @@ function removeUndefined(obj: Record<string, any>): Record<string, any> {
   return result;
 }
 
+// Check for conflicts when rescheduling
+async function checkRescheduleConflicts(data: {
+  newDay: string;
+  newStartTime: string;
+  newEndTime: string;
+  newRoomId?: string;
+  teacherId: string;
+  scheduleId: string;
+}): Promise<{ hasConflict: boolean; conflicts: string[] }> {
+  const conflicts: string[] = [];
+  
+  try {
+    const allSchedules = await getSchedules();
+    
+    for (const schedule of allSchedules) {
+      // Skip the schedule being rescheduled
+      if (schedule.id === data.scheduleId) continue;
+      
+      // Only check same day
+      if (schedule.dayOfWeek?.toLowerCase() !== data.newDay.toLowerCase()) continue;
+
+      // Check time overlap
+      const hasTimeOverlap = 
+        (data.newStartTime >= schedule.startTime && data.newStartTime < schedule.endTime) ||
+        (data.newEndTime > schedule.startTime && data.newEndTime <= schedule.endTime) ||
+        (data.newStartTime <= schedule.startTime && data.newEndTime >= schedule.endTime);
+
+      if (hasTimeOverlap) {
+        // Check room conflict
+        const roomId = data.newRoomId || schedule.roomId;
+        if (schedule.roomId === roomId) {
+          conflicts.push(`Room ${schedule.roomNumber} is already booked for ${schedule.courseCode} at ${schedule.startTime}-${schedule.endTime}`);
+        }
+
+        // Check teacher conflict
+        if (schedule.teacherId === data.teacherId) {
+          conflicts.push(`You have another class (${schedule.courseCode}) at this time`);
+        }
+      }
+    }
+
+    return { hasConflict: conflicts.length > 0, conflicts };
+  } catch (error) {
+    console.error("Error checking conflicts:", error);
+    return { hasConflict: false, conflicts: [] };
+  }
+}
+
 // POST - Create a schedule change (cancel, reschedule, etc.)
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +133,26 @@ export async function POST(request: NextRequest) {
 
     // Get user info
     const user = await getUser(session.user.id);
+
+    // Check for conflicts when rescheduling
+    if (changeType === "rescheduled" && newDay && newStartTime && newEndTime) {
+      const conflictCheck = await checkRescheduleConflicts({
+        newDay,
+        newStartTime,
+        newEndTime,
+        newRoomId,
+        teacherId: schedule.teacherId,
+        scheduleId,
+      });
+
+      if (conflictCheck.hasConflict) {
+        return NextResponse.json({
+          success: false,
+          error: "Schedule conflicts detected",
+          conflicts: conflictCheck.conflicts,
+        }, { status: 400 });
+      }
+    }
 
     // Get new room number if room changed
     let newRoomNumber = null;
