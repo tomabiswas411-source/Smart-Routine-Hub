@@ -25,9 +25,8 @@ export interface Schedule {
   startTime: string;
   endTime: string;
   dayOfWeek: string;
-  year: number;
   semester: number;
-  program: string;
+  program: string; // "bsc" or "msc"
   classType: "theory" | "lab";
   isActive: boolean;
   createdAt?: unknown;
@@ -56,9 +55,8 @@ export interface ScheduleChange {
   courseCode: string;
   teacherId: string;
   teacherName: string;
-  year: number;
   semester: number;
-  program: string;
+  program: string; // "bsc" or "msc"
   changedBy: string;
   changedByName: string;
   isActive: boolean;
@@ -72,9 +70,8 @@ export interface Notice {
   category: "academic" | "exam" | "event" | "general" | "schedule_change";
   changeType?: "cancelled" | "rescheduled" | "room_changed" | "time_changed";
   scheduleChangeId?: string;
-  affectedYear?: number;
   affectedSemester?: number;
-  affectedProgram?: string;
+  affectedProgram?: string; // "bsc" or "msc"
   postedBy: string;
   postedByName: string;
   isPinned: boolean;
@@ -125,8 +122,8 @@ export interface Course {
   code: string;
   creditHours: number;
   type: "theory" | "lab";
-  year: number;
   semester: number;
+  program: string; // "bsc" or "msc"
   isActive: boolean;
 }
 
@@ -138,7 +135,6 @@ function docToObj<T>(doc: { id: string; data: () => DocumentData }): T {
 
 // Real-time Schedules Hook
 export function useRealtimeSchedules(filters?: {
-  year?: number;
   semester?: number;
   program?: string;
   day?: string;
@@ -160,9 +156,6 @@ export function useRealtimeSchedules(filters?: {
         );
         
         // Apply filters in memory
-        if (filters?.year) {
-          data = data.filter(s => s.year === filters.year);
-        }
         if (filters?.semester) {
           data = data.filter(s => s.semester === filters.semester);
         }
@@ -194,7 +187,7 @@ export function useRealtimeSchedules(filters?: {
         unsubscribeRef.current();
       }
     };
-  }, [filters?.year, filters?.semester, filters?.program, filters?.day, filters?.teacherId]);
+  }, [filters?.semester, filters?.program, filters?.day, filters?.teacherId]);
 
   return { schedules, loading, error };
 }
@@ -460,7 +453,7 @@ export function useRealtimeTeachers() {
 }
 
 // Real-time Courses Hook
-export function useRealtimeCourses(filters?: { year?: number; semester?: number; type?: string }) {
+export function useRealtimeCourses(filters?: { semester?: number; program?: string; type?: string }) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -469,11 +462,11 @@ export function useRealtimeCourses(filters?: { year?: number; semester?: number;
   useEffect(() => {
     const constraints = [where("isActive", "==", true)];
     
-    if (filters?.year) {
-      constraints.push(where("year", "==", filters.year));
-    }
     if (filters?.semester) {
       constraints.push(where("semester", "==", filters.semester));
+    }
+    if (filters?.program) {
+      constraints.push(where("program", "==", filters.program));
     }
     
     const q = query(collection(db, "courses"), ...constraints);
@@ -511,7 +504,7 @@ export function useRealtimeCourses(filters?: { year?: number; semester?: number;
         unsubscribeRef.current();
       }
     };
-  }, [filters?.year, filters?.semester, filters?.type]);
+  }, [filters?.semester, filters?.program, filters?.type]);
 
   return { courses, loading, error };
 }

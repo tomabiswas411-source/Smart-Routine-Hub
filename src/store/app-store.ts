@@ -1,10 +1,9 @@
 import { create } from "zustand";
 
-// Schedule filter state
+// Schedule filter state - Semester-based system (NO year)
 interface ScheduleFilter {
-  year: number;
-  semester: number;
-  section: "A" | "B";
+  program: string; // "bsc" or "msc"
+  semester: number; // 1-8 for BSc, 1-3 for MSc
   day: string;
 }
 
@@ -33,11 +32,10 @@ const getTodayDay = () => {
 };
 
 export const useAppStore = create<AppState>((set) => ({
-  // Schedule filters - defaults
+  // Schedule filters - defaults (semester-based)
   scheduleFilter: {
-    year: 1,
+    program: "bsc",
     semester: 1,
-    section: "A",
     day: getTodayDay(),
   },
   setScheduleFilter: (filter) =>

@@ -57,6 +57,13 @@ function toDate(timestamp: unknown): Date {
   return new Date();
 }
 
+// Helper for ordinal suffix
+const getOrdinal = (n: number): string => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+};
+
 // Types
 interface Stats {
   totalTeachers: number;
@@ -86,7 +93,6 @@ interface Course {
   code: string;
   creditHours: number;
   type: string;
-  year: number;
   semester: number;
   isActive: boolean;
 }
@@ -122,7 +128,6 @@ interface Schedule {
   startTime: string;
   endTime: string;
   dayOfWeek: string;
-  year: number;
   semester: number;
   program: string; // Changed from section to program (bsc/msc)
   classType: string;
@@ -237,7 +242,6 @@ export default function AdminDashboard() {
     code: "",
     creditHours: 3,
     type: "theory",
-    year: 1,
     semester: 1,
   });
   
@@ -254,7 +258,6 @@ export default function AdminDashboard() {
     roomId: "",
     timeSlotId: "",
     dayOfWeek: "sunday",
-    year: 1,
     semester: 1,
     program: "bsc", // Changed from section to program
   });
@@ -488,7 +491,7 @@ export default function AdminDashboard() {
   };
 
   const resetCourseForm = () => {
-    setCourseForm({ name: "", code: "", creditHours: 3, type: "theory", year: 1, semester: 1 });
+    setCourseForm({ name: "", code: "", creditHours: 3, type: "theory", semester: 1 });
     setEditingItem(null);
   };
 
@@ -601,7 +604,7 @@ export default function AdminDashboard() {
   };
 
   const resetScheduleForm = () => {
-    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "sunday", year: 1, semester: 1, program: "bsc" });
+    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "sunday", semester: 1, program: "bsc" });
     setEditingItem(null);
   };
 
@@ -943,7 +946,7 @@ export default function AdminDashboard() {
                           </div>
                           <p className="font-medium mt-1">{course.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            Year {course.year}, Sem {course.semester} • {course.creditHours} Credits
+                            {course.semester}{getOrdinal(course.semester)} Semester • {course.creditHours} Credits
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -957,7 +960,6 @@ export default function AdminDashboard() {
                                 code: course.code,
                                 creditHours: course.creditHours,
                                 type: course.type,
-                                year: course.year,
                                 semester: course.semester,
                               });
                               setShowCourseDialog(true);
@@ -1080,7 +1082,7 @@ export default function AdminDashboard() {
                               {schedule.teacherName} • {schedule.roomNumber} • {schedule.dayOfWeek}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {schedule.startTime} - {schedule.endTime} • Year {schedule.year}, Sem {schedule.semester}, {schedule.program?.toUpperCase() || 'BSC'}
+                              {schedule.startTime} - {schedule.endTime} • {schedule.semester}{getOrdinal(schedule.semester)} Semester, {schedule.program?.toUpperCase() || 'BSC'}
                             </p>
                           </div>
                         </div>
@@ -1096,7 +1098,6 @@ export default function AdminDashboard() {
                                 roomId: schedule.roomId,
                                 timeSlotId: schedule.timeSlotId,
                                 dayOfWeek: schedule.dayOfWeek,
-                                year: schedule.year,
                                 semester: schedule.semester,
                                 program: schedule.program || "bsc",
                               });
@@ -1659,32 +1660,18 @@ export default function AdminDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Year</Label>
-                <Select value={courseForm.year.toString()} onValueChange={(v) => setCourseForm({ ...courseForm, year: parseInt(v) })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4].map((y) => (
-                      <SelectItem key={y} value={y.toString()}>{y}st Year</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Semester</Label>
-                <Select value={courseForm.semester.toString()} onValueChange={(v) => setCourseForm({ ...courseForm, semester: parseInt(v) })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1st Semester</SelectItem>
-                    <SelectItem value="2">2nd Semester</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Semester</Label>
+              <Select value={courseForm.semester.toString()} onValueChange={(v) => setCourseForm({ ...courseForm, semester: parseInt(v) })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                    <SelectItem key={s} value={s.toString()}>{s}{getOrdinal(s)} Semester</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -1838,20 +1825,7 @@ export default function AdminDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-2">
-                <Label>Year</Label>
-                <Select value={scheduleForm.year.toString()} onValueChange={(v) => setScheduleForm({ ...scheduleForm, year: parseInt(v) })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4].map((y) => (
-                      <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Semester</Label>
                 <Select value={scheduleForm.semester.toString()} onValueChange={(v) => setScheduleForm({ ...scheduleForm, semester: parseInt(v) })}>
@@ -1859,8 +1833,9 @@ export default function AdminDashboard() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1st</SelectItem>
-                    <SelectItem value="2">2nd</SelectItem>
+                    {(scheduleForm.program === "msc" ? [1, 2, 3] : [1, 2, 3, 4, 5, 6, 7, 8]).map((s) => (
+                      <SelectItem key={s} value={s.toString()}>{s}{getOrdinal(s)}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

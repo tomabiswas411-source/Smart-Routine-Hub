@@ -70,22 +70,19 @@ async function checkScheduleConflicts(data: {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const year = searchParams.get("year");
     const semester = searchParams.get("semester");
     const program = searchParams.get("program");
     const day = searchParams.get("day");
     const teacherId = searchParams.get("teacherId");
 
-    // Build filters for getSchedules
+    // Build filters for getSchedules (semester-based system)
     const filters: {
-      year?: number;
       semester?: number;
       program?: string;
       day?: string;
       teacherId?: string;
     } = {};
 
-    if (year) filters.year = parseInt(year);
     if (semester) filters.semester = parseInt(semester);
     if (program) filters.program = program;
     if (day) filters.day = day;

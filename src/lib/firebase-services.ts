@@ -40,8 +40,8 @@ export interface Course {
   code: string;
   creditHours: number;
   type: "theory" | "lab";
-  year: number;
   semester: number;
+  program: string; // "bsc" or "msc"
   isActive: boolean;
   createdAt: Date;
 }
@@ -80,9 +80,8 @@ export interface Schedule {
   startTime: string;
   endTime: string;
   dayOfWeek: string;
-  year: number;
   semester: number;
-  program: string; // Changed from section to program (bsc/msc)
+  program: string; // "bsc" or "msc"
   classType: "theory" | "lab";
   isActive: boolean;
   createdAt: Date;
@@ -111,9 +110,8 @@ export interface ScheduleChange {
   courseCode: string;
   teacherId: string;
   teacherName: string;
-  year: number;
   semester: number;
-  program: string; // Changed from section to program
+  program: string; // "bsc" or "msc"
   changedBy: string;
   changedByName: string;
   isActive: boolean;
@@ -127,9 +125,8 @@ export interface Notice {
   category: "academic" | "exam" | "event" | "general" | "schedule_change";
   changeType?: "cancelled" | "rescheduled" | "room_changed" | "time_changed";
   scheduleChangeId?: string;
-  affectedYear?: number;
   affectedSemester?: number;
-  affectedProgram?: string; // Changed from affectedSection
+  affectedProgram?: string; // "bsc" or "msc"
   postedBy: string;
   postedByName: string;
   isPinned: boolean;
@@ -237,15 +234,15 @@ export async function deleteUser(id: string): Promise<void> {
 }
 
 // ============ COURSES ============
-export async function getCourses(filters?: { year?: number; semester?: number; type?: string }): Promise<Course[]> {
+export async function getCourses(filters?: { semester?: number; program?: string; type?: string }): Promise<Course[]> {
   try {
     const constraints = [where("isActive", "==", true)];
     
-    if (filters?.year) {
-      constraints.push(where("year", "==", filters.year));
-    }
     if (filters?.semester) {
       constraints.push(where("semester", "==", filters.semester));
+    }
+    if (filters?.program) {
+      constraints.push(where("program", "==", filters.program));
     }
     
     const q = query(collection(db, "courses"), ...constraints);
@@ -341,7 +338,6 @@ export async function createTimeSlot(data: Omit<TimeSlot, "id" | "createdAt">): 
 
 // ============ SCHEDULES ============
 export async function getSchedules(filters?: {
-  year?: number;
   semester?: number;
   program?: string;
   day?: string;
@@ -354,9 +350,6 @@ export async function getSchedules(filters?: {
     let schedules = querySnapshot.docs.map((doc) => docToObj<Schedule>(doc as unknown as { id: string; data: () => Record<string, unknown> }));
     
     // Filter in memory
-    if (filters?.year) {
-      schedules = schedules.filter(s => s.year === filters.year);
-    }
     if (filters?.semester) {
       schedules = schedules.filter(s => s.semester === filters.semester);
     }

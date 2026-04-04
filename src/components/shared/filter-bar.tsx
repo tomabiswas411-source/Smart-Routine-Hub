@@ -13,21 +13,21 @@ const days = [
   { id: "thursday", label: "Thu", shortLabel: "T" },
 ];
 
-const years = [
-  { value: 1, label: "1st Year" },
-  { value: 2, label: "2nd Year" },
-  { value: 3, label: "3rd Year" },
-  { value: 4, label: "4th Year" },
-];
-
+// Semesters for BSc and MSc programs
 const semesters = [
   { value: 1, label: "1st Semester" },
   { value: 2, label: "2nd Semester" },
+  { value: 3, label: "3rd Semester" },
+  { value: 4, label: "4th Semester" },
+  { value: 5, label: "5th Semester" },
+  { value: 6, label: "6th Semester" },
+  { value: 7, label: "7th Semester" },
+  { value: 8, label: "8th Semester" },
 ];
 
-const sections = [
-  { value: "A", label: "A" },
-  { value: "B", label: "B" },
+const programs = [
+  { value: "bsc", label: "BSc" },
+  { value: "msc", label: "MSc" },
 ];
 
 export function ScheduleFilterBar() {
@@ -41,17 +41,17 @@ export function ScheduleFilterBar() {
       className="sticky top-14 md:top-16 z-40 bg-background/80 backdrop-blur-lg border-b border-border py-3"
     >
       <div className="container mx-auto px-4 space-y-3">
-        {/* Year, Semester, Section Row */}
+        {/* Program, Semester Row */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Year Dropdown */}
+          {/* Program Dropdown */}
           <select
-            value={scheduleFilter.year}
-            onChange={(e) => setScheduleFilter({ year: parseInt(e.target.value) })}
+            value={scheduleFilter.program || "bsc"}
+            onChange={(e) => setScheduleFilter({ program: e.target.value })}
             className="h-9 px-3 rounded-lg border border-border bg-card text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
-            {years.map((year) => (
-              <option key={year.value} value={year.value}>
-                {year.label}
+            {programs.map((prog) => (
+              <option key={prog.value} value={prog.value}>
+                {prog.label}
               </option>
             ))}
           </select>
@@ -68,24 +68,6 @@ export function ScheduleFilterBar() {
               </option>
             ))}
           </select>
-
-          {/* Section Pills */}
-          <div className="flex items-center gap-1 p-0.5 bg-muted rounded-lg">
-            {sections.map((section) => (
-              <button
-                key={section.value}
-                onClick={() => setScheduleFilter({ section: section.value as "A" | "B" })}
-                className={cn(
-                  "h-8 w-8 rounded-md text-sm font-medium transition-all",
-                  scheduleFilter.section === section.value
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                )}
-              >
-                {section.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Day Selector - Horizontal Scrollable */}

@@ -147,3 +147,59 @@ Stage Summary:
 - Students receive automatic notifications for all class changes
 - Mobile-responsive notification bar at bottom
 - Bell icon in header shows notification count badge
+
+---
+Task ID: 1-b
+Agent: Sub Agent
+Task: Remove all "year" references from admin page and use semester-based system only
+
+Work Log:
+- Added getOrdinal helper function for displaying ordinal suffixes (1st, 2nd, 3rd, etc.)
+- Removed `year: number;` field from Course interface
+- Removed `year: number;` field from Schedule interface
+- Removed `year: 1,` from courseForm state initialization
+- Removed `year: 1,` from scheduleForm state initialization
+- Updated course display from "Year {course.year}, Sem {course.semester}" to "{course.semester}{getOrdinal(course.semester)} Semester"
+- Removed `year: course.year,` from course edit form data
+- Updated schedule display from "Year {schedule.year}, Sem {schedule.semester}" to "{schedule.semester}{getOrdinal(schedule.semester)} Semester"
+- Removed `year: schedule.year,` from schedule edit form data
+- Removed Year dropdown from Course Dialog, updated Semester dropdown to show 1-8 semesters
+- Removed Year dropdown from Schedule Dialog, updated Semester dropdown to show 1-8 for BSc and 1-3 for MSc based on program selection
+- Updated resetCourseForm to remove year field
+- Updated resetScheduleForm to remove year field
+
+Stage Summary:
+- Admin page now uses semester-based system only (no year references)
+- Semester dropdowns show 1-8 for BSc programs and 1-3 for MSc programs
+- Course and schedule displays use ordinal semester format (1st Semester, 2nd Semester, etc.)
+- All form states and reset functions updated to exclude year field
+- Program field (BSc/MSc) remains intact and controls semester range
+
+---
+Task ID: 5
+Agent: Main Agent
+Task: Final Recheck and UI/UX Enhancement - Complete Site Analysis
+
+Work Log:
+- Updated filter-bar.tsx to remove year dropdowns and use semester-based filtering
+- Updated app-store.ts to use program (bsc/msc) instead of year/section
+- Updated firebase-services.ts types to remove year field from all interfaces:
+  - Course interface: removed year, added program
+  - Schedule interface: removed year
+  - ScheduleChange interface: removed year
+  - Notice interface: removed affectedYear, kept affectedSemester
+- Updated use-realtime-data.ts hooks to remove year filtering:
+  - useRealtimeSchedules: now filters by semester/program only
+  - useRealtimeCourses: now filters by semester/program only
+- Updated schedules API route to remove year filter parameter
+- Verified class conflict detection is properly implemented:
+  - Room conflict: same room can't have two classes at same time
+  - Teacher conflict: same teacher can't have two classes at same time
+  - Program/Semester conflict: same batch can't have two classes at same time
+- Real-time sync already implemented via Firebase onSnapshot in all hooks
+
+Stage Summary:
+- Complete migration to semester-based system (all "year" references removed)
+- Class conflict detection working correctly (room, teacher, batch conflicts)
+- Real-time sync working across all pages via Firebase onSnapshot
+- All types and interfaces updated for consistency
