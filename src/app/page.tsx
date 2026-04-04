@@ -66,7 +66,7 @@ interface Room {
   building: string | null;
 }
 
-// Program configuration
+// Program configuration with stunning gradients
 const programs = [
   {
     id: "bsc",
@@ -74,10 +74,12 @@ const programs = [
     shortName: "BSc",
     icon: GraduationCap,
     semesters: 8,
-    color: "from-blue-500 to-cyan-500",
-    lightColor: "bg-blue-50 dark:bg-blue-950/30",
-    textColor: "text-blue-600 dark:text-blue-400",
-    borderColor: "border-blue-200 dark:border-blue-800",
+    gradient: "bsc-gradient",
+    color: "from-emerald-500 via-teal-500 to-cyan-500",
+    lightColor: "bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-cyan-950/30",
+    textColor: "text-emerald-600 dark:text-emerald-400",
+    borderColor: "border-emerald-200 dark:border-emerald-800",
+    glowColor: "rgba(16, 185, 129, 0.3)",
   },
   {
     id: "msc",
@@ -85,10 +87,12 @@ const programs = [
     shortName: "MSc",
     icon: GraduationCap,
     semesters: 3,
-    color: "from-purple-500 to-violet-500",
-    lightColor: "bg-purple-50 dark:bg-purple-950/30",
-    textColor: "text-purple-600 dark:text-purple-400",
-    borderColor: "border-purple-200 dark:border-purple-800",
+    gradient: "msc-gradient",
+    color: "from-amber-500 via-orange-500 to-yellow-500",
+    lightColor: "bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-yellow-950/30",
+    textColor: "text-amber-600 dark:text-amber-400",
+    borderColor: "border-amber-200 dark:border-amber-800",
+    glowColor: "rgba(245, 158, 11, 0.3)",
   },
 ];
 
@@ -96,7 +100,7 @@ const days = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday"
 const daysShort = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
 const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
 
-// Semester Card Component
+// Semester Card Component - Modern 3D Design
 function SemesterCard({ 
   number, 
   program, 
@@ -106,28 +110,95 @@ function SemesterCard({
   program: typeof programs[0];
   onClick: () => void;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+  
   return (
     <motion.button
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: number * 0.05 }}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.8, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ 
+        delay: number * 0.08,
+        type: "spring",
+        stiffness: 260,
+        damping: 20
+      }}
       onClick={onClick}
-      className="group flex flex-col items-center gap-1.5 p-2 sm:p-4"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="semester-card group flex flex-col items-center gap-2 p-3 sm:p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50"
     >
-      <div className={cn(
-        "w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-lg sm:text-2xl font-bold transition-all duration-300",
-        "bg-gradient-to-br shadow-lg",
-        program.color,
-        "text-white shadow-lg group-hover:shadow-xl"
-      )}>
-        {number}
+      {/* Animated Icon Container */}
+      <div className="relative">
+        {/* Glow effect behind */}
+        <motion.div 
+          className="absolute inset-0 rounded-2xl blur-xl"
+          style={{ background: program.glowColor }}
+          animate={{ scale: isHovered ? 1.3 : 1, opacity: isHovered ? 0.8 : 0.4 }}
+          transition={{ duration: 0.3 }}
+        />
+        
+        {/* Main icon */}
+        <div className={cn(
+          "semester-icon relative z-10",
+          program.gradient
+        )}>
+          {/* Shine effect */}
+          <div className="absolute inset-0 rounded-2xl overflow-hidden">
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              animate={{ x: isHovered ? ['0%', '200%'] : '0%' }}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
+            />
+          </div>
+          
+          {/* Number */}
+          <span className="relative z-10 drop-shadow-lg">{number}</span>
+          
+          {/* Sparkles on hover */}
+          {isHovered && (
+            <>
+              <motion.div 
+                className="absolute w-2 h-2 bg-white rounded-full"
+                style={{ top: '15%', left: '20%' }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+              />
+              <motion.div 
+                className="absolute w-1.5 h-1.5 bg-white rounded-full"
+                style={{ top: '25%', right: '15%' }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0.3 }}
+              />
+              <motion.div 
+                className="absolute w-1 h-1 bg-white rounded-full"
+                style={{ bottom: '20%', left: '25%' }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0.6 }}
+              />
+            </>
+          )}
+        </div>
       </div>
-      <span className="text-xs sm:text-sm font-medium text-foreground text-center">{number}{getOrdinalSuffix(number)} Sem</span>
-      <Badge variant="outline" className={cn("text-[10px] sm:text-xs", program.textColor, program.borderColor)}>
+      
+      {/* Semester Label */}
+      <div className="text-center">
+        <span className="text-xs sm:text-sm font-semibold text-foreground">
+          {number}<sup className="text-[8px] sm:text-[10px]">{getOrdinalSuffix(number)}</sup> Semester
+        </span>
+      </div>
+      
+      {/* Program Badge */}
+      <div className={cn(
+        "modern-badge",
+        program.id === 'bsc' 
+          ? "bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 dark:from-emerald-900/50 dark:to-teal-900/50 dark:text-emerald-300"
+          : "bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 dark:from-amber-900/50 dark:to-orange-900/50 dark:text-amber-300"
+      )}>
         {program.shortName}
-      </Badge>
+      </div>
     </motion.button>
   );
 }
@@ -695,41 +766,100 @@ function HomePage({
 
   return (
     <div className="min-h-screen pb-20 sm:pb-0">
-      {/* Hero Section */}
-      <section className="py-8 sm:py-12 md:py-16 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-cyan-950/30">
-        <div className="container mx-auto px-4">
+      {/* Hero Section - Modern Design */}
+      <section className="relative py-8 sm:py-12 md:py-16 overflow-hidden">
+        {/* Animated Mesh Background */}
+        <div className="absolute inset-0 mesh-gradient" />
+        
+        {/* Floating Decorative Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div 
+            className="absolute top-20 left-10 w-32 h-32 rounded-full bg-emerald-400/20 blur-3xl"
+            animate={{ y: [0, -20, 0], scale: [1, 1.1, 1] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div 
+            className="absolute top-40 right-20 w-40 h-40 rounded-full bg-teal-400/15 blur-3xl"
+            animate={{ y: [0, 20, 0], scale: [1, 0.9, 1] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div 
+            className="absolute bottom-10 left-1/3 w-36 h-36 rounded-full bg-amber-400/10 blur-3xl"
+            animate={{ x: [0, 30, 0], y: [0, -15, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
             className="text-center max-w-2xl mx-auto"
           >
-            <div className="inline-flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-full px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm text-emerald-700 dark:text-emerald-300 mb-4 sm:mb-6">
-              <CalendarDays className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span>Academic Session 2025</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4">
-              Smart Routine Hub
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 px-2">
-              Select your program and semester to view class schedules
-            </p>
+            {/* Badge with Animation */}
+            <motion.div 
+              className="inline-flex items-center gap-2 rounded-full px-4 sm:px-5 py-1.5 sm:py-2 mb-6 sm:mb-8 glass-card shadow-lg"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <CalendarDays className="w-4 h-4 text-emerald-500" />
+              <span className="text-sm font-medium bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                Academic Session 2025
+              </span>
+            </motion.div>
             
-            {/* Login Button - Visible on Mobile */}
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-4">
+            {/* Title with Gradient */}
+            <motion.h1 
+              className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 sm:mb-5"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <span className="bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
+                Smart Routine Hub
+              </span>
+            </motion.h1>
+            
+            <motion.p 
+              className="text-base sm:text-lg text-muted-foreground mb-8 sm:mb-10 px-2 max-w-lg mx-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              ICE-RU Department Management System — View schedules, notices & more
+            </motion.p>
+            
+            {/* Login Button - Enhanced */}
+            <motion.div 
+              className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
               <Link href="/login" className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg">
-                  <LogIn className="w-4 h-4" />
-                  <span>Teacher/Admin Login</span>
+                <Button 
+                  size="lg"
+                  className="w-full sm:w-auto gap-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 transition-all duration-300 hover:scale-105"
+                >
+                  <LogIn className="w-5 h-5" />
+                  <span className="font-semibold">Teacher/Admin Login</span>
                 </Button>
               </Link>
-            </div>
+            </motion.div>
             
-            {/* PWA Install & Notification */}
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            {/* PWA & Status - Enhanced */}
+            <motion.div 
+              className="flex flex-wrap items-center justify-center gap-2 sm:gap-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+            >
               <PWAInstallButton />
               <NotificationButton />
               <OnlineStatus />
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -741,45 +871,69 @@ function HomePage({
         </div>
       </section>
 
-      {/* Programs Section */}
+      {/* Programs Section - Modern Design */}
       <section className="py-6 sm:py-8 md:py-12">
         <div className="container mx-auto px-4 space-y-6 sm:space-y-8">
-          {programs.map((program) => (
+          {programs.map((program, programIndex) => (
             <motion.div
               key={program.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: programIndex * 0.15 }}
               className={cn(
-                "rounded-xl sm:rounded-2xl border overflow-hidden",
+                "rounded-2xl sm:rounded-3xl border-2 overflow-hidden relative",
                 program.borderColor,
                 program.lightColor
               )}
             >
+              {/* Decorative Background Elements */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <motion.div 
+                  className={cn(
+                    "absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl",
+                    program.id === 'bsc' ? "bg-emerald-400/20" : "bg-amber-400/20"
+                  )}
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 8, repeat: Infinity }}
+                />
+                <motion.div 
+                  className={cn(
+                    "absolute -bottom-16 -left-16 w-32 h-32 rounded-full blur-2xl",
+                    program.id === 'bsc' ? "bg-teal-400/15" : "bg-orange-400/15"
+                  )}
+                  animate={{ scale: [1.2, 1, 1.2] }}
+                  transition={{ duration: 6, repeat: Infinity }}
+                />
+              </div>
+              
               {/* Program Header */}
-              <div className="flex items-center justify-between p-3 sm:p-4 md:p-6 border-b border-inherit">
-                <div className="flex items-center gap-2 sm:gap-3">
+              <div className="relative flex items-center justify-between p-4 sm:p-6 border-b border-inherit backdrop-blur-sm">
+                <div className="flex items-center gap-3 sm:gap-4">
                   <div className={cn(
-                    "w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br",
-                    program.color
+                    "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg",
+                    program.gradient
                   )}>
-                    <program.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    <program.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-sm sm:text-base text-foreground">{program.name}</h2>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">({program.shortName})</p>
+                    <h2 className="font-bold text-base sm:text-lg text-foreground">{program.name}</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">{program.shortName} Program</p>
                   </div>
                 </div>
-                <Badge variant="secondary" className="gap-1 text-xs">
-                  <span>{program.semesters}</span>
-                  <span className="hidden sm:inline text-muted-foreground">Semesters</span>
-                  <span className="sm:hidden">Sem</span>
-                </Badge>
+                <div className={cn(
+                  "modern-badge",
+                  program.id === 'bsc' 
+                    ? "bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 dark:from-emerald-900/50 dark:to-teal-900/50 dark:text-emerald-300"
+                    : "bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 dark:from-amber-900/50 dark:to-orange-900/50 dark:text-amber-300"
+                )}>
+                  {program.semesters} Semesters
+                </div>
               </div>
 
               {/* Semesters Grid */}
-              <div className="p-3 sm:p-4 md:p-6">
+              <div className="relative p-4 sm:p-6 backdrop-blur-sm">
                 <div className={cn(
-                  "grid gap-1 sm:gap-2",
+                  "grid gap-3 sm:gap-4",
                   program.semesters <= 4 ? "grid-cols-4" : "grid-cols-4 sm:grid-cols-8"
                 )}>
                   {Array.from({ length: program.semesters }, (_, i) => i + 1).map((sem) => (
@@ -797,36 +951,59 @@ function HomePage({
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-6 sm:py-8 md:py-12 bg-muted/30">
+      {/* Features Section - Modern Cards */}
+      <section className="py-6 sm:py-8 md:py-12">
         <div className="container mx-auto px-4">
+          <motion.div 
+            className="text-center mb-6 sm:mb-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+              Why <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Smart Routine Hub</span>?
+            </h2>
+            <p className="text-sm text-muted-foreground">Everything you need for academic management</p>
+          </motion.div>
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {[
               {
                 icon: CalendarDays,
                 title: "Smart Scheduling",
-                description: "Real-time class schedule with instant updates"
+                description: "Real-time class schedule with instant updates and notifications",
+                gradient: "from-emerald-500 to-teal-600",
+                shadow: "shadow-emerald-500/20"
               },
               {
                 icon: User,
                 title: "Teacher Directory",
-                description: "Find and connect with faculty members"
+                description: "Find and connect with faculty members easily",
+                gradient: "from-teal-500 to-cyan-600",
+                shadow: "shadow-teal-500/20"
               },
               {
                 icon: BookOpen,
                 title: "Resource Library",
-                description: "Access course materials and resources"
+                description: "Access course materials and resources in one place",
+                gradient: "from-cyan-500 to-blue-600",
+                shadow: "shadow-cyan-500/20"
               }
             ].map((feature, index) => (
               <motion.div
                 key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-4 sm:p-6 bg-card rounded-xl border border-border"
+                transition={{ delay: 0.4 + index * 0.1 }}
+                whileHover={{ y: -5, scale: 1.02 }}
+                className="group feature-glow p-5 sm:p-6 bg-card rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-3 sm:mb-4">
-                  <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <div className={cn(
+                  "w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 bg-gradient-to-br shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
+                  feature.gradient,
+                  feature.shadow
+                )}>
+                  <feature.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white drop-shadow" />
                 </div>
                 <h3 className="font-semibold text-sm sm:text-base text-foreground mb-1 sm:mb-2">{feature.title}</h3>
                 <p className="text-xs sm:text-sm text-muted-foreground">{feature.description}</p>
