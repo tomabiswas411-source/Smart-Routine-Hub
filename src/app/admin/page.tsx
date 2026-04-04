@@ -702,60 +702,103 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border flex-col z-50">
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <Calendar className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      {/* Sidebar - Desktop with Premium 3D Design */}
+      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 flex-col z-50 overflow-hidden">
+        {/* Gradient background with inner glow */}
+        <div className="absolute inset-0 bg-gradient-to-b from-teal-600 via-emerald-600 to-teal-700 dark:from-teal-800 dark:via-emerald-800 dark:to-teal-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-400/20 to-transparent rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-emerald-400/15 to-transparent rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="relative p-4 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-white/20 rounded-xl blur-md" />
+              <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-white via-cyan-100 to-emerald-100 flex items-center justify-center shadow-lg shadow-teal-900/30">
+                <Calendar className="w-5 h-5 text-teal-600" />
+              </div>
             </div>
             <div>
-              <p className="font-bold text-sm">{siteSettings.siteName}</p>
-              <p className="text-xs text-muted-foreground">Admin Panel</p>
+              <p className="font-bold text-sm text-white">{siteSettings.siteName}</p>
+              <p className="text-xs text-white/70">Admin Panel</p>
             </div>
           </div>
         </div>
         
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                activeSection === item.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </button>
-          ))}
+        <nav className="relative flex-1 p-3 space-y-1.5 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive = activeSection === item.id;
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.98 }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden",
+                  isActive
+                    ? "bg-white/20 text-white shadow-lg shadow-black/10"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
+                )}
+              >
+                {isActive && (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/25 via-white/20 to-white/10 rounded-xl" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full shadow-lg shadow-white/50" />
+                  </>
+                )}
+                <div className={cn(
+                  "relative w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                  isActive
+                    ? "bg-gradient-to-br from-white/30 to-white/10 shadow-inner"
+                    : "bg-white/10"
+                )}>
+                  <item.icon className="w-4 h-4" />
+                </div>
+                <span className="relative">{item.label}</span>
+              </motion.button>
+            );
+          })}
         </nav>
 
-        <div className="p-3 border-t border-border">
-          <button
+        <div className="relative p-3 border-t border-white/10">
+          <motion.button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-500/10 transition-colors"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/80 hover:text-white hover:bg-red-500/20 transition-all duration-200"
           >
-            <LogOut className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+              <LogOut className="w-4 h-4" />
+            </div>
             Sign Out
-          </button>
+          </motion.button>
         </div>
       </aside>
 
-      {/* Mobile Header */}
-      <header className="md:hidden sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between">
+      {/* Mobile Header with Glass-morphism */}
+      <header className="md:hidden sticky top-0 z-40 px-4 py-3 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
+        <div className="absolute inset-0 backdrop-blur-xl bg-white/10" />
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.8'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+        
+        <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-white via-cyan-100 to-emerald-100 flex items-center justify-center shadow-lg shadow-teal-900/30">
+              <Calendar className="w-4 h-4 text-teal-600" />
             </div>
-            <span className="font-semibold">Admin</span>
+            <div>
+              <span className="font-semibold text-white text-sm">{siteSettings.siteName}</span>
+              <p className="text-[10px] text-white/70">Admin Panel</p>
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => signOut({ callbackUrl: "/" })}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="text-white hover:bg-white/20 rounded-xl"
+          >
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
@@ -774,65 +817,122 @@ export default function AdminDashboard() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-6"
               >
-                <h1 className="text-2xl font-bold">Welcome, {session.user?.name}</h1>
+                {/* Welcome Header with Premium Design */}
+                <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500 shadow-xl shadow-teal-500/20">
+                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.8'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
+                  <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-3xl" />
+                  <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-gradient-to-tr from-cyan-400/30 to-transparent rounded-full blur-3xl" />
+                  <div className="relative">
+                    <p className="text-white/80 text-sm font-medium mb-1">Welcome back,</p>
+                    <h1 className="text-2xl md:text-3xl font-bold text-white">{session.user?.name}</h1>
+                    <p className="text-white/70 text-sm mt-1">Admin Dashboard • {siteSettings.departmentName}</p>
+                  </div>
+                </div>
                 
-                {/* Stats Grid */}
+                {/* Stats Grid with Premium 3D Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {[
-                    { label: "Teachers", value: stats?.totalTeachers || 0, icon: Users, color: "text-primary bg-primary/10" },
-                    { label: "Courses", value: stats?.activeCourses || 0, icon: BookOpen, color: "text-green-500 bg-green-500/10" },
-                    { label: "Rooms", value: stats?.totalRooms || 0, icon: DoorOpen, color: "text-amber-500 bg-amber-500/10" },
-                    { label: "Schedules", value: stats?.totalSchedules || 0, icon: Calendar, color: "text-blue-500 bg-blue-500/10" },
-                    { label: "Pending", value: stats?.pendingNotices || 0, icon: AlertCircle, color: "text-red-500 bg-red-500/10" },
-                    { label: "Semester", value: stats?.currentSemester?.split(" ")[0] || "-", icon: Clock, color: "text-purple-500 bg-purple-500/10" },
-                  ].map((stat) => (
-                    <Card key={stat.label}>
-                      <CardContent className="p-4">
-                        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center mb-2", stat.color)}>
-                          <stat.icon className="w-4 h-4" />
+                    { label: "Teachers", value: stats?.totalTeachers || 0, icon: Users, gradient: "from-teal-500 via-emerald-500 to-cyan-500", shadow: "shadow-teal-500/30" },
+                    { label: "Courses", value: stats?.activeCourses || 0, icon: BookOpen, gradient: "from-green-500 via-emerald-500 to-teal-500", shadow: "shadow-green-500/30" },
+                    { label: "Rooms", value: stats?.totalRooms || 0, icon: DoorOpen, gradient: "from-amber-500 via-orange-500 to-yellow-500", shadow: "shadow-amber-500/30" },
+                    { label: "Schedules", value: stats?.totalSchedules || 0, icon: Calendar, gradient: "from-blue-500 via-indigo-500 to-violet-500", shadow: "shadow-blue-500/30" },
+                    { label: "Pending", value: stats?.pendingNotices || 0, icon: AlertCircle, gradient: "from-red-500 via-rose-500 to-pink-500", shadow: "shadow-red-500/30" },
+                    { label: "Semester", value: stats?.currentSemester?.split(" ")[0] || "-", icon: Clock, gradient: "from-purple-500 via-violet-500 to-indigo-500", shadow: "shadow-purple-500/30" },
+                  ].map((stat, index) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ y: -4, scale: 1.02 }}
+                      className="stat-card-premium card-inner-glow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className={cn(
+                          "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-lg",
+                          stat.gradient, stat.shadow
+                        )}>
+                          <stat.icon className="w-5 h-5 text-white" />
                         </div>
-                        <p className="text-2xl font-bold">{stat.value}</p>
-                        <p className="text-xs text-muted-foreground">{stat.label}</p>
-                      </CardContent>
-                    </Card>
+                      </div>
+                      <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">{stat.value}</p>
+                      <p className="text-xs text-muted-foreground font-medium mt-1">{stat.label}</p>
+                    </motion.div>
                   ))}
                 </div>
 
-                {/* Quick Actions */}
+                {/* Quick Actions with 3D Buttons */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => { resetTeacherForm(); setShowTeacherDialog(true); }}>
-                    <Plus className="w-5 h-5" />
-                    <span>Add Teacher</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => { resetCourseForm(); setShowCourseDialog(true); }}>
-                    <Plus className="w-5 h-5" />
-                    <span>Add Course</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => { resetScheduleForm(); setShowScheduleDialog(true); }}>
-                    <Plus className="w-5 h-5" />
-                    <span>Add Schedule</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => { resetNoticeForm(); setShowNoticeDialog(true); }}>
-                    <Plus className="w-5 h-5" />
-                    <span>Post Notice</span>
-                  </Button>
+                  {[
+                    { label: "Add Teacher", icon: Users, onClick: () => { resetTeacherForm(); setShowTeacherDialog(true); }, gradient: "from-teal-500 to-emerald-500", shadow: "shadow-teal-500/30" },
+                    { label: "Add Course", icon: BookOpen, onClick: () => { resetCourseForm(); setShowCourseDialog(true); }, gradient: "from-green-500 to-emerald-500", shadow: "shadow-green-500/30" },
+                    { label: "Add Schedule", icon: Calendar, iconType: Calendar, onClick: () => { resetScheduleForm(); setShowScheduleDialog(true); }, gradient: "from-blue-500 to-indigo-500", shadow: "shadow-blue-500/30" },
+                    { label: "Post Notice", icon: Bell, onClick: () => { resetNoticeForm(); setShowNoticeDialog(true); }, gradient: "from-amber-500 to-orange-500", shadow: "shadow-amber-500/30" },
+                  ].map((action, index) => (
+                    <motion.div
+                      key={action.label}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ scale: 1.03, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Button 
+                        variant="outline" 
+                        className="w-full h-auto py-5 flex flex-col gap-2 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-2 hover:border-teal-300 dark:hover:border-teal-600 shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
+                        onClick={action.onClick}
+                      >
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-lg",
+                          action.gradient, action.shadow
+                        )}>
+                          <Plus className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="font-semibold text-sm">{action.label}</span>
+                      </Button>
+                    </motion.div>
+                  ))}
                 </div>
 
-                {/* Recent Notices */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Notices</CardTitle>
+                {/* Recent Notices with Premium Card */}
+                <Card className="card-3d card-inner-glow overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shadow-md shadow-teal-500/30">
+                        <Bell className="w-4 h-4 text-white" />
+                      </div>
+                      Recent Notices
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    {notices.slice(0, 5).map((notice) => (
-                      <div key={notice.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted">
-                        <div className={cn("w-2 h-2 rounded-full mt-2", notice.isApproved ? "bg-green-500" : "bg-amber-500")} />
+                  <CardContent className="space-y-2">
+                    {notices.slice(0, 5).map((notice, index) => (
+                      <motion.div 
+                        key={notice.id} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-teal-50 hover:to-transparent dark:hover:from-teal-900/20 dark:hover:to-transparent transition-all duration-200"
+                      >
+                        <div className={cn(
+                          "w-2.5 h-2.5 rounded-full mt-2 shadow-lg",
+                          notice.isApproved ? "bg-gradient-to-br from-green-400 to-emerald-500 shadow-green-500/30" : "bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/30"
+                        )} />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{notice.title}</p>
                           <p className="text-xs text-muted-foreground">{format(toDate(notice.createdAt), "MMM d, yyyy")}</p>
                         </div>
-                      </div>
+                        {notice.isPinned && (
+                          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] shadow-md shadow-amber-500/30">Pinned</Badge>
+                        )}
+                      </motion.div>
                     ))}
+                    {notices.length === 0 && (
+                      <div className="py-8 text-center text-muted-foreground">
+                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">No notices yet</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -848,8 +948,16 @@ export default function AdminDashboard() {
                 className="space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Manage Teachers</h2>
-                  <Button onClick={() => { resetTeacherForm(); setShowTeacherDialog(true); }}>
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shadow-md shadow-teal-500/30">
+                      <Users className="w-4 h-4 text-white" />
+                    </div>
+                    Manage Teachers
+                  </h2>
+                  <Button 
+                    onClick={() => { resetTeacherForm(); setShowTeacherDialog(true); }}
+                    className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white shadow-lg shadow-teal-500/30"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Teacher
                   </Button>
@@ -861,56 +969,66 @@ export default function AdminDashboard() {
                     placeholder="Search teachers..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 bg-white dark:bg-gray-800 border-2 shadow-sm"
                   />
                 </div>
                 
                 <div className="grid gap-3">
                   {teachers
                     .filter(t => t.fullName?.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map((teacher) => (
-                    <Card key={teacher.id}>
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <GraduationCap className="w-5 h-5 text-primary" />
+                    .map((teacher, index) => (
+                    <motion.div
+                      key={teacher.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      whileHover={{ x: 4 }}
+                    >
+                      <Card className="card-3d card-inner-glow overflow-hidden">
+                        <div className="h-0.5 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-teal-500/30">
+                              <GraduationCap className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <p className="font-semibold">{teacher.fullName}</p>
+                              <p className="text-sm text-muted-foreground">{teacher.designation} • {teacher.email}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{teacher.fullName}</p>
-                            <p className="text-sm text-muted-foreground">{teacher.designation} • {teacher.email}</p>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="hover:bg-teal-100 dark:hover:bg-teal-900/30 hover:text-teal-600"
+                              onClick={() => {
+                                setEditingItem(teacher);
+                                setTeacherForm({
+                                  fullName: teacher.fullName,
+                                  email: teacher.email,
+                                  designation: teacher.designation || "",
+                                  phone: teacher.phone || "",
+                                  officeRoom: teacher.officeRoom || "",
+                                  bio: teacher.bio || "",
+                                  password: "",
+                                });
+                                setShowTeacherDialog(true);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
+                              onClick={() => handleDeleteTeacher(teacher.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingItem(teacher);
-                              setTeacherForm({
-                                fullName: teacher.fullName,
-                                email: teacher.email,
-                                designation: teacher.designation || "",
-                                phone: teacher.phone || "",
-                                officeRoom: teacher.officeRoom || "",
-                                bio: teacher.bio || "",
-                                password: "",
-                              });
-                              setShowTeacherDialog(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-red-500"
-                            onClick={() => handleDeleteTeacher(teacher.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
                 </div>
               </motion.div>
@@ -926,58 +1044,86 @@ export default function AdminDashboard() {
                 className="space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Manage Courses</h2>
-                  <Button onClick={() => { resetCourseForm(); setShowCourseDialog(true); }}>
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-md shadow-green-500/30">
+                      <BookOpen className="w-4 h-4 text-white" />
+                    </div>
+                    Manage Courses
+                  </h2>
+                  <Button 
+                    onClick={() => { resetCourseForm(); setShowCourseDialog(true); }}
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/30"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Course
                   </Button>
                 </div>
                 
                 <div className="grid gap-3 md:grid-cols-2">
-                  {courses.map((course) => (
-                    <Card key={course.id}>
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{course.code}</Badge>
-                            <Badge variant={course.type === "theory" ? "default" : "secondary"}>
-                              {course.type}
-                            </Badge>
+                  {courses.map((course, index) => (
+                    <motion.div
+                      key={course.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.03 }}
+                      whileHover={{ y: -2 }}
+                    >
+                      <Card className="card-3d card-inner-glow overflow-hidden h-full">
+                        <div className={cn(
+                          "h-1",
+                          course.type === "theory" 
+                            ? "bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500"
+                            : "bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500"
+                        )} />
+                        <CardContent className="p-4 flex flex-col h-full">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline" className="font-mono text-xs">{course.code}</Badge>
+                              <Badge className={cn(
+                                "text-[10px] font-semibold shadow-md",
+                                course.type === "theory"
+                                  ? "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-teal-500/30"
+                                  : "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/30"
+                              )}>
+                                {course.type}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 hover:bg-teal-100 dark:hover:bg-teal-900/30 hover:text-teal-600"
+                                onClick={() => {
+                                  setEditingItem(course);
+                                  setCourseForm({
+                                    name: course.name,
+                                    code: course.code,
+                                    creditHours: course.creditHours,
+                                    type: course.type,
+                                    semester: course.semester,
+                                  });
+                                  setShowCourseDialog(true);
+                                }}
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
+                                onClick={() => handleDeleteCourse(course.id)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
                           </div>
-                          <p className="font-medium mt-1">{course.name}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="font-medium flex-1">{course.name}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
                             {course.semester}{getOrdinal(course.semester)} Semester • {course.creditHours} Credits
                           </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingItem(course);
-                              setCourseForm({
-                                name: course.name,
-                                code: course.code,
-                                creditHours: course.creditHours,
-                                type: course.type,
-                                semester: course.semester,
-                              });
-                              setShowCourseDialog(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-red-500"
-                            onClick={() => handleDeleteCourse(course.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
                 </div>
               </motion.div>
@@ -993,56 +1139,92 @@ export default function AdminDashboard() {
                 className="space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Manage Rooms</h2>
-                  <Button onClick={() => { resetRoomForm(); setShowRoomDialog(true); }}>
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md shadow-amber-500/30">
+                      <DoorOpen className="w-4 h-4 text-white" />
+                    </div>
+                    Manage Rooms
+                  </h2>
+                  <Button 
+                    onClick={() => { resetRoomForm(); setShowRoomDialog(true); }}
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/30"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Room
                   </Button>
                 </div>
                 
                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {rooms.map((room) => (
-                    <Card key={room.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Building className="w-5 h-5 text-primary" />
-                            <span className="font-bold">{room.roomNumber}</span>
+                  {rooms.map((room, index) => (
+                    <motion.div
+                      key={room.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.03 }}
+                      whileHover={{ y: -2 }}
+                    >
+                      <Card className="card-3d card-inner-glow overflow-hidden">
+                        <div className={cn(
+                          "h-1",
+                          room.type === "lab"
+                            ? "bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500"
+                            : "bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500"
+                        )} />
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg",
+                                room.type === "lab"
+                                  ? "bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/30"
+                                  : "bg-gradient-to-br from-teal-500 to-emerald-500 shadow-teal-500/30"
+                              )}>
+                                <Building className="w-5 h-5 text-white" />
+                              </div>
+                              <span className="font-bold text-lg">{room.roomNumber}</span>
+                            </div>
+                            <Badge className={cn(
+                              "text-[10px] font-semibold shadow-md",
+                              room.type === "lab"
+                                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/30"
+                                : "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-teal-500/30"
+                            )}>
+                              {room.type}
+                            </Badge>
                           </div>
-                          <Badge variant={room.type === "lab" ? "secondary" : "outline"}>
-                            {room.type}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{room.building} • Capacity: {room.capacity}</p>
-                        <div className="flex items-center gap-2 mt-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingItem(room);
-                              setRoomForm({
-                                roomNumber: room.roomNumber,
-                                building: room.building || "",
-                                type: room.type,
-                                capacity: room.capacity,
-                              });
-                              setShowRoomDialog(true);
-                            }}
-                          >
-                            <Edit className="w-3 h-3 mr-1" />
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeleteRoom(room.id)}
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                          <p className="text-sm text-muted-foreground">{room.building} • Capacity: {room.capacity}</p>
+                          <div className="flex items-center gap-2 mt-3">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"
+                              onClick={() => {
+                                setEditingItem(room);
+                                setRoomForm({
+                                  roomNumber: room.roomNumber,
+                                  building: room.building || "",
+                                  type: room.type,
+                                  capacity: room.capacity,
+                                });
+                                setShowRoomDialog(true);
+                              }}
+                            >
+                              <Edit className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-md shadow-red-500/20"
+                              onClick={() => handleDeleteRoom(room.id)}
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
                 </div>
               </motion.div>
@@ -1058,65 +1240,90 @@ export default function AdminDashboard() {
                 className="space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Manage Schedules</h2>
-                  <Button onClick={() => { resetScheduleForm(); setShowScheduleDialog(true); }}>
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-md shadow-blue-500/30">
+                      <Calendar className="w-4 h-4 text-white" />
+                    </div>
+                    Manage Schedules
+                  </h2>
+                  <Button 
+                    onClick={() => { resetScheduleForm(); setShowScheduleDialog(true); }}
+                    className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg shadow-blue-500/30"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Schedule
                   </Button>
                 </div>
                 
                 <div className="grid gap-3">
-                  {schedules.map((schedule) => (
-                    <Card key={schedule.id}>
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={cn(
-                            "w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-bold",
-                            schedule.classType === "lab" ? "bg-purple-500" : "bg-primary"
-                          )}>
-                            {schedule.courseCode?.split("-")[1]?.slice(0, 2) || "CL"}
+                  {schedules.map((schedule, index) => (
+                    <motion.div
+                      key={schedule.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.02 }}
+                      whileHover={{ x: 4 }}
+                    >
+                      <Card className="card-3d card-inner-glow overflow-hidden">
+                        <div className={cn(
+                          "h-1",
+                          schedule.classType === "lab"
+                            ? "bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500"
+                            : "bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500"
+                        )} />
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={cn(
+                              "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-lg",
+                              schedule.classType === "lab"
+                                ? "bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/30"
+                                : "bg-gradient-to-br from-teal-500 to-emerald-500 shadow-teal-500/30"
+                            )}>
+                              {schedule.courseCode?.split("-")[1]?.slice(0, 2) || "CL"}
+                            </div>
+                            <div>
+                              <p className="font-semibold">{schedule.courseName}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {schedule.teacherName} • {schedule.roomNumber} • {schedule.dayOfWeek}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {schedule.startTime} - {schedule.endTime} • {schedule.semester}{getOrdinal(schedule.semester)} Semester, {schedule.program?.toUpperCase() || 'BSC'}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{schedule.courseName}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {schedule.teacherName} • {schedule.roomNumber} • {schedule.dayOfWeek}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {schedule.startTime} - {schedule.endTime} • {schedule.semester}{getOrdinal(schedule.semester)} Semester, {schedule.program?.toUpperCase() || 'BSC'}
-                            </p>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600"
+                              onClick={() => {
+                                setEditingItem(schedule);
+                                setScheduleForm({
+                                  courseId: schedule.courseId,
+                                  teacherId: schedule.teacherId,
+                                  roomId: schedule.roomId,
+                                  timeSlotId: schedule.timeSlotId,
+                                  dayOfWeek: schedule.dayOfWeek,
+                                  semester: schedule.semester,
+                                  program: schedule.program || "bsc",
+                                });
+                                setShowScheduleDialog(true);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
+                              onClick={() => handleDeleteSchedule(schedule.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingItem(schedule);
-                              setScheduleForm({
-                                courseId: schedule.courseId,
-                                teacherId: schedule.teacherId,
-                                roomId: schedule.roomId,
-                                timeSlotId: schedule.timeSlotId,
-                                dayOfWeek: schedule.dayOfWeek,
-                                semester: schedule.semester,
-                                program: schedule.program || "bsc",
-                              });
-                              setShowScheduleDialog(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-red-500"
-                            onClick={() => handleDeleteSchedule(schedule.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
                 </div>
               </motion.div>
@@ -1132,81 +1339,108 @@ export default function AdminDashboard() {
                 className="space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Manage Notices</h2>
-                  <Button onClick={() => { resetNoticeForm(); setShowNoticeDialog(true); }}>
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md shadow-amber-500/30">
+                      <Bell className="w-4 h-4 text-white" />
+                    </div>
+                    Manage Notices
+                  </h2>
+                  <Button 
+                    onClick={() => { resetNoticeForm(); setShowNoticeDialog(true); }}
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/30"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Notice
                   </Button>
                 </div>
                 
                 <div className="grid gap-3">
-                  {notices.map((notice) => (
-                    <Card key={notice.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="outline">{notice.category}</Badge>
-                              <Badge variant={notice.isApproved ? "default" : "secondary"}>
-                                {notice.isApproved ? "Approved" : "Pending"}
-                              </Badge>
-                              {notice.isPinned && <Badge variant="destructive">Pinned</Badge>}
+                  {notices.map((notice, index) => (
+                    <motion.div
+                      key={notice.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      whileHover={{ x: 4 }}
+                    >
+                      <Card className="card-3d card-inner-glow overflow-hidden">
+                        <div className="h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500" />
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <Badge variant="outline" className="text-xs">{notice.category}</Badge>
+                                <Badge className={cn(
+                                  "text-[10px] font-semibold shadow-md",
+                                  notice.isApproved 
+                                    ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-green-500/30"
+                                    : "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-500/30"
+                                )}>
+                                  {notice.isApproved ? "Approved" : "Pending"}
+                                </Badge>
+                                {notice.isPinned && (
+                                  <Badge className="bg-gradient-to-r from-red-500 to-rose-500 text-white text-[10px] shadow-md shadow-red-500/30">
+                                    Pinned
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="font-semibold">{notice.title}</p>
+                              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{notice.content}</p>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                By {notice.postedByName} • {format(toDate(notice.createdAt), "MMM d, yyyy")}
+                              </p>
                             </div>
-                            <p className="font-medium">{notice.title}</p>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{notice.content}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              By {notice.postedByName} • {format(toDate(notice.createdAt), "MMM d, yyyy")}
-                            </p>
+                            <div className="flex items-center gap-1 ml-4 flex-shrink-0">
+                              {!notice.isApproved && (
+                                <>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-500"
+                                    onClick={() => handleApproveNotice(notice.id, true)}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
+                                    onClick={() => handleApproveNotice(notice.id, false)}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600"
+                                onClick={() => {
+                                  setEditingItem(notice);
+                                  setNoticeForm({
+                                    title: notice.title,
+                                    content: notice.content,
+                                    category: notice.category,
+                                    isPinned: notice.isPinned,
+                                  });
+                                  setShowNoticeDialog(true);
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
+                                onClick={() => handleDeleteNotice(notice.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            {!notice.isApproved && (
-                              <>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="text-green-500"
-                                  onClick={() => handleApproveNotice(notice.id, true)}
-                                >
-                                  <Check className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="text-red-500"
-                                  onClick={() => handleApproveNotice(notice.id, false)}
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => {
-                                setEditingItem(notice);
-                                setNoticeForm({
-                                  title: notice.title,
-                                  content: notice.content,
-                                  category: notice.category,
-                                  isPinned: notice.isPinned,
-                                });
-                                setShowNoticeDialog(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-red-500"
-                              onClick={() => handleDeleteNotice(notice.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
                 </div>
               </motion.div>
@@ -1221,22 +1455,30 @@ export default function AdminDashboard() {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-6"
               >
-                <h2 className="text-xl font-bold">Site Settings</h2>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-500 to-slate-600 flex items-center justify-center shadow-md shadow-gray-500/30">
+                    <Settings className="w-4 h-4 text-white" />
+                  </div>
+                  Site Settings
+                </h2>
 
                 <Tabs defaultValue="general" className="space-y-4">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="general">General</TabsTrigger>
-                    <TabsTrigger value="header">Header</TabsTrigger>
-                    <TabsTrigger value="footer">Footer</TabsTrigger>
-                    <TabsTrigger value="social">Social</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-800 dark:to-gray-900 p-1">
+                    <TabsTrigger value="general" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-md">General</TabsTrigger>
+                    <TabsTrigger value="header" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-md">Header</TabsTrigger>
+                    <TabsTrigger value="footer" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-md">Footer</TabsTrigger>
+                    <TabsTrigger value="social" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-md">Social</TabsTrigger>
                   </TabsList>
 
                   {/* General Settings */}
                   <TabsContent value="general" className="space-y-4">
-                    <Card>
+                    <Card className="card-3d card-inner-glow overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
-                          <Palette className="w-4 h-4" />
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shadow-md shadow-teal-500/30">
+                            <Palette className="w-3.5 h-3.5 text-white" />
+                          </div>
                           Site Information
                         </CardTitle>
                         <CardDescription>Basic site settings and branding</CardDescription>
@@ -1249,6 +1491,7 @@ export default function AdminDashboard() {
                               value={siteSettings.siteName}
                               onChange={(e) => setSiteSettings({ ...siteSettings, siteName: e.target.value })}
                               placeholder="Smart Routine Hub"
+                              className="bg-white dark:bg-gray-800 border-2"
                             />
                           </div>
                           <div className="space-y-2">
@@ -1257,6 +1500,7 @@ export default function AdminDashboard() {
                               value={siteSettings.siteTagline}
                               onChange={(e) => setSiteSettings({ ...siteSettings, siteTagline: e.target.value })}
                               placeholder="Academic Schedule Management"
+                              className="bg-white dark:bg-gray-800 border-2"
                             />
                           </div>
                         </div>
@@ -1266,6 +1510,7 @@ export default function AdminDashboard() {
                             <Input
                               value={siteSettings.departmentName}
                               onChange={(e) => setSiteSettings({ ...siteSettings, departmentName: e.target.value })}
+                              className="bg-white dark:bg-gray-800 border-2"
                             />
                           </div>
                           <div className="space-y-2">
@@ -1273,16 +1518,20 @@ export default function AdminDashboard() {
                             <Input
                               value={siteSettings.universityName}
                               onChange={(e) => setSiteSettings({ ...siteSettings, universityName: e.target.value })}
+                              className="bg-white dark:bg-gray-800 border-2"
                             />
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="card-3d card-inner-glow overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500" />
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md shadow-amber-500/30">
+                            <MapPin className="w-3.5 h-3.5 text-white" />
+                          </div>
                           Contact Information
                         </CardTitle>
                       </CardHeader>
@@ -1294,6 +1543,7 @@ export default function AdminDashboard() {
                               type="email"
                               value={siteSettings.contactEmail}
                               onChange={(e) => setSiteSettings({ ...siteSettings, contactEmail: e.target.value })}
+                              className="bg-white dark:bg-gray-800 border-2"
                             />
                           </div>
                           <div className="space-y-2">
@@ -1301,6 +1551,7 @@ export default function AdminDashboard() {
                             <Input
                               value={siteSettings.contactPhone}
                               onChange={(e) => setSiteSettings({ ...siteSettings, contactPhone: e.target.value })}
+                              className="bg-white dark:bg-gray-800 border-2"
                             />
                           </div>
                         </div>
@@ -1310,6 +1561,7 @@ export default function AdminDashboard() {
                             value={siteSettings.address}
                             onChange={(e) => setSiteSettings({ ...siteSettings, address: e.target.value })}
                             rows={2}
+                            className="bg-white dark:bg-gray-800 border-2"
                           />
                         </div>
                         <div className="space-y-2">
@@ -1318,6 +1570,7 @@ export default function AdminDashboard() {
                             value={siteSettings.aboutText}
                             onChange={(e) => setSiteSettings({ ...siteSettings, aboutText: e.target.value })}
                             rows={3}
+                            className="bg-white dark:bg-gray-800 border-2"
                           />
                         </div>
                       </CardContent>
@@ -1326,17 +1579,24 @@ export default function AdminDashboard() {
 
                   {/* Header Settings */}
                   <TabsContent value="header" className="space-y-4">
-                    <Card>
+                    <Card className="card-3d card-inner-glow overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
                             <CardTitle className="text-base flex items-center gap-2">
-                              <Type className="w-4 h-4" />
+                              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shadow-md shadow-teal-500/30">
+                                <Type className="w-3.5 h-3.5 text-white" />
+                              </div>
                               Navigation Links
                             </CardTitle>
                             <CardDescription>Manage header navigation menu items</CardDescription>
                           </div>
-                          <Button size="sm" onClick={addHeaderLink}>
+                          <Button 
+                            size="sm" 
+                            onClick={addHeaderLink}
+                            className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white shadow-md shadow-teal-500/30"
+                          >
                             <Plus className="w-4 h-4 mr-1" />
                             Add Link
                           </Button>
@@ -1344,7 +1604,13 @@ export default function AdminDashboard() {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {siteSettings.headerLinks.map((link, index) => (
-                          <div key={index} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                          <motion.div 
+                            key={index} 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="flex items-center gap-2 p-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-gray-900 rounded-xl border"
+                          >
                             <div className="grid flex-1 grid-cols-2 gap-2">
                               <Input
                                 placeholder="Label"
@@ -1354,6 +1620,7 @@ export default function AdminDashboard() {
                                   newLinks[index] = { ...newLinks[index], label: e.target.value };
                                   setSiteSettings({ ...siteSettings, headerLinks: newLinks });
                                 }}
+                                className="bg-white dark:bg-gray-800"
                               />
                               <Input
                                 placeholder="URL"
@@ -1363,17 +1630,18 @@ export default function AdminDashboard() {
                                   newLinks[index] = { ...newLinks[index], href: e.target.value };
                                   setSiteSettings({ ...siteSettings, headerLinks: newLinks });
                                 }}
+                                className="bg-white dark:bg-gray-800"
                               />
                             </div>
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="text-red-500"
+                              className="hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
                               onClick={() => removeHeaderLink(index)}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
-                          </div>
+                          </motion.div>
                         ))}
                       </CardContent>
                     </Card>
@@ -1381,7 +1649,8 @@ export default function AdminDashboard() {
 
                   {/* Footer Settings */}
                   <TabsContent value="footer" className="space-y-4">
-                    <Card>
+                    <Card className="card-3d card-inner-glow overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500" />
                       <CardHeader>
                         <CardTitle className="text-base">Footer Description</CardTitle>
                       </CardHeader>
@@ -1391,18 +1660,24 @@ export default function AdminDashboard() {
                           onChange={(e) => setSiteSettings({ ...siteSettings, footerDescription: e.target.value })}
                           rows={2}
                           placeholder="Footer description text..."
+                          className="bg-white dark:bg-gray-800 border-2"
                         />
                       </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="card-3d card-inner-glow overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
                             <CardTitle className="text-base">Quick Links</CardTitle>
                             <CardDescription>Manage footer quick links</CardDescription>
                           </div>
-                          <Button size="sm" onClick={addFooterLink}>
+                          <Button 
+                            size="sm" 
+                            onClick={addFooterLink}
+                            className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white shadow-md shadow-teal-500/30"
+                          >
                             <Plus className="w-4 h-4 mr-1" />
                             Add Link
                           </Button>
@@ -1410,7 +1685,13 @@ export default function AdminDashboard() {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {siteSettings.footerQuickLinks.map((link, index) => (
-                          <div key={index} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                          <motion.div 
+                            key={index} 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="flex items-center gap-2 p-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-gray-900 rounded-xl border"
+                          >
                             <div className="grid flex-1 grid-cols-2 gap-2">
                               <Input
                                 placeholder="Label"
@@ -1420,6 +1701,7 @@ export default function AdminDashboard() {
                                   newLinks[index] = { ...newLinks[index], label: e.target.value };
                                   setSiteSettings({ ...siteSettings, footerQuickLinks: newLinks });
                                 }}
+                                className="bg-white dark:bg-gray-800"
                               />
                               <Input
                                 placeholder="URL"
@@ -1429,17 +1711,18 @@ export default function AdminDashboard() {
                                   newLinks[index] = { ...newLinks[index], href: e.target.value };
                                   setSiteSettings({ ...siteSettings, footerQuickLinks: newLinks });
                                 }}
+                                className="bg-white dark:bg-gray-800"
                               />
                             </div>
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="text-red-500"
+                              className="hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
                               onClick={() => removeFooterLink(index)}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
-                          </div>
+                          </motion.div>
                         ))}
                       </CardContent>
                     </Card>
@@ -1447,53 +1730,71 @@ export default function AdminDashboard() {
 
                   {/* Social Settings */}
                   <TabsContent value="social" className="space-y-4">
-                    <Card>
+                    <Card className="card-3d card-inner-glow overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
-                          <Globe className="w-4 h-4" />
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-md shadow-blue-500/30">
+                            <Globe className="w-3.5 h-3.5 text-white" />
+                          </div>
                           Social Media Links
                         </CardTitle>
                         <CardDescription>Connect your social media accounts</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="flex items-center gap-3">
-                          <Facebook className="w-5 h-5 text-blue-500" />
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                            <Facebook className="w-5 h-5 text-white" />
+                          </div>
                           <Input
                             placeholder="Facebook URL"
                             value={siteSettings.facebookURL}
                             onChange={(e) => setSiteSettings({ ...siteSettings, facebookURL: e.target.value })}
+                            className="flex-1 bg-white dark:bg-gray-800 border-2"
                           />
                         </div>
                         <div className="flex items-center gap-3">
-                          <Twitter className="w-5 h-5 text-sky-500" />
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-sky-500 flex items-center justify-center shadow-lg shadow-sky-500/30">
+                            <Twitter className="w-5 h-5 text-white" />
+                          </div>
                           <Input
                             placeholder="Twitter URL"
                             value={siteSettings.twitterURL}
                             onChange={(e) => setSiteSettings({ ...siteSettings, twitterURL: e.target.value })}
+                            className="flex-1 bg-white dark:bg-gray-800 border-2"
                           />
                         </div>
                         <div className="flex items-center gap-3">
-                          <Youtube className="w-5 h-5 text-red-500" />
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-500/30">
+                            <Youtube className="w-5 h-5 text-white" />
+                          </div>
                           <Input
                             placeholder="YouTube URL"
                             value={siteSettings.youtubeURL}
                             onChange={(e) => setSiteSettings({ ...siteSettings, youtubeURL: e.target.value })}
+                            className="flex-1 bg-white dark:bg-gray-800 border-2"
                           />
                         </div>
                         <div className="flex items-center gap-3">
-                          <Instagram className="w-5 h-5 text-pink-500" />
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center shadow-lg shadow-pink-500/30">
+                            <Instagram className="w-5 h-5 text-white" />
+                          </div>
                           <Input
                             placeholder="Instagram URL"
                             value={siteSettings.instagramURL}
                             onChange={(e) => setSiteSettings({ ...siteSettings, instagramURL: e.target.value })}
+                            className="flex-1 bg-white dark:bg-gray-800 border-2"
                           />
                         </div>
                         <div className="flex items-center gap-3">
-                          <Globe className="w-5 h-5 text-green-500" />
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30">
+                            <Globe className="w-5 h-5 text-white" />
+                          </div>
                           <Input
                             placeholder="Website URL"
                             value={siteSettings.websiteURL}
                             onChange={(e) => setSiteSettings({ ...siteSettings, websiteURL: e.target.value })}
+                            className="flex-1 bg-white dark:bg-gray-800 border-2"
                           />
                         </div>
                       </CardContent>
@@ -1503,7 +1804,11 @@ export default function AdminDashboard() {
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveSettings} disabled={submitting} className="min-w-[150px]">
+                  <Button 
+                    onClick={handleSaveSettings} 
+                    disabled={submitting} 
+                    className="min-w-[180px] bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white shadow-lg shadow-teal-500/30"
+                  >
                     {submitting ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
@@ -1518,24 +1823,40 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
-        <div className="grid grid-cols-5 gap-1 p-2">
-          {navItems.slice(0, 5).map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              className={cn(
-                "flex flex-col items-center gap-1 p-2 rounded-lg text-xs",
-                activeSection === item.id
-                  ? "text-primary"
-                  : "text-muted-foreground"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="truncate">{item.label}</span>
-            </button>
-          ))}
+      {/* Mobile Navigation with Premium Design */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 overflow-hidden">
+        <div className="absolute inset-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl" />
+        <div className="absolute inset-0 border-t border-gray-200 dark:border-gray-700" />
+        <div className="relative grid grid-cols-5 gap-1 p-2">
+          {navItems.slice(0, 5).map((item) => {
+            const isActive = activeSection === item.id;
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                whileTap={{ scale: 0.95 }}
+                className={cn(
+                  "relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200",
+                  isActive 
+                    ? "text-teal-600 dark:text-teal-400" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/30 dark:to-emerald-900/30 rounded-xl" />
+                )}
+                <div className={cn(
+                  "relative w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                  isActive 
+                    ? "bg-gradient-to-br from-teal-500 to-emerald-500 shadow-md shadow-teal-500/30" 
+                    : "bg-gray-100 dark:bg-gray-800"
+                )}>
+                  <item.icon className={cn("w-4 h-4", isActive ? "text-white" : "")} />
+                </div>
+                <span className="relative text-[10px] font-medium truncate">{item.label}</span>
+              </motion.button>
+            );
+          })}
         </div>
       </nav>
 
