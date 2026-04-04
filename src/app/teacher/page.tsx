@@ -7,10 +7,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Calendar, Clock, BookOpen, LogOut, Loader2, 
   Ban, RefreshCw, MapPin, X, Check, Bell,
-  Building, Edit, ChevronLeft,
-  AlignJustify, Grid3X3, AlignLeft, BellOff, Trash2, CheckCircle,
-  DoorOpen, DoorClosed, Timer, Sparkles,
-  GraduationCap, Filter, Funnel, FlaskConical, Presentation
+  Building, ChevronLeft, ChevronUp,
+  AlignJustify, Grid3X3, BellOff, CheckCircle,
+  DoorOpen, Timer, Sparkles,
+  GraduationCap, Funnel, FlaskConical, Presentation,
+  XCircle, CalendarClock, AlertTriangle, Info
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
@@ -83,6 +84,17 @@ interface RoomAvailability {
     startTime?: string;
     endTime?: string;
   } | null;
+}
+
+interface Notification {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  changeType?: string;
+  courseCode?: string;
+  createdAt: any;
+  isRead?: boolean;
 }
 
 // Days including Friday and Saturday
@@ -281,6 +293,130 @@ function RoomAvailabilityChecker({
   );
 }
 
+// Notification Bar Component
+function NotificationBar({ 
+  notifications, 
+  isOpen, 
+  onToggle,
+  onMarkAsRead 
+}: { 
+  notifications: Notification[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onMarkAsRead: (id: string) => void;
+}) {
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+  
+  const getNotificationIcon = (type?: string) => {
+    switch(type) {
+      case 'cancelled': return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'rescheduled': return <CalendarClock className="w-4 h-4 text-amber-500" />;
+      case 'room_changed': return <MapPin className="w-4 h-4 text-blue-500" />;
+      default: return <Info className="w-4 h-4 text-emerald-500" />;
+    }
+  };
+
+  return (
+    <motion.div
+      initial={false}
+      animate={{ height: isOpen ? "auto" : "56px" }}
+      className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border shadow-lg z-50 overflow-hidden"
+    >
+      {/* Header */}
+      <div 
+        onClick={onToggle}
+        className="flex items-center justify-between px-4 h-14 cursor-pointer hover:bg-muted/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Bell className="w-5 h-5 text-emerald-600" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          <div>
+            <p className="font-semibold text-sm">Notifications</p>
+            <p className="text-xs text-muted-foreground">
+              {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
+            </p>
+          </div>
+        </div>
+        <ChevronUp className={cn(
+          "w-5 h-5 transition-transform",
+          isOpen && "rotate-180"
+        )} />
+      </div>
+
+      {/* Notification List */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="px-4 pb-4 max-h-80 overflow-y-auto"
+          >
+            {notifications.length === 0 ? (
+              <div className="py-8 text-center">
+                <BellOff className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-sm text-muted-foreground">No notifications yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {notifications.map((notification) => (
+                  <motion.div
+                    key={notification.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={cn(
+                      "p-3 rounded-lg border transition-all",
+                      notification.isRead 
+                        ? "bg-muted/50 border-border" 
+                        : "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 mt-0.5">
+                        {getNotificationIcon(notification.changeType)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium truncate">{notification.title}</p>
+                          {!notification.isRead && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-[10px] shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onMarkAsRead(notification.id);
+                              }}
+                            >
+                              <Check className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                          {notification.content}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {format(toDate(notification.createdAt), "dd MMM yyyy, hh:mm a")}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 // Main Teacher Dashboard Component
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();
@@ -319,6 +455,10 @@ export default function TeacherDashboard() {
   });
   const [newRoomId, setNewRoomId] = useState("");
   const [roomChangeReason, setRoomChangeReason] = useState("");
+  
+  // Notifications
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -331,6 +471,7 @@ export default function TeacherDashboard() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchTeacherData();
+      fetchNotifications();
     }
   }, [session]);
 
@@ -354,6 +495,18 @@ export default function TeacherDashboard() {
       console.error("Error fetching teacher data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch("/api/notices?category=schedule_change");
+      const data = await res.json();
+      if (data.success) {
+        setNotifications((data.data || []).map((n: any) => ({ ...n, isRead: false })));
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
     }
   };
 
@@ -409,6 +562,31 @@ export default function TeacherDashboard() {
   const uniqueSemesters = [...new Set(schedules.map(s => s.semester))].sort((a, b) => a - b);
   const uniquePrograms = [...new Set(schedules.map(s => s.program))];
 
+  // Open cancel dialog
+  const openCancelDialog = (schedule: TeacherSchedule) => {
+    setSelectedSchedule(schedule);
+    setCancelReason("");
+    setShowCancelDialog(true);
+  };
+
+  // Open room dialog
+  const openRoomDialog = (schedule: TeacherSchedule) => {
+    setSelectedSchedule(schedule);
+    setNewRoomId("");
+    setRoomChangeReason("");
+    setShowRoomDialog(true);
+  };
+
+  // Open reschedule dialog
+  const openRescheduleDialog = (schedule: TeacherSchedule) => {
+    setSelectedSchedule(schedule);
+    setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
+    setUseCustomTime(false);
+    setCustomStartTime(schedule.startTime || "09:00");
+    setCustomEndTime(schedule.endTime || "10:00");
+    setShowRescheduleDialog(true);
+  };
+
   // Handle Cancel Class
   const handleCancelClass = async () => {
     if (!selectedSchedule || !cancelReason.trim()) {
@@ -451,6 +629,7 @@ export default function TeacherDashboard() {
         setCancelReason("");
         setSelectedSchedule(null);
         fetchTeacherData();
+        fetchNotifications();
       } else {
         toast({ title: "Error", description: data.error || "Failed to cancel class", variant: "destructive" });
       }
@@ -507,6 +686,7 @@ export default function TeacherDashboard() {
         setRoomChangeReason("");
         setSelectedSchedule(null);
         fetchTeacherData();
+        fetchNotifications();
       } else {
         toast({ title: "Error", description: data.error || "Failed to change room", variant: "destructive" });
       }
@@ -572,6 +752,7 @@ export default function TeacherDashboard() {
         setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
         setSelectedSchedule(null);
         fetchTeacherData();
+        fetchNotifications();
       } else {
         toast({ title: "Error", description: data.error || "Failed to reschedule class", variant: "destructive" });
       }
@@ -583,12 +764,28 @@ export default function TeacherDashboard() {
     }
   };
 
+  // Mark notification as read
+  const handleMarkAsRead = (id: string) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === id ? { ...n, isRead: true } : n)
+    );
+  };
+
   // Reset filters
   const resetFilters = () => {
     setFilterSemester("all");
     setFilterProgram("all");
     setFilterRoom("all");
     setFilterDay("all");
+  };
+
+  // Handle card click
+  const handleCardClick = (schedule: TeacherSchedule) => {
+    if (selectedSchedule?.id === schedule.id) {
+      setSelectedSchedule(null);
+    } else {
+      setSelectedSchedule(schedule);
+    }
   };
 
   if (status === "loading" || loading) {
@@ -609,7 +806,7 @@ export default function TeacherDashboard() {
   const colors = classColors;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pb-20">
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white py-4 md:py-5 sticky top-0 z-30 shadow-lg">
         <div className="container mx-auto px-4">
@@ -798,6 +995,7 @@ export default function TeacherDashboard() {
               })
               .map((schedule, index) => {
                 const typeColors = schedule.classType === "lab" ? colors.lab : colors.theory;
+                const isSelected = selectedSchedule?.id === schedule.id;
                 
                 return (
                   <motion.div
@@ -805,13 +1003,13 @@ export default function TeacherDashboard() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    onClick={() => setSelectedSchedule(schedule)}
                     className={cn(
                       "p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-lg",
                       typeColors.bg,
                       typeColors.border,
-                      selectedSchedule?.id === schedule.id && "ring-2 ring-emerald-500"
+                      isSelected && "ring-2 ring-emerald-500"
                     )}
+                    onClick={() => handleCardClick(schedule)}
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2 mb-3">
@@ -847,41 +1045,44 @@ export default function TeacherDashboard() {
                     </div>
                     
                     {/* Action Buttons */}
-                    {selectedSchedule?.id === schedule.id && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t"
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 border-red-200 hover:bg-red-50 h-8 text-[10px]"
-                          onClick={(e) => { e.stopPropagation(); setShowCancelDialog(true); }}
+                    <AnimatePresence>
+                      {isSelected && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t"
                         >
-                          <Ban className="w-3 h-3 mr-1" />
-                          Cancel
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-amber-600 border-amber-200 hover:bg-amber-50 h-8 text-[10px]"
-                          onClick={(e) => { e.stopPropagation(); setShowRoomDialog(true); }}
-                        >
-                          <MapPin className="w-3 h-3 mr-1" />
-                          Room
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-cyan-600 border-cyan-200 hover:bg-cyan-50 h-8 text-[10px]"
-                          onClick={(e) => { e.stopPropagation(); setShowRescheduleDialog(true); }}
-                        >
-                          <RefreshCw className="w-3 h-3 mr-1" />
-                          Time
-                        </Button>
-                      </motion.div>
-                    )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 border-red-200 hover:bg-red-50 h-8 text-[10px]"
+                            onClick={(e) => { e.stopPropagation(); openCancelDialog(schedule); }}
+                          >
+                            <Ban className="w-3 h-3 mr-1" />
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-amber-600 border-amber-200 hover:bg-amber-50 h-8 text-[10px]"
+                            onClick={(e) => { e.stopPropagation(); openRoomDialog(schedule); }}
+                          >
+                            <MapPin className="w-3 h-3 mr-1" />
+                            Room
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-cyan-600 border-cyan-200 hover:bg-cyan-50 h-8 text-[10px]"
+                            onClick={(e) => { e.stopPropagation(); openRescheduleDialog(schedule); }}
+                          >
+                            <RefreshCw className="w-3 h-3 mr-1" />
+                            Time
+                          </Button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 );
               })}
@@ -898,37 +1099,79 @@ export default function TeacherDashboard() {
                 })
                 .map((schedule) => {
                   const typeColors = schedule.classType === "lab" ? colors.lab : colors.theory;
+                  const isSelected = selectedSchedule?.id === schedule.id;
                   
                   return (
-                    <div
-                      key={schedule.id}
-                      onClick={() => setSelectedSchedule(schedule)}
-                      className={cn(
-                        "flex items-center gap-3 p-3 cursor-pointer transition-all hover:bg-muted/50",
-                        selectedSchedule?.id === schedule.id && "bg-emerald-50 dark:bg-emerald-900/20"
-                      )}
-                    >
-                      <div className="w-12 shrink-0">
-                        <Badge variant="outline" className="text-[10px] w-full justify-center capitalize">
-                          {schedule.dayOfWeek?.substring(0, 3)}
+                    <div key={schedule.id}>
+                      <div
+                        onClick={() => handleCardClick(schedule)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 cursor-pointer transition-all hover:bg-muted/50",
+                          isSelected && "bg-emerald-50 dark:bg-emerald-900/20"
+                        )}
+                      >
+                        <div className="w-12 shrink-0">
+                          <Badge variant="outline" className="text-[10px] w-full justify-center capitalize">
+                            {schedule.dayOfWeek?.substring(0, 3)}
+                          </Badge>
+                        </div>
+                        <div className="w-16 shrink-0">
+                          <p className="text-xs font-medium">{formatTime(schedule.startTime)}</p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{schedule.courseCode}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <span>{schedule.roomNumber}</span>
+                            <span>•</span>
+                            <span>{schedule.semester}{schedule.semester === 1 ? 'st' : schedule.semester === 2 ? 'nd' : schedule.semester === 3 ? 'rd' : 'th'} Sem</span>
+                            <span>•</span>
+                            <span className="uppercase">{schedule.program}</span>
+                          </div>
+                        </div>
+                        <Badge className={cn("text-[9px]", typeColors.badge)}>
+                          {schedule.classType === "lab" ? "LAB" : "THEORY"}
                         </Badge>
                       </div>
-                      <div className="w-16 shrink-0">
-                        <p className="text-xs font-medium">{formatTime(schedule.startTime)}</p>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{schedule.courseCode}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                          <span>{schedule.roomNumber}</span>
-                          <span>•</span>
-                          <span>{schedule.semester}{schedule.semester === 1 ? 'st' : schedule.semester === 2 ? 'nd' : schedule.semester === 3 ? 'rd' : 'th'} Sem</span>
-                          <span>•</span>
-                          <span className="uppercase">{schedule.program}</span>
-                        </div>
-                      </div>
-                      <Badge className={cn("text-[9px]", typeColors.badge)}>
-                        {schedule.classType === "lab" ? "LAB" : "THEORY"}
-                      </Badge>
+                      
+                      {/* Action Buttons for List View */}
+                      <AnimatePresence>
+                        {isSelected && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="flex items-center justify-end gap-2 px-3 pb-3"
+                          >
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 border-red-200 hover:bg-red-50 h-7 text-[10px]"
+                              onClick={(e) => { e.stopPropagation(); openCancelDialog(schedule); }}
+                            >
+                              <Ban className="w-3 h-3 mr-1" />
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-amber-600 border-amber-200 hover:bg-amber-50 h-7 text-[10px]"
+                              onClick={(e) => { e.stopPropagation(); openRoomDialog(schedule); }}
+                            >
+                              <MapPin className="w-3 h-3 mr-1" />
+                              Room
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-cyan-600 border-cyan-200 hover:bg-cyan-50 h-7 text-[10px]"
+                              onClick={(e) => { e.stopPropagation(); openRescheduleDialog(schedule); }}
+                            >
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                              Time
+                            </Button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   );
                 })}
@@ -1083,12 +1326,12 @@ export default function TeacherDashboard() {
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Time Selection</Label>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Use Custom Time</span>
+                    <span className="text-xs text-muted-foreground">Custom Time</span>
                     <Button
                       variant={useCustomTime ? "default" : "outline"}
                       size="sm"
                       onClick={() => setUseCustomTime(!useCustomTime)}
-                      className="h-6 w-12 p-0"
+                      className="h-7 text-xs"
                     >
                       {useCustomTime ? "ON" : "OFF"}
                     </Button>
@@ -1096,33 +1339,30 @@ export default function TeacherDashboard() {
                 </div>
                 
                 {useCustomTime ? (
-                  <div className="p-4 rounded-lg border-2 border-cyan-200 bg-cyan-50/50 dark:bg-cyan-900/10">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Timer className="w-4 h-4 text-cyan-500" />
-                      <span className="text-xs font-medium">Custom Time (e.g., 09:33 - 10:44)</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <CustomTimePicker
-                        label="Start Time"
-                        value={customStartTime}
-                        onChange={setCustomStartTime}
-                      />
-                      <CustomTimePicker
-                        label="End Time"
-                        value={customEndTime}
-                        onChange={setCustomEndTime}
-                      />
-                    </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <CustomTimePicker
+                      value={customStartTime}
+                      onChange={setCustomStartTime}
+                      label="Start Time"
+                    />
+                    <CustomTimePicker
+                      value={customEndTime}
+                      onChange={setCustomEndTime}
+                      label="End Time"
+                    />
                   </div>
                 ) : (
-                  <Select value={rescheduleData.timeSlotId} onValueChange={(v) => setRescheduleData(prev => ({ ...prev, timeSlotId: v }))}>
+                  <Select 
+                    value={rescheduleData.timeSlotId} 
+                    onValueChange={(v) => setRescheduleData(prev => ({ ...prev, timeSlotId: v }))}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select time slot" />
                     </SelectTrigger>
                     <SelectContent>
                       {timeSlots.filter(t => !t.isBreak).map((slot) => (
                         <SelectItem key={slot.id} value={slot.id}>
-                          {slot.label} ({slot.startTime} - {slot.endTime})
+                          {slot.label} ({formatTime(slot.startTime)} - {formatTime(slot.endTime)})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1136,7 +1376,7 @@ export default function TeacherDashboard() {
                 <Textarea
                   value={rescheduleData.reason}
                   onChange={(e) => setRescheduleData(prev => ({ ...prev, reason: e.target.value }))}
-                  placeholder="e.g., Conflict with exam schedule..."
+                  placeholder="e.g., Conflict with another class, Official work..."
                   rows={2}
                 />
               </div>
@@ -1146,25 +1386,23 @@ export default function TeacherDashboard() {
             <Button variant="outline" onClick={() => setShowRescheduleDialog(false)}>Cancel</Button>
             <Button 
               onClick={handleRescheduleClass}
-              disabled={submitting}
+              disabled={submitting || !rescheduleData.newDay}
               className="bg-cyan-500 hover:bg-cyan-600"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-              Confirm Reschedule
+              Reschedule Class
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Back Button */}
-      <div className="fixed bottom-4 left-4 z-40">
-        <Link href="/">
-          <Button variant="outline" size="sm" className="gap-2 shadow-lg bg-white dark:bg-gray-800">
-            <ChevronLeft className="w-4 h-4" />
-            Home
-          </Button>
-        </Link>
-      </div>
+      {/* Notification Bar */}
+      <NotificationBar
+        notifications={notifications}
+        isOpen={showNotifications}
+        onToggle={() => setShowNotifications(!showNotifications)}
+        onMarkAsRead={handleMarkAsRead}
+      />
     </div>
   );
 }
