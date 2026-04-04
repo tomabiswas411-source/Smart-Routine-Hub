@@ -6,7 +6,7 @@ import {
   Building, Clock, XCircle, CalendarClock, ChevronLeft, ChevronRight,
   LayoutGrid, Kanban, Filter, Funnel, Users, Download, Bell, BellOff,
   Smartphone, CheckCircle, Wifi, WifiOff, Grid3X3, AlignLeft,
-  Calendar, MapPin, Timer, AlignJustify, Home, X
+  Calendar, MapPin, Timer, AlignJustify, Home as HomeIcon, X
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useCallback, Suspense } from "react";
@@ -478,7 +478,7 @@ function MobileBottomNav({
       <div className="flex items-center justify-around h-16">
         {/* Home Button */}
         <Link href="/" className="flex flex-col items-center justify-center w-full h-full">
-          <Home className="w-5 h-5 text-emerald-600" />
+          <HomeIcon className="w-5 h-5 text-emerald-600" />
           <span className="text-[10px] mt-1 text-emerald-600 font-medium">Home</span>
         </Link>
         
