@@ -1,0 +1,225 @@
+// This is your Prisma schema file for ICE-RU Department Management System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model - handles both Teachers and Admins
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String   // Hashed password
+  fullName    String
+  designation String?  // Professor, Associate Professor, Assistant Professor, Lecturer
+  department  String   @default("Information & Communication Engineering")
+  phone       String?
+  photoURL    String?  // URL to profile photo
+  officeRoom  String?
+  bio         String?
+  role        String   @default("teacher") // "admin" | "teacher"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  schedules         Schedule[]
+  scheduleChanges   ScheduleChange[]
+  notices           Notice[]
+  createdSchedules  Schedule[]      @relation("ScheduleCreator")
+}
+
+// Course model
+model Course {
+  id          String   @id @default(cuid())
+  name        String   // "Digital Electronics"
+  code        String   @unique // "ICE-1101"
+  creditHours Float    // 3.0
+  type        String   @default("theory") // "theory" | "lab"
+  year        Int      // 1-4
+  semester    Int      // 1-2
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  schedules Schedule[]
+}
+
+// Room model
+model Room {
+  id         String   @id @default(cuid())
+  roomNumber String   // "301"
+  building   String?  // "Main Building"
+  type       String   @default("classroom") // "classroom" | "lab" | "seminar"
+  capacity   Int      @default(40)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  schedules Schedule[]
+}
+
+// TimeSlot model
+model TimeSlot {
+  id        String   @id @default(cuid())
+  label     String   // "1st Period"
+  startTime String   // "08:00"
+  endTime   String   // "08:50"
+  slotOrder Int      @default(1) // For sorting
+  isBreak   Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  schedules Schedule[]
+}
+
+// Schedule model - Main class schedule
+model Schedule {
+  id        String   @id @default(cuid())
+  
+  // References (IDs)
+  courseId  String
+  teacherId String
+  roomId    String
+  timeSlotId String
+  
+  // Denormalized data for fast reads
+  courseName   String
+  courseCode   String
+  teacherName  String
+  roomNumber   String
+  startTime    String
+  endTime      String
+  
+  // Schedule info
+  dayOfWeek String  // "saturday" | "sunday" | "monday" | "tuesday" | "wednesday" | "thursday"
+  year      Int     // 1-4
+  semester  Int     // 1-2
+  section   String  @default("A") // "A" | "B"
+  classType String  @default("theory") // "theory" | "lab"
+  
+  // Status
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?  // User who created this schedule
+
+  // Relations
+  course        Course         @relation(fields: [courseId], references: [id])
+  teacher       User           @relation(fields: [teacherId], references: [id])
+  room          Room           @relation(fields: [roomId], references: [id])
+  timeSlot      TimeSlot       @relation(fields: [timeSlotId], references: [id])
+  scheduleChanges ScheduleChange[]
+  creator       User?          @relation("ScheduleCreator", fields: [createdBy], references: [id])
+}
+
+// ScheduleChange model - Tracks temporary changes (cancellations, reschedules, etc.)
+model ScheduleChange {
+  id          String   @id @default(cuid())
+  scheduleId  String
+  
+  changeType  String   // "cancelled" | "rescheduled" | "room_changed" | "time_changed" | "extra_class"
+  
+  // Original values
+  originalDay        String?
+  originalTimeSlotId String?
+  originalStartTime  String?
+  originalEndTime    String?
+  originalRoomId     String?
+  originalRoomNumber String?
+  
+  // New values (null if cancelled)
+  newDay        String?
+  newTimeSlotId String?
+  newStartTime  String?
+  newEndTime    String?
+  newRoomId     String?
+  newRoomNumber String?
+  
+  // Context
+  effectiveDate String  // "2025-03-16" - specific date this change applies
+  reason        String  // Required reason from teacher
+  
+  // Course & Teacher info
+  courseName  String
+  courseCode  String
+  teacherId   String
+  teacherName String
+  year        Int
+  semester    Int
+  section     String
+  
+  // Meta
+  changedBy     String
+  changedByName String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  schedule Schedule @relation(fields: [scheduleId], references: [id])
+  teacher  User     @relation(fields: [teacherId], references: [id])
+}
+
+// Notice model
+model Notice {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  category    String   // "academic" | "exam" | "event" | "general" | "schedule_change"
+  
+  // For schedule_change type
+  changeType       String?  // "cancelled" | "rescheduled" | "room_changed" | "time_changed"
+  scheduleChangeId String?  // Reference to scheduleChanges doc
+  affectedYear     Int?
+  affectedSemester Int?
+  affectedSection  String?
+  
+  // Meta
+  postedBy        String
+  postedByName    String
+  isPinned        Boolean  @default(false)
+  isApproved      Boolean  @default(false)
+  isAutoGenerated Boolean  @default(false)
+  attachmentURL   String?
+  expiryDate      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  author User @relation(fields: [postedBy], references: [id])
+}
+
+// AcademicCalendar model
+model AcademicCalendar {
+  id          String    @id @default(cuid())
+  title       String
+  date        DateTime
+  endDate     DateTime?
+  eventType   String    // "class" | "exam" | "holiday" | "event"
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// SiteSettings model - Single document for site configuration
+model SiteSettings {
+  id              String   @id @default("general")
+  departmentName  String   @default("Information & Communication Engineering")
+  universityName  String   @default("Rajshahi University")
+  logoURL         String?
+  contactEmail    String?
+  contactPhone    String?
+  address         String?
+  aboutText       String?
+  facebookURL     String?
+  websiteURL      String?
+  updatedAt       DateTime @updatedAt
+}
