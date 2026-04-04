@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   GraduationCap, CalendarDays, User, BookOpen, LogIn, RefreshCw,
   Building, Clock, XCircle, CalendarClock, ChevronLeft, ChevronRight,
-  LayoutGrid, Kanban, Filter, Funnel
+  LayoutGrid, Kanban, Filter, Funnel, Users
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useCallback, Suspense } from "react";
@@ -12,8 +12,9 @@ import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isToday, isSameDay } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -241,6 +242,265 @@ function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, se
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+// Student View Component
+function StudentView() {
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState<number>(1);
+  const [selectedSemester, setSelectedSemester] = useState<number>(1);
+  const [selectedSection, setSelectedSection] = useState<string>("A");
+
+  // Fetch schedules
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/schedules");
+        const data = await res.json();
+        if (data.success) setSchedules(data.data || []);
+      } catch (error) {
+        console.error("Error fetching schedules:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Filter schedules based on selection
+  const filteredSchedules = schedules.filter((s) => {
+    if (!s.isActive) return false;
+    if (s.year !== selectedYear) return false;
+    if (s.semester !== selectedSemester) return false;
+    if (s.section !== selectedSection) return false;
+    return true;
+  });
+
+  // Group by day
+  const schedulesByDay: Record<string, Schedule[]> = {};
+  days.forEach((day) => {
+    schedulesByDay[day] = filteredSchedules
+      .filter((s) => s.dayOfWeek?.toLowerCase() === day.toLowerCase())
+      .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+  });
+
+  // Calculate year from semester
+  const getYearFromSemester = (sem: number): number => {
+    return Math.ceil(sem / 2);
+  };
+
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <section className="py-6 border-b border-border bg-card">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <User className="w-5 h-5 text-emerald-600" />
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">Student View</h1>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                View your weekly class routine
+              </p>
+            </div>
+            <Link href="/">
+              <Button variant="outline" className="gap-2">
+                <ChevronLeft className="w-4 h-4" />
+                Back to Home
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <div className="container mx-auto px-4 py-6">
+        {/* Selection */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Semester</Label>
+                <Select
+                  value={selectedSemester.toString()}
+                  onValueChange={(v) => {
+                    const sem = parseInt(v);
+                    setSelectedSemester(sem);
+                    setSelectedYear(getYearFromSemester(sem));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                      <SelectItem key={sem} value={sem.toString()}>
+                        {sem}{getOrdinalSuffix(sem)} Semester
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Year</Label>
+                <Select
+                  value={selectedYear.toString()}
+                  onValueChange={(v) => setSelectedYear(parseInt(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4].map((y) => (
+                      <SelectItem key={y} value={y.toString()}>
+                        {y}{getOrdinalSuffix(y)} Year
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Section</Label>
+                <Select
+                  value={selectedSection}
+                  onValueChange={setSelectedSection}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["A", "B", "C"].map((s) => (
+                      <SelectItem key={s} value={s}>
+                        Section {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Routine Display */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Total Classes", value: filteredSchedules.length, icon: CalendarDays, color: "text-blue-500 bg-blue-100 dark:bg-blue-900/30" },
+                { label: "Days with Classes", value: Object.values(schedulesByDay).filter((s) => s.length > 0).length, icon: Clock, color: "text-green-500 bg-green-100 dark:bg-green-900/30" },
+                { label: "Year", value: `${selectedYear}${getOrdinalSuffix(selectedYear)}`, icon: GraduationCap, color: "text-purple-500 bg-purple-100 dark:bg-purple-900/30" },
+                { label: "Section", value: selectedSection, icon: Users, color: "text-amber-500 bg-amber-100 dark:bg-amber-900/30" },
+              ].map((stat) => (
+                <Card key={stat.label}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", stat.color)}>
+                        <stat.icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xl font-bold text-foreground">{stat.value}</p>
+                        <p className="text-xs text-muted-foreground">{stat.label}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Weekly Routine */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarDays className="w-5 h-5 text-emerald-600" />
+                  Weekly Routine
+                </CardTitle>
+                <CardDescription>
+                  {selectedYear}{getOrdinalSuffix(selectedYear)} Year, {selectedSemester}{getOrdinalSuffix(selectedSemester)} Semester, Section {selectedSection}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {days.map((day) => {
+                    const daySchedules = schedulesByDay[day] || [];
+                    const isCurrentDay = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase() === day.toLowerCase();
+                    
+                    return (
+                      <div key={day} className={cn(
+                        "p-4 rounded-xl border",
+                        isCurrentDay && "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
+                      )}>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className={cn(
+                            "font-semibold capitalize",
+                            isCurrentDay && "text-emerald-600 dark:text-emerald-400"
+                          )}>
+                            {day}
+                            {isCurrentDay && (
+                              <Badge className="ml-2 bg-emerald-500 text-white">Today</Badge>
+                            )}
+                          </h3>
+                          <Badge variant="outline">{daySchedules.length} classes</Badge>
+                        </div>
+
+                        {daySchedules.length > 0 ? (
+                          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                            {daySchedules.map((schedule) => (
+                              <div
+                                key={schedule.id}
+                                className={cn(
+                                  "p-3 rounded-lg border",
+                                  schedule.classType === "lab"
+                                    ? "border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-900/20"
+                                    : "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20"
+                                )}
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <p className="font-medium text-sm">{schedule.courseCode}</p>
+                                    <p className="text-xs text-muted-foreground">{schedule.courseName}</p>
+                                  </div>
+                                  <Badge variant={schedule.classType === "lab" ? "secondary" : "default"} className="text-xs">
+                                    {schedule.classType}
+                                  </Badge>
+                                </div>
+                                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{schedule.startTime} - {schedule.endTime}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Building className="w-3 h-3" />
+                                  <span>{schedule.roomNumber}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <User className="w-3 h-3" />
+                                  <span>{schedule.teacherName}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            No classes scheduled
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -578,18 +838,7 @@ function PageContent() {
 
   // Show Student View
   if (view === "student") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-foreground mb-2">Student View</h2>
-          <p className="text-muted-foreground">Coming Soon</p>
-          <Link href="/">
-            <Button className="mt-4">Back to Home</Button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <StudentView />;
   }
 
   // Show Library View

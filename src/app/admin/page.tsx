@@ -8,12 +8,14 @@ import {
   Users, BookOpen, DoorOpen, Calendar, Settings, Bell, 
   LogOut, Loader2, Plus, Clock, AlertCircle,
   Check, X, Edit, Trash2, Search, Save,
-  LayoutDashboard, ChevronLeft, Key, Mail, Phone,
-  MapPin, FileText, GraduationCap, Building
+  LayoutDashboard, Key, Mail, Phone, Globe,
+  MapPin, FileText, GraduationCap, Building, Link,
+  Facebook, Twitter, Instagram, Youtube, ExternalLink,
+  Palette, Type, Image
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -136,7 +139,59 @@ interface Notice {
   createdAt: unknown;
 }
 
+interface SiteSettings {
+  id?: string;
+  siteName: string;
+  siteTagline: string;
+  logoUrl: string;
+  departmentName: string;
+  universityName: string;
+  contactEmail: string;
+  contactPhone: string;
+  address: string;
+  aboutText: string;
+  facebookURL: string;
+  websiteURL: string;
+  twitterURL: string;
+  youtubeURL: string;
+  instagramURL: string;
+  // Header settings
+  headerLinks: { label: string; href: string }[];
+  // Footer settings
+  footerQuickLinks: { label: string; href: string }[];
+  footerDescription: string;
+}
+
 type ActiveSection = "dashboard" | "teachers" | "courses" | "rooms" | "schedules" | "notices" | "settings";
+
+const defaultSettings: SiteSettings = {
+  siteName: "Smart Routine Hub",
+  siteTagline: "Academic Schedule Management",
+  logoUrl: "",
+  departmentName: "Information & Communication Engineering",
+  universityName: "Rajshahi University",
+  contactEmail: "ice@ru.ac.bd",
+  contactPhone: "+880-721-750123",
+  address: "ICE Building, Rajshahi University, Rajshahi-6205, Bangladesh",
+  aboutText: "The Department of Information and Communication Engineering (ICE) at Rajshahi University is dedicated to excellence in education and research.",
+  facebookURL: "https://facebook.com/iceru",
+  websiteURL: "https://ice.ru.ac.bd",
+  twitterURL: "",
+  youtubeURL: "",
+  instagramURL: "",
+  headerLinks: [
+    { label: "Home", href: "/" },
+    { label: "Master Routine", href: "/?view=master-calendar" },
+    { label: "Student View", href: "/?view=student" },
+  ],
+  footerQuickLinks: [
+    { label: "Home", href: "/" },
+    { label: "Master Routine", href: "/?view=master-calendar" },
+    { label: "Student View", href: "/?view=student" },
+    { label: "Library", href: "/?view=library" },
+  ],
+  footerDescription: "Your complete academic companion for managing class schedules, routines, and academic activities.",
+};
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -152,6 +207,7 @@ export default function AdminDashboard() {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -196,7 +252,7 @@ export default function AdminDashboard() {
     teacherId: "",
     roomId: "",
     timeSlotId: "",
-    dayOfWeek: "saturday",
+    dayOfWeek: "sunday",
     year: 1,
     semester: 1,
     section: "A",
@@ -226,7 +282,7 @@ export default function AdminDashboard() {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [statsRes, teachersRes, coursesRes, roomsRes, schedulesRes, noticesRes, timeSlotsRes] = await Promise.all([
+      const [statsRes, teachersRes, coursesRes, roomsRes, schedulesRes, noticesRes, timeSlotsRes, settingsRes] = await Promise.all([
         fetch("/api/stats"),
         fetch("/api/teachers"),
         fetch("/api/courses"),
@@ -234,6 +290,7 @@ export default function AdminDashboard() {
         fetch("/api/schedules"),
         fetch("/api/notices?limit=50"),
         fetch("/api/timeslots"),
+        fetch("/api/settings"),
       ]);
       
       const statsData = await statsRes.json();
@@ -243,19 +300,85 @@ export default function AdminDashboard() {
       const schedulesData = await schedulesRes.json();
       const noticesData = await noticesRes.json();
       const timeSlotsData = await timeSlotsRes.json();
+      const settingsData = await settingsRes.json();
       
       if (statsData.success) setStats(statsData.data);
-      if (teachersData.success) setTeachers(teachersData.data);
-      if (coursesData.success) setCourses(coursesData.data);
-      if (roomsData.success) setRooms(roomsData.data);
-      if (schedulesData.success) setSchedules(schedulesData.data);
-      if (noticesData.success) setNotices(noticesData.data);
-      if (timeSlotsData.success) setTimeSlots(timeSlotsData.data);
+      if (teachersData.success) setTeachers(teachersData.data || []);
+      if (coursesData.success) setCourses(coursesData.data || []);
+      if (roomsData.success) setRooms(roomsData.data || []);
+      if (schedulesData.success) setSchedules(schedulesData.data || []);
+      if (noticesData.success) setNotices(noticesData.data || []);
+      if (timeSlotsData.success) setTimeSlots(timeSlotsData.data || []);
+      if (settingsData.success && settingsData.data) {
+        setSiteSettings({ ...defaultSettings, ...settingsData.data });
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Settings Save
+  const handleSaveSettings = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(siteSettings),
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: "Settings saved",
+          description: "Site settings have been updated successfully.",
+        });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Add Header Link
+  const addHeaderLink = () => {
+    setSiteSettings({
+      ...siteSettings,
+      headerLinks: [...siteSettings.headerLinks, { label: "New Link", href: "/" }],
+    });
+  };
+
+  // Remove Header Link
+  const removeHeaderLink = (index: number) => {
+    setSiteSettings({
+      ...siteSettings,
+      headerLinks: siteSettings.headerLinks.filter((_, i) => i !== index),
+    });
+  };
+
+  // Add Footer Link
+  const addFooterLink = () => {
+    setSiteSettings({
+      ...siteSettings,
+      footerQuickLinks: [...siteSettings.footerQuickLinks, { label: "New Link", href: "/" }],
+    });
+  };
+
+  // Remove Footer Link
+  const removeFooterLink = (index: number) => {
+    setSiteSettings({
+      ...siteSettings,
+      footerQuickLinks: siteSettings.footerQuickLinks.filter((_, i) => i !== index),
+    });
   };
 
   // Teacher CRUD
@@ -474,7 +597,7 @@ export default function AdminDashboard() {
   };
 
   const resetScheduleForm = () => {
-    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "saturday", year: 1, semester: 1, section: "A" });
+    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "sunday", year: 1, semester: 1, section: "A" });
     setEditingItem(null);
   };
 
@@ -577,12 +700,12 @@ export default function AdminDashboard() {
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border flex-col z-50">
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg hero-gradient flex items-center justify-center">
-              <span className="text-white font-bold">ICE</span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Calendar className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-semibold text-sm">Admin Panel</p>
-              <p className="text-xs text-muted-foreground">ICE-RU</p>
+              <p className="font-bold text-sm">{siteSettings.siteName}</p>
+              <p className="text-xs text-muted-foreground">Admin Panel</p>
             </div>
           </div>
         </div>
@@ -593,7 +716,7 @@ export default function AdminDashboard() {
               key={item.id}
               onClick={() => setActiveSection(item.id)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 activeSection === item.id
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -620,8 +743,8 @@ export default function AdminDashboard() {
       <header className="md:hidden sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg hero-gradient flex items-center justify-center">
-              <span className="text-white font-bold text-sm">ICE</span>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-white" />
             </div>
             <span className="font-semibold">Admin</span>
           </div>
@@ -655,7 +778,7 @@ export default function AdminDashboard() {
                     { label: "Schedules", value: stats?.totalSchedules || 0, icon: Calendar, color: "text-blue-500 bg-blue-500/10" },
                     { label: "Pending", value: stats?.pendingNotices || 0, icon: AlertCircle, color: "text-red-500 bg-red-500/10" },
                     { label: "Semester", value: stats?.currentSemester?.split(" ")[0] || "-", icon: Clock, color: "text-purple-500 bg-purple-500/10" },
-                  ].map((stat, index) => (
+                  ].map((stat) => (
                     <Card key={stat.label}>
                       <CardContent className="p-4">
                         <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center mb-2", stat.color)}>
@@ -737,7 +860,7 @@ export default function AdminDashboard() {
                 
                 <div className="grid gap-3">
                   {teachers
-                    .filter(t => t.fullName.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .filter(t => t.fullName?.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map((teacher) => (
                     <Card key={teacher.id}>
                       <CardContent className="p-4 flex items-center justify-between">
@@ -945,7 +1068,7 @@ export default function AdminDashboard() {
                             "w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-bold",
                             schedule.classType === "lab" ? "bg-purple-500" : "bg-primary"
                           )}>
-                            {schedule.courseCode.split("-")[1]?.slice(0, 2) || "CL"}
+                            {schedule.courseCode?.split("-")[1]?.slice(0, 2) || "CL"}
                           </div>
                           <div>
                             <p className="font-medium">{schedule.courseName}</p>
@@ -1091,43 +1214,299 @@ export default function AdminDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="space-y-4"
+                className="space-y-6"
               >
-                <h2 className="text-xl font-bold">Settings</h2>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Account Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="w-8 h-8 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{session.user?.name}</p>
-                        <p className="text-sm text-muted-foreground">{session.user?.email}</p>
-                        <Badge className="mt-1">Admin</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <h2 className="text-xl font-bold">Site Settings</h2>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button variant="outline" className="w-full justify-start" onClick={() => fetchAllData()}>
-                      <Loader2 className="w-4 h-4 mr-2" />
-                      Refresh Data
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" onClick={() => signOut({ callbackUrl: "/" })}>
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
-                    </Button>
-                  </CardContent>
-                </Card>
+                <Tabs defaultValue="general" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="general">General</TabsTrigger>
+                    <TabsTrigger value="header">Header</TabsTrigger>
+                    <TabsTrigger value="footer">Footer</TabsTrigger>
+                    <TabsTrigger value="social">Social</TabsTrigger>
+                  </TabsList>
+
+                  {/* General Settings */}
+                  <TabsContent value="general" className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Palette className="w-4 h-4" />
+                          Site Information
+                        </CardTitle>
+                        <CardDescription>Basic site settings and branding</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Site Name</Label>
+                            <Input
+                              value={siteSettings.siteName}
+                              onChange={(e) => setSiteSettings({ ...siteSettings, siteName: e.target.value })}
+                              placeholder="Smart Routine Hub"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Site Tagline</Label>
+                            <Input
+                              value={siteSettings.siteTagline}
+                              onChange={(e) => setSiteSettings({ ...siteSettings, siteTagline: e.target.value })}
+                              placeholder="Academic Schedule Management"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Department Name</Label>
+                            <Input
+                              value={siteSettings.departmentName}
+                              onChange={(e) => setSiteSettings({ ...siteSettings, departmentName: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>University Name</Label>
+                            <Input
+                              value={siteSettings.universityName}
+                              onChange={(e) => setSiteSettings({ ...siteSettings, universityName: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          Contact Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Contact Email</Label>
+                            <Input
+                              type="email"
+                              value={siteSettings.contactEmail}
+                              onChange={(e) => setSiteSettings({ ...siteSettings, contactEmail: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Contact Phone</Label>
+                            <Input
+                              value={siteSettings.contactPhone}
+                              onChange={(e) => setSiteSettings({ ...siteSettings, contactPhone: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Address</Label>
+                          <Textarea
+                            value={siteSettings.address}
+                            onChange={(e) => setSiteSettings({ ...siteSettings, address: e.target.value })}
+                            rows={2}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>About Text</Label>
+                          <Textarea
+                            value={siteSettings.aboutText}
+                            onChange={(e) => setSiteSettings({ ...siteSettings, aboutText: e.target.value })}
+                            rows={3}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Header Settings */}
+                  <TabsContent value="header" className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Type className="w-4 h-4" />
+                              Navigation Links
+                            </CardTitle>
+                            <CardDescription>Manage header navigation menu items</CardDescription>
+                          </div>
+                          <Button size="sm" onClick={addHeaderLink}>
+                            <Plus className="w-4 h-4 mr-1" />
+                            Add Link
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {siteSettings.headerLinks.map((link, index) => (
+                          <div key={index} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                            <div className="grid flex-1 grid-cols-2 gap-2">
+                              <Input
+                                placeholder="Label"
+                                value={link.label}
+                                onChange={(e) => {
+                                  const newLinks = [...siteSettings.headerLinks];
+                                  newLinks[index] = { ...newLinks[index], label: e.target.value };
+                                  setSiteSettings({ ...siteSettings, headerLinks: newLinks });
+                                }}
+                              />
+                              <Input
+                                placeholder="URL"
+                                value={link.href}
+                                onChange={(e) => {
+                                  const newLinks = [...siteSettings.headerLinks];
+                                  newLinks[index] = { ...newLinks[index], href: e.target.value };
+                                  setSiteSettings({ ...siteSettings, headerLinks: newLinks });
+                                }}
+                              />
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-500"
+                              onClick={() => removeHeaderLink(index)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Footer Settings */}
+                  <TabsContent value="footer" className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Footer Description</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <Textarea
+                          value={siteSettings.footerDescription}
+                          onChange={(e) => setSiteSettings({ ...siteSettings, footerDescription: e.target.value })}
+                          rows={2}
+                          placeholder="Footer description text..."
+                        />
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-base">Quick Links</CardTitle>
+                            <CardDescription>Manage footer quick links</CardDescription>
+                          </div>
+                          <Button size="sm" onClick={addFooterLink}>
+                            <Plus className="w-4 h-4 mr-1" />
+                            Add Link
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {siteSettings.footerQuickLinks.map((link, index) => (
+                          <div key={index} className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                            <div className="grid flex-1 grid-cols-2 gap-2">
+                              <Input
+                                placeholder="Label"
+                                value={link.label}
+                                onChange={(e) => {
+                                  const newLinks = [...siteSettings.footerQuickLinks];
+                                  newLinks[index] = { ...newLinks[index], label: e.target.value };
+                                  setSiteSettings({ ...siteSettings, footerQuickLinks: newLinks });
+                                }}
+                              />
+                              <Input
+                                placeholder="URL"
+                                value={link.href}
+                                onChange={(e) => {
+                                  const newLinks = [...siteSettings.footerQuickLinks];
+                                  newLinks[index] = { ...newLinks[index], href: e.target.value };
+                                  setSiteSettings({ ...siteSettings, footerQuickLinks: newLinks });
+                                }}
+                              />
+                            </div>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-500"
+                              onClick={() => removeFooterLink(index)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Social Settings */}
+                  <TabsContent value="social" className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Globe className="w-4 h-4" />
+                          Social Media Links
+                        </CardTitle>
+                        <CardDescription>Connect your social media accounts</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <Facebook className="w-5 h-5 text-blue-500" />
+                          <Input
+                            placeholder="Facebook URL"
+                            value={siteSettings.facebookURL}
+                            onChange={(e) => setSiteSettings({ ...siteSettings, facebookURL: e.target.value })}
+                          />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Twitter className="w-5 h-5 text-sky-500" />
+                          <Input
+                            placeholder="Twitter URL"
+                            value={siteSettings.twitterURL}
+                            onChange={(e) => setSiteSettings({ ...siteSettings, twitterURL: e.target.value })}
+                          />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Youtube className="w-5 h-5 text-red-500" />
+                          <Input
+                            placeholder="YouTube URL"
+                            value={siteSettings.youtubeURL}
+                            onChange={(e) => setSiteSettings({ ...siteSettings, youtubeURL: e.target.value })}
+                          />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Instagram className="w-5 h-5 text-pink-500" />
+                          <Input
+                            placeholder="Instagram URL"
+                            value={siteSettings.instagramURL}
+                            onChange={(e) => setSiteSettings({ ...siteSettings, instagramURL: e.target.value })}
+                          />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Globe className="w-5 h-5 text-green-500" />
+                          <Input
+                            placeholder="Website URL"
+                            value={siteSettings.websiteURL}
+                            onChange={(e) => setSiteSettings({ ...siteSettings, websiteURL: e.target.value })}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveSettings} disabled={submitting} className="min-w-[150px]">
+                    {submitting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save Settings
+                  </Button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1239,63 +1618,59 @@ export default function AdminDashboard() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="courseName">Course Name *</Label>
+              <Label>Course Name *</Label>
               <Input
-                id="courseName"
                 value={courseForm.name}
                 onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })}
                 placeholder="Digital Electronics"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="courseCode">Course Code *</Label>
-              <Input
-                id="courseCode"
-                value={courseForm.code}
-                onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value })}
-                placeholder="ICE-1101"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="creditHours">Credit Hours</Label>
+                <Label>Course Code *</Label>
                 <Input
-                  id="creditHours"
-                  type="number"
-                  value={courseForm.creditHours}
-                  onChange={(e) => setCourseForm({ ...courseForm, creditHours: parseFloat(e.target.value) })}
+                  value={courseForm.code}
+                  onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value })}
+                  placeholder="ICE-101"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="courseType">Type</Label>
-                <Select value={courseForm.type} onValueChange={(v) => setCourseForm({ ...courseForm, type: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="theory">Theory</SelectItem>
-                    <SelectItem value="lab">Lab</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Credit Hours</Label>
+                <Input
+                  type="number"
+                  value={courseForm.creditHours}
+                  onChange={(e) => setCourseForm({ ...courseForm, creditHours: parseInt(e.target.value) || 3 })}
+                />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select value={courseForm.type} onValueChange={(v) => setCourseForm({ ...courseForm, type: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="theory">Theory</SelectItem>
+                  <SelectItem value="lab">Lab</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="year">Year</Label>
+                <Label>Year</Label>
                 <Select value={courseForm.year.toString()} onValueChange={(v) => setCourseForm({ ...courseForm, year: parseInt(v) })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1st Year</SelectItem>
-                    <SelectItem value="2">2nd Year</SelectItem>
-                    <SelectItem value="3">3rd Year</SelectItem>
-                    <SelectItem value="4">4th Year</SelectItem>
+                    {[1, 2, 3, 4].map((y) => (
+                      <SelectItem key={y} value={y.toString()}>{y}st Year</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="semester">Semester</Label>
+                <Label>Semester</Label>
                 <Select value={courseForm.semester.toString()} onValueChange={(v) => setCourseForm({ ...courseForm, semester: parseInt(v) })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1325,47 +1700,44 @@ export default function AdminDashboard() {
             <DialogTitle>{editingItem ? "Edit Room" : "Add Room"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="roomNumber">Room Number *</Label>
-              <Input
-                id="roomNumber"
-                value={roomForm.roomNumber}
-                onChange={(e) => setRoomForm({ ...roomForm, roomNumber: e.target.value })}
-                placeholder="301"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="building">Building</Label>
-              <Input
-                id="building"
-                value={roomForm.building}
-                onChange={(e) => setRoomForm({ ...roomForm, building: e.target.value })}
-                placeholder="Main Building"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="roomType">Type</Label>
-                <Select value={roomForm.type} onValueChange={(v) => setRoomForm({ ...roomForm, type: v })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="classroom">Classroom</SelectItem>
-                    <SelectItem value="lab">Lab</SelectItem>
-                    <SelectItem value="seminar">Seminar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="capacity">Capacity</Label>
+                <Label>Room Number *</Label>
                 <Input
-                  id="capacity"
-                  type="number"
-                  value={roomForm.capacity}
-                  onChange={(e) => setRoomForm({ ...roomForm, capacity: parseInt(e.target.value) })}
+                  value={roomForm.roomNumber}
+                  onChange={(e) => setRoomForm({ ...roomForm, roomNumber: e.target.value })}
+                  placeholder="401"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Capacity</Label>
+                <Input
+                  type="number"
+                  value={roomForm.capacity}
+                  onChange={(e) => setRoomForm({ ...roomForm, capacity: parseInt(e.target.value) || 60 })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Building</Label>
+              <Input
+                value={roomForm.building}
+                onChange={(e) => setRoomForm({ ...roomForm, building: e.target.value })}
+                placeholder="ICE Building"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select value={roomForm.type} onValueChange={(v) => setRoomForm({ ...roomForm, type: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="classroom">Classroom</SelectItem>
+                  <SelectItem value="lab">Lab</SelectItem>
+                  <SelectItem value="seminar">Seminar</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -1386,7 +1758,7 @@ export default function AdminDashboard() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="course">Course *</Label>
+              <Label>Course *</Label>
               <Select value={scheduleForm.courseId} onValueChange={(v) => setScheduleForm({ ...scheduleForm, courseId: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select course" />
@@ -1401,7 +1773,7 @@ export default function AdminDashboard() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="teacher">Teacher *</Label>
+              <Label>Teacher *</Label>
               <Select value={scheduleForm.teacherId} onValueChange={(v) => setScheduleForm({ ...scheduleForm, teacherId: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select teacher" />
@@ -1415,9 +1787,9 @@ export default function AdminDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="room">Room *</Label>
+                <Label>Room *</Label>
                 <Select value={scheduleForm.roomId} onValueChange={(v) => setScheduleForm({ ...scheduleForm, roomId: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select room" />
@@ -1432,7 +1804,7 @@ export default function AdminDashboard() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="timeSlot">Time Slot *</Label>
+                <Label>Time Slot *</Label>
                 <Select value={scheduleForm.timeSlotId} onValueChange={(v) => setScheduleForm({ ...scheduleForm, timeSlotId: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select time" />
@@ -1440,7 +1812,7 @@ export default function AdminDashboard() {
                   <SelectContent>
                     {timeSlots.map((slot) => (
                       <SelectItem key={slot.id} value={slot.id}>
-                        {slot.label} ({slot.startTime}-{slot.endTime})
+                        {slot.label} ({slot.startTime} - {slot.endTime})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1448,13 +1820,13 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="day">Day *</Label>
+              <Label>Day *</Label>
               <Select value={scheduleForm.dayOfWeek} onValueChange={(v) => setScheduleForm({ ...scheduleForm, dayOfWeek: v })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday"].map((day) => (
+                  {["sunday", "monday", "tuesday", "wednesday", "thursday"].map((day) => (
                     <SelectItem key={day} value={day}>
                       {day.charAt(0).toUpperCase() + day.slice(1)}
                     </SelectItem>
@@ -1462,9 +1834,9 @@ export default function AdminDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="year">Year</Label>
+                <Label>Year</Label>
                 <Select value={scheduleForm.year.toString()} onValueChange={(v) => setScheduleForm({ ...scheduleForm, year: parseInt(v) })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1477,20 +1849,19 @@ export default function AdminDashboard() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="semester">Sem</Label>
+                <Label>Semester</Label>
                 <Select value={scheduleForm.semester.toString()} onValueChange={(v) => setScheduleForm({ ...scheduleForm, semester: parseInt(v) })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1, 2].map((s) => (
-                      <SelectItem key={s} value={s.toString()}>{s}</SelectItem>
-                    ))}
+                    <SelectItem value="1">1st</SelectItem>
+                    <SelectItem value="2">2nd</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="section">Section</Label>
+                <Label>Section</Label>
                 <Select value={scheduleForm.section} onValueChange={(v) => setScheduleForm({ ...scheduleForm, section: v })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1522,16 +1893,15 @@ export default function AdminDashboard() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="noticeTitle">Title *</Label>
+              <Label>Title *</Label>
               <Input
-                id="noticeTitle"
                 value={noticeForm.title}
                 onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })}
                 placeholder="Notice title"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="noticeCategory">Category</Label>
+              <Label>Category</Label>
               <Select value={noticeForm.category} onValueChange={(v) => setNoticeForm({ ...noticeForm, category: v })}>
                 <SelectTrigger>
                   <SelectValue />
@@ -1545,31 +1915,20 @@ export default function AdminDashboard() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="noticeContent">Content *</Label>
+              <Label>Content *</Label>
               <Textarea
-                id="noticeContent"
                 value={noticeForm.content}
                 onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })}
                 placeholder="Notice content..."
                 rows={4}
               />
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isPinned"
-                checked={noticeForm.isPinned}
-                onChange={(e) => setNoticeForm({ ...noticeForm, isPinned: e.target.checked })}
-                className="rounded"
-              />
-              <Label htmlFor="isPinned">Pin this notice</Label>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNoticeDialog(false)}>Cancel</Button>
             <Button onClick={handleSaveNotice} disabled={submitting}>
               {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editingItem ? "Update" : "Create"} Notice
+              {editingItem ? "Update" : "Post"} Notice
             </Button>
           </DialogFooter>
         </DialogContent>
