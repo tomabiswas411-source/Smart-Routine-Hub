@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       teacherName: schedule.teacherName,
       year: schedule.year,
       semester: schedule.semester,
-      section: schedule.section,
+      program: schedule.program || body.program || "bsc", // Changed from section
       changedBy: session.user.id,
       changedByName: user?.fullName || "Unknown",
       isActive: true,
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       scheduleChangeId: scheduleChange.id,
       affectedYear: schedule.year,
       affectedSemester: schedule.semester,
-      affectedSection: schedule.section,
+      affectedProgram: schedule.program || body.program || "bsc", // Changed from affectedSection
       postedBy: session.user.id,
       postedByName: user?.fullName || "Unknown",
       isPinned: false,

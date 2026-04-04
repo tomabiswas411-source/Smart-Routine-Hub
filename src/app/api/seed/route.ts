@@ -135,36 +135,37 @@ export async function POST() {
       createCourse({ name: "English", code: "ICE-1107", creditHours: 2, type: "theory", year: 1, semester: 1, isActive: true }),
     ]);
 
-    // 6. Create Sample Schedules
+    // 6. Create Sample Schedules with program (BSC/MSC)
     const scheduleData = [
-      // Saturday
-      { day: "saturday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id },
-      { day: "saturday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id },
-      { day: "saturday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id },
+      // Saturday - BSC 1st Year
+      { day: "saturday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
+      { day: "saturday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
+      { day: "saturday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id, year: 1, semester: 1, program: "bsc" },
       
-      // Sunday
-      { day: "sunday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id },
-      { day: "sunday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[2].id, timeSlotId: timeSlots[1].id },
-      { day: "sunday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id },
+      // Sunday - BSC 1st Year
+      { day: "sunday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
+      { day: "sunday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[2].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
+      { day: "sunday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id, year: 1, semester: 1, program: "bsc" },
       
-      // Monday
-      { day: "monday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id },
-      { day: "monday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id },
-      { day: "monday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id },
+      // Monday - BSC 1st Year
+      { day: "monday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "bsc" },
+      { day: "monday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id, year: 1, semester: 1, program: "bsc" },
+      { day: "monday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[0].id, timeSlotId: timeSlots[2].id, year: 1, semester: 1, program: "bsc" },
       
-      // Tuesday
-      { day: "tuesday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id },
-      { day: "tuesday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id },
-      { day: "tuesday", courseId: courses[3].id, teacherId: teachers[2].id, roomId: rooms[5].id, timeSlotId: timeSlots[6].id },
+      // Tuesday - BSC 2nd Year  
+      { day: "tuesday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[1].id, timeSlotId: timeSlots[0].id, year: 2, semester: 3, program: "bsc" },
+      { day: "tuesday", courseId: courses[6].id, teacherId: teachers[1].id, roomId: rooms[0].id, timeSlotId: timeSlots[1].id, year: 2, semester: 3, program: "bsc" },
+      { day: "tuesday", courseId: courses[3].id, teacherId: teachers[2].id, roomId: rooms[5].id, timeSlotId: timeSlots[6].id, year: 2, semester: 3, program: "bsc" },
       
-      // Wednesday
-      { day: "wednesday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id },
-      { day: "wednesday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id },
-      { day: "wednesday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[2].id, timeSlotId: timeSlots[2].id },
+      // Wednesday - BSC 2nd Year
+      { day: "wednesday", courseId: courses[0].id, teacherId: teachers[0].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 2, semester: 3, program: "bsc" },
+      { day: "wednesday", courseId: courses[4].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 2, semester: 3, program: "bsc" },
+      { day: "wednesday", courseId: courses[2].id, teacherId: teachers[2].id, roomId: rooms[2].id, timeSlotId: timeSlots[2].id, year: 2, semester: 3, program: "bsc" },
       
-      // Thursday
-      { day: "thursday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id },
-      { day: "thursday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id },
+      // Thursday - MSC 1st Year
+      { day: "thursday", courseId: courses[5].id, teacherId: teachers[4].id, roomId: rooms[0].id, timeSlotId: timeSlots[0].id, year: 1, semester: 1, program: "msc" },
+      { day: "thursday", courseId: courses[1].id, teacherId: teachers[0].id, roomId: rooms[4].id, timeSlotId: timeSlots[6].id, year: 1, semester: 1, program: "msc" },
+      { day: "thursday", courseId: courses[0].id, teacherId: teachers[3].id, roomId: rooms[1].id, timeSlotId: timeSlots[1].id, year: 1, semester: 2, program: "msc" },
     ];
 
     for (const sched of scheduleData) {
@@ -182,9 +183,9 @@ export async function POST() {
           roomNumber: room.roomNumber,
           startTime: timeSlot.startTime,
           endTime: timeSlot.endTime,
-          year: course.year,
-          semester: course.semester,
-          section: "A",
+          year: sched.year || course.year,
+          semester: sched.semester || course.semester,
+          program: sched.program || "bsc",
           classType: course.type,
           isActive: true,
         });
