@@ -468,34 +468,68 @@ function NotificationSection() {
 // Mobile Bottom Navigation Component
 function MobileBottomNav({ 
   unreadCount, 
-  onNotificationClick 
+  onNotificationClick,
+  currentView,
+  onViewChange
 }: { 
   unreadCount: number;
   onNotificationClick: () => void;
+  currentView: string;
+  onViewChange: (view: string) => void;
 }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-border shadow-lg z-50 sm:hidden">
       <div className="flex items-center justify-around h-16">
         {/* Home Button */}
-        <Link href="/" className="flex flex-col items-center justify-center w-full h-full">
-          <HomeIcon className="w-5 h-5 text-emerald-600" />
-          <span className="text-[10px] mt-1 text-emerald-600 font-medium">Home</span>
-        </Link>
+        <button 
+          onClick={() => onViewChange('home')}
+          className={cn(
+            "flex flex-col items-center justify-center w-full h-full",
+            currentView === 'home' ? "text-emerald-600" : "text-muted-foreground"
+          )}
+        >
+          <HomeIcon className="w-5 h-5" />
+          <span className="text-[10px] mt-1 font-medium">Home</span>
+        </button>
+        
+        {/* Master Calendar Button */}
+        <button 
+          onClick={() => onViewChange('master-calendar')}
+          className={cn(
+            "flex flex-col items-center justify-center w-full h-full",
+            currentView === 'master-calendar' ? "text-emerald-600" : "text-muted-foreground"
+          )}
+        >
+          <Calendar className="w-5 h-5" />
+          <span className="text-[10px] mt-1 font-medium">Master</span>
+        </button>
+        
+        {/* Student View Button */}
+        <button 
+          onClick={() => onViewChange('student')}
+          className={cn(
+            "flex flex-col items-center justify-center w-full h-full",
+            currentView === 'student' ? "text-emerald-600" : "text-muted-foreground"
+          )}
+        >
+          <User className="w-5 h-5" />
+          <span className="text-[10px] mt-1 font-medium">Student</span>
+        </button>
         
         {/* Notification Button */}
         <button 
           onClick={onNotificationClick}
-          className="flex flex-col items-center justify-center w-full h-full relative"
+          className="flex flex-col items-center justify-center w-full h-full relative text-muted-foreground"
         >
           <div className="relative">
-            <Bell className="w-5 h-5 text-muted-foreground" />
+            <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </div>
-          <span className="text-[10px] mt-1 text-muted-foreground font-medium">Notifications</span>
+          <span className="text-[10px] mt-1 font-medium">Alerts</span>
         </button>
       </div>
     </div>
@@ -561,7 +595,15 @@ function NotificationDrawer({
 }
 
 // Home Page Component
-function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, semester: number) => void }) {
+function HomePage({ 
+  onSelectSemester,
+  currentView,
+  onViewChange
+}: { 
+  onSelectSemester: (program: string, semester: number) => void;
+  currentView: string;
+  onViewChange: (view: string) => void;
+}) {
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -732,7 +774,9 @@ function HomePage({ onSelectSemester }: { onSelectSemester: (program: string, se
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav 
         unreadCount={unreadCount} 
-        onNotificationClick={() => setNotificationDrawerOpen(true)} 
+        onNotificationClick={() => setNotificationDrawerOpen(true)}
+        currentView={currentView}
+        onViewChange={onViewChange}
       />
 
       {/* Notification Drawer for Mobile */}
@@ -1554,18 +1598,56 @@ function PageContent() {
     window.location.href = `/?view=master-calendar&program=${program}&semester=${semester}`;
   };
 
+  // Handle view change from mobile nav
+  const handleViewChange = (newView: string) => {
+    if (newView === 'home') {
+      window.location.href = '/';
+    } else {
+      window.location.href = `/?view=${newView}`;
+    }
+  };
+
+  // Current view for mobile nav
+  const currentView = view || 'home';
+
   // Show Master Routine Calendar if view=master-calendar
   if (view === "master-calendar") {
-    return <MasterRoutineCalendar />;
+    return (
+      <>
+        <MasterRoutineCalendar />
+        <MobileBottomNav 
+          unreadCount={0} 
+          onNotificationClick={() => {}}
+          currentView={currentView}
+          onViewChange={handleViewChange}
+        />
+      </>
+    );
   }
 
   // Show Student View
   if (view === "student") {
-    return <StudentView />;
+    return (
+      <>
+        <StudentView />
+        <MobileBottomNav 
+          unreadCount={0} 
+          onNotificationClick={() => {}}
+          currentView={currentView}
+          onViewChange={handleViewChange}
+        />
+      </>
+    );
   }
 
   // Default to Home Page
-  return <HomePage onSelectSemester={handleSelectSemester} />;
+  return (
+    <HomePage 
+      onSelectSemester={handleSelectSemester}
+      currentView={currentView}
+      onViewChange={handleViewChange}
+    />
+  );
 }
 
 // Main Export
