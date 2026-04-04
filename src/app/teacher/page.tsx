@@ -6,19 +6,17 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Calendar, Clock, BookOpen, LogOut, Loader2, 
-  Ban, RefreshCw, MapPin, X, Check, Bell,
-  Building, ChevronLeft, ChevronUp,
+  Ban, RefreshCw, MapPin, Bell,
+  Building,
   AlignJustify, Grid3X3, BellOff, CheckCircle,
-  DoorOpen, Timer, Sparkles,
+  DoorOpen, Sparkles,
   GraduationCap, Funnel, FlaskConical, Presentation,
-  XCircle, CalendarClock, AlertTriangle, Info
+  XCircle, CalendarClock, Info, ChevronUp, Check
 } from "lucide-react";
 import { signOut } from "next-auth/react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -74,18 +72,6 @@ interface Room {
   capacity: number;
 }
 
-interface RoomAvailability {
-  room: Room;
-  isAvailable: boolean;
-  occupiedBy: {
-    courseCode: string;
-    courseName: string;
-    teacherName: string;
-    startTime?: string;
-    endTime?: string;
-  } | null;
-}
-
 interface Notification {
   id: string;
   title: string;
@@ -106,13 +92,11 @@ const classColors = {
     bg: "bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20",
     border: "border-emerald-300 dark:border-emerald-700",
     badge: "bg-emerald-500 text-white",
-    text: "text-emerald-700 dark:text-emerald-300"
   },
   lab: {
     bg: "bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20",
     border: "border-purple-300 dark:border-purple-700",
     badge: "bg-purple-500 text-white",
-    text: "text-purple-700 dark:text-purple-300"
   }
 };
 
@@ -179,116 +163,6 @@ function CustomTimePicker({
           </SelectContent>
         </Select>
       </div>
-    </div>
-  );
-}
-
-// Room Availability Checker Component
-function RoomAvailabilityChecker({ 
-  day, 
-  startTime, 
-  endTime,
-  excludeScheduleId,
-  onRoomSelect,
-  selectedRoomId 
-}: { 
-  day: string;
-  startTime: string;
-  endTime: string;
-  excludeScheduleId?: string;
-  onRoomSelect: (roomId: string) => void;
-  selectedRoomId: string;
-}) {
-  const [rooms, setRooms] = useState<RoomAvailability[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchAvailability = useCallback(async () => {
-    if (!day || !startTime || !endTime) return;
-    
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/rooms/availability?day=${day}&startTime=${startTime}&endTime=${endTime}${excludeScheduleId ? `&excludeScheduleId=${excludeScheduleId}` : ""}`
-      );
-      const data = await res.json();
-      if (data.success) {
-        setRooms(data.data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching room availability:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [day, startTime, endTime, excludeScheduleId]);
-
-  useEffect(() => {
-    fetchAvailability();
-  }, [fetchAvailability]);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label className="text-xs font-medium flex items-center gap-2">
-          <DoorOpen className="w-3.5 h-3.5" />
-          Select Room (Available rooms shown in green)
-        </Label>
-        <Button variant="ghost" size="sm" onClick={fetchAvailability} className="h-6 text-[10px]">
-          <RefreshCw className={cn("w-3 h-3", loading && "animate-spin")} />
-        </Button>
-      </div>
-      
-      {loading ? (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-1">
-          {rooms.map((item) => {
-            const isSelected = selectedRoomId === item.room.id;
-            const isAvailable = item.isAvailable;
-            
-            return (
-              <motion.button
-                key={item.room.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => isAvailable && onRoomSelect(item.room.id)}
-                disabled={!isAvailable}
-                className={cn(
-                  "p-2.5 rounded-lg border-2 text-left transition-all relative overflow-hidden",
-                  isSelected && isAvailable && "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20",
-                  isAvailable && !isSelected && "border-emerald-300 hover:border-emerald-500 bg-background",
-                  !isAvailable && "border-red-200 bg-red-50/50 dark:bg-red-900/10 cursor-not-allowed opacity-60"
-                )}
-              >
-                <div className={cn(
-                  "absolute top-1 right-1 w-2.5 h-2.5 rounded-full",
-                  isAvailable ? "bg-emerald-500" : "bg-red-500"
-                )} />
-                
-                <div className="flex items-start gap-2">
-                  <div className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-                    isAvailable ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30" : "bg-red-100 text-red-600 dark:bg-red-900/30"
-                  )}>
-                    {roomTypeIcons[item.room.type] || <Building className="w-3.5 h-3.5" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold truncate">{item.room.roomNumber}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{item.room.building}</p>
-                  </div>
-                </div>
-                
-                {!isAvailable && item.occupiedBy && (
-                  <div className="mt-1.5 pt-1.5 border-t border-red-200 dark:border-red-800">
-                    <p className="text-[9px] text-red-600 truncate">{item.occupiedBy.courseCode}</p>
-                  </div>
-                )}
-              </motion.button>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -437,7 +311,6 @@ export default function TeacherDashboard() {
   // Dialog states
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
-  const [showRoomDialog, setShowRoomDialog] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<TeacherSchedule | null>(null);
   const [submitting, setSubmitting] = useState(false);
   
@@ -454,7 +327,10 @@ export default function TeacherDashboard() {
     reason: ""
   });
   const [newRoomId, setNewRoomId] = useState("");
-  const [roomChangeReason, setRoomChangeReason] = useState("");
+  
+  // Room availability for reschedule
+  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
   
   // Notifications
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -510,6 +386,56 @@ export default function TeacherDashboard() {
     }
   };
 
+  // Fetch available rooms when day/time changes
+  const fetchAvailableRooms = useCallback(async (day: string, startTime: string, endTime: string) => {
+    if (!day || !startTime || !endTime) {
+      setAvailableRooms([]);
+      return;
+    }
+    
+    setLoadingRooms(true);
+    try {
+      const res = await fetch(
+        `/api/rooms/availability?day=${day}&startTime=${startTime}&endTime=${endTime}${selectedSchedule?.id ? `&excludeScheduleId=${selectedSchedule.id}` : ""}`
+      );
+      const data = await res.json();
+      if (data.success) {
+        const available = (data.data || [])
+          .filter((item: any) => item.isAvailable)
+          .map((item: any) => item.room);
+        setAvailableRooms(available);
+      }
+    } catch (error) {
+      console.error("Error fetching available rooms:", error);
+    } finally {
+      setLoadingRooms(false);
+    }
+  }, [selectedSchedule?.id]);
+
+  // Calculate current time values for reschedule
+  const getCurrentTimeValues = useCallback(() => {
+    let startTime = customStartTime;
+    let endTime = customEndTime;
+    
+    if (!useCustomTime && rescheduleData.timeSlotId) {
+      const timeSlot = timeSlots.find(t => t.id === rescheduleData.timeSlotId);
+      if (timeSlot) {
+        startTime = timeSlot.startTime;
+        endTime = timeSlot.endTime;
+      }
+    }
+    
+    return { startTime, endTime };
+  }, [useCustomTime, customStartTime, customEndTime, rescheduleData.timeSlotId, timeSlots]);
+
+  // Update available rooms when reschedule data changes
+  useEffect(() => {
+    if (showRescheduleDialog && rescheduleData.newDay) {
+      const { startTime, endTime } = getCurrentTimeValues();
+      fetchAvailableRooms(rescheduleData.newDay, startTime, endTime);
+    }
+  }, [showRescheduleDialog, rescheduleData.newDay, rescheduleData.timeSlotId, customStartTime, customEndTime, useCustomTime, getCurrentTimeValues, fetchAvailableRooms]);
+
   // Filter schedules
   const filteredSchedules = schedules.filter((s) => {
     if (!s.isActive) return false;
@@ -561,31 +487,6 @@ export default function TeacherDashboard() {
   // Get unique values for filters
   const uniqueSemesters = [...new Set(schedules.map(s => s.semester))].sort((a, b) => a - b);
   const uniquePrograms = [...new Set(schedules.map(s => s.program))];
-
-  // Open cancel dialog
-  const openCancelDialog = (schedule: TeacherSchedule) => {
-    setSelectedSchedule(schedule);
-    setCancelReason("");
-    setShowCancelDialog(true);
-  };
-
-  // Open room dialog
-  const openRoomDialog = (schedule: TeacherSchedule) => {
-    setSelectedSchedule(schedule);
-    setNewRoomId("");
-    setRoomChangeReason("");
-    setShowRoomDialog(true);
-  };
-
-  // Open reschedule dialog
-  const openRescheduleDialog = (schedule: TeacherSchedule) => {
-    setSelectedSchedule(schedule);
-    setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
-    setUseCustomTime(false);
-    setCustomStartTime(schedule.startTime || "09:00");
-    setCustomEndTime(schedule.endTime || "10:00");
-    setShowRescheduleDialog(true);
-  };
 
   // Handle Cancel Class
   const handleCancelClass = async () => {
@@ -641,63 +542,6 @@ export default function TeacherDashboard() {
     }
   };
 
-  // Handle Room Change
-  const handleRoomChange = async () => {
-    if (!selectedSchedule || !newRoomId || !roomChangeReason) {
-      toast({ title: "Error", description: "Please select a room and provide a reason", variant: "destructive" });
-      return;
-    }
-
-    const newRoom = rooms.find(r => r.id === newRoomId);
-    if (!newRoom) return;
-
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/schedule-changes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scheduleId: selectedSchedule.id,
-          changeType: "room_changed",
-          originalRoomId: selectedSchedule.roomId,
-          originalRoomNumber: selectedSchedule.roomNumber,
-          newRoomId: newRoomId,
-          newRoomNumber: newRoom.roomNumber,
-          effectiveDate: new Date().toISOString().split("T")[0],
-          reason: roomChangeReason,
-          courseName: selectedSchedule.courseName,
-          courseCode: selectedSchedule.courseCode,
-          teacherId: session?.user?.id,
-          teacherName: session?.user?.name,
-          year: selectedSchedule.year,
-          semester: selectedSchedule.semester,
-          program: selectedSchedule.program,
-          changedBy: session?.user?.id,
-          changedByName: session?.user?.name,
-          isActive: true,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast({ title: "✅ Room Changed", description: `${selectedSchedule.courseCode} moved to ${newRoom.roomNumber}` });
-        setShowRoomDialog(false);
-        setNewRoomId("");
-        setRoomChangeReason("");
-        setSelectedSchedule(null);
-        fetchTeacherData();
-        fetchNotifications();
-      } else {
-        toast({ title: "Error", description: data.error || "Failed to change room", variant: "destructive" });
-      }
-    } catch (error) {
-      console.error("Error changing room:", error);
-      toast({ title: "Error", description: "Failed to change room", variant: "destructive" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   // Handle Reschedule Class
   const handleRescheduleClass = async () => {
     if (!selectedSchedule || !rescheduleData.newDay || !rescheduleData.reason) {
@@ -705,16 +549,7 @@ export default function TeacherDashboard() {
       return;
     }
 
-    let startTime = customStartTime;
-    let endTime = customEndTime;
-    
-    if (!useCustomTime && rescheduleData.timeSlotId) {
-      const timeSlot = timeSlots.find(t => t.id === rescheduleData.timeSlotId);
-      if (timeSlot) {
-        startTime = timeSlot.startTime;
-        endTime = timeSlot.endTime;
-      }
-    }
+    const { startTime, endTime } = getCurrentTimeValues();
 
     setSubmitting(true);
     try {
@@ -727,9 +562,12 @@ export default function TeacherDashboard() {
           originalDay: selectedSchedule.dayOfWeek,
           originalStartTime: selectedSchedule.startTime,
           originalEndTime: selectedSchedule.endTime,
+          originalRoomId: selectedSchedule.roomId,
+          originalRoomNumber: selectedSchedule.roomNumber,
           newDay: rescheduleData.newDay,
           newStartTime: startTime,
           newEndTime: endTime,
+          newRoomId: newRoomId || selectedSchedule.roomId,
           effectiveDate: new Date().toISOString().split("T")[0],
           reason: rescheduleData.reason,
           courseName: selectedSchedule.courseName,
@@ -750,6 +588,7 @@ export default function TeacherDashboard() {
         toast({ title: "✅ Class Rescheduled", description: `${selectedSchedule.courseCode} has been rescheduled to ${rescheduleData.newDay}` });
         setShowRescheduleDialog(false);
         setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
+        setNewRoomId("");
         setSelectedSchedule(null);
         fetchTeacherData();
         fetchNotifications();
@@ -779,15 +618,6 @@ export default function TeacherDashboard() {
     setFilterDay("all");
   };
 
-  // Handle card click
-  const handleCardClick = (schedule: TeacherSchedule) => {
-    if (selectedSchedule?.id === schedule.id) {
-      setSelectedSchedule(null);
-    } else {
-      setSelectedSchedule(schedule);
-    }
-  };
-
   if (status === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-800">
@@ -804,6 +634,7 @@ export default function TeacherDashboard() {
   }
 
   const colors = classColors;
+  const { startTime: currentTimeStart, endTime: currentTimeEnd } = getCurrentTimeValues();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pb-20">
@@ -880,7 +711,6 @@ export default function TeacherDashboard() {
           </CardHeader>
           <CardContent className="py-2 px-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {/* Semester Filter */}
               <Select value={filterSemester} onValueChange={setFilterSemester}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Semester" />
@@ -893,7 +723,6 @@ export default function TeacherDashboard() {
                 </SelectContent>
               </Select>
               
-              {/* Program Filter */}
               <Select value={filterProgram} onValueChange={setFilterProgram}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Program" />
@@ -906,7 +735,6 @@ export default function TeacherDashboard() {
                 </SelectContent>
               </Select>
               
-              {/* Room Filter */}
               <Select value={filterRoom} onValueChange={setFilterRoom}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Room" />
@@ -919,7 +747,6 @@ export default function TeacherDashboard() {
                 </SelectContent>
               </Select>
               
-              {/* Day Filter */}
               <Select value={filterDay} onValueChange={setFilterDay}>
                 <SelectTrigger className="h-9">
                   <SelectValue placeholder="Day" />
@@ -1009,7 +836,7 @@ export default function TeacherDashboard() {
                       typeColors.border,
                       isSelected && "ring-2 ring-emerald-500"
                     )}
-                    onClick={() => handleCardClick(schedule)}
+                    onClick={() => setSelectedSchedule(isSelected ? null : schedule)}
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2 mb-3">
@@ -1051,34 +878,37 @@ export default function TeacherDashboard() {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t"
+                          className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t"
                         >
                           <Button
                             variant="outline"
                             size="sm"
                             className="text-red-600 border-red-200 hover:bg-red-50 h-8 text-[10px]"
-                            onClick={(e) => { e.stopPropagation(); openCancelDialog(schedule); }}
+                            onClick={(e) => { 
+                              e.stopPropagation();
+                              setCancelReason("");
+                              setShowCancelDialog(true);
+                            }}
                           >
                             <Ban className="w-3 h-3 mr-1" />
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-amber-600 border-amber-200 hover:bg-amber-50 h-8 text-[10px]"
-                            onClick={(e) => { e.stopPropagation(); openRoomDialog(schedule); }}
-                          >
-                            <MapPin className="w-3 h-3 mr-1" />
-                            Room
+                            Cancel Class
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             className="text-cyan-600 border-cyan-200 hover:bg-cyan-50 h-8 text-[10px]"
-                            onClick={(e) => { e.stopPropagation(); openRescheduleDialog(schedule); }}
+                            onClick={(e) => { 
+                              e.stopPropagation();
+                              setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
+                              setUseCustomTime(false);
+                              setCustomStartTime(schedule.startTime || "09:00");
+                              setCustomEndTime(schedule.endTime || "10:00");
+                              setNewRoomId("");
+                              setShowRescheduleDialog(true);
+                            }}
                           >
                             <RefreshCw className="w-3 h-3 mr-1" />
-                            Time
+                            Reschedule
                           </Button>
                         </motion.div>
                       )}
@@ -1104,7 +934,7 @@ export default function TeacherDashboard() {
                   return (
                     <div key={schedule.id}>
                       <div
-                        onClick={() => handleCardClick(schedule)}
+                        onClick={() => setSelectedSchedule(isSelected ? null : schedule)}
                         className={cn(
                           "flex items-center gap-3 p-3 cursor-pointer transition-all hover:bg-muted/50",
                           isSelected && "bg-emerald-50 dark:bg-emerald-900/20"
@@ -1146,7 +976,11 @@ export default function TeacherDashboard() {
                               variant="outline"
                               size="sm"
                               className="text-red-600 border-red-200 hover:bg-red-50 h-7 text-[10px]"
-                              onClick={(e) => { e.stopPropagation(); openCancelDialog(schedule); }}
+                              onClick={(e) => { 
+                                e.stopPropagation();
+                                setCancelReason("");
+                                setShowCancelDialog(true);
+                              }}
                             >
                               <Ban className="w-3 h-3 mr-1" />
                               Cancel
@@ -1154,20 +988,19 @@ export default function TeacherDashboard() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-amber-600 border-amber-200 hover:bg-amber-50 h-7 text-[10px]"
-                              onClick={(e) => { e.stopPropagation(); openRoomDialog(schedule); }}
-                            >
-                              <MapPin className="w-3 h-3 mr-1" />
-                              Room
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
                               className="text-cyan-600 border-cyan-200 hover:bg-cyan-50 h-7 text-[10px]"
-                              onClick={(e) => { e.stopPropagation(); openRescheduleDialog(schedule); }}
+                              onClick={(e) => { 
+                                e.stopPropagation();
+                                setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
+                                setUseCustomTime(false);
+                                setCustomStartTime(schedule.startTime || "09:00");
+                                setCustomEndTime(schedule.endTime || "10:00");
+                                setNewRoomId("");
+                                setShowRescheduleDialog(true);
+                              }}
                             >
                               <RefreshCw className="w-3 h-3 mr-1" />
-                              Time
+                              Reschedule
                             </Button>
                           </motion.div>
                         )}
@@ -1230,62 +1063,7 @@ export default function TeacherDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Room Change Dialog */}
-      <Dialog open={showRoomDialog} onOpenChange={setShowRoomDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-600">
-              <MapPin className="w-5 h-5" />
-              Change Room
-            </DialogTitle>
-            <DialogDescription>
-              Select a new room. Only available rooms can be selected.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedSchedule && (
-            <div className="space-y-4 py-4">
-              <div className="p-3 rounded-lg bg-muted">
-                <p className="font-medium">{selectedSchedule.courseCode}</p>
-                <p className="text-xs text-muted-foreground">
-                  Current Room: <span className="font-semibold">{selectedSchedule.roomNumber}</span>
-                </p>
-              </div>
-              
-              <RoomAvailabilityChecker
-                day={selectedSchedule.dayOfWeek}
-                startTime={selectedSchedule.startTime}
-                endTime={selectedSchedule.endTime}
-                excludeScheduleId={selectedSchedule.id}
-                onRoomSelect={setNewRoomId}
-                selectedRoomId={newRoomId}
-              />
-              
-              <div className="space-y-2">
-                <Label>Reason for change *</Label>
-                <Textarea
-                  value={roomChangeReason}
-                  onChange={(e) => setRoomChangeReason(e.target.value)}
-                  placeholder="e.g., Equipment needed, More capacity..."
-                  rows={2}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRoomDialog(false)}>Cancel</Button>
-            <Button 
-              onClick={handleRoomChange}
-              disabled={submitting || !newRoomId}
-              className="bg-amber-500 hover:bg-amber-600"
-            >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MapPin className="w-4 h-4 mr-2" />}
-              Change Room
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reschedule Dialog */}
+      {/* Reschedule Dialog - WITH Room Availability */}
       <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1294,7 +1072,7 @@ export default function TeacherDashboard() {
               Reschedule Class
             </DialogTitle>
             <DialogDescription>
-              Choose a new day and time for this class.
+              Select new day, time and room. Available rooms are shown automatically.
             </DialogDescription>
           </DialogHeader>
           {selectedSchedule && (
@@ -1369,6 +1147,72 @@ export default function TeacherDashboard() {
                   </Select>
                 )}
               </div>
+
+              {/* Room Availability - Shows automatically after day/time selection */}
+              {rescheduleData.newDay && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <DoorOpen className="w-4 h-4 text-emerald-500" />
+                      Available Rooms
+                    </Label>
+                    <Badge variant="outline" className="text-[10px]">
+                      {loadingRooms ? "Loading..." : `${availableRooms.length} available`}
+                    </Badge>
+                  </div>
+                  
+                  {loadingRooms ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : availableRooms.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                      {availableRooms.map((room) => (
+                        <motion.button
+                          key={room.id}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setNewRoomId(room.id)}
+                          className={cn(
+                            "p-2.5 rounded-lg border-2 text-left transition-all",
+                            newRoomId === room.id 
+                              ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20" 
+                              : "border-emerald-300 hover:border-emerald-500 bg-background"
+                          )}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30">
+                              {roomTypeIcons[room.type] || <Building className="w-3.5 h-3.5" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold truncate">{room.roomNumber}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{room.building}</p>
+                            </div>
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        No rooms available at {formatTime(currentTimeStart)} - {formatTime(currentTimeEnd)} on {rescheduleData.newDay}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Try a different time or day
+                      </p>
+                    </div>
+                  )}
+                  
+                  {newRoomId && (
+                    <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Selected: {rooms.find(r => r.id === newRoomId)?.roomNumber}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* Reason */}
               <div className="space-y-2">
@@ -1386,7 +1230,7 @@ export default function TeacherDashboard() {
             <Button variant="outline" onClick={() => setShowRescheduleDialog(false)}>Cancel</Button>
             <Button 
               onClick={handleRescheduleClass}
-              disabled={submitting || !rescheduleData.newDay}
+              disabled={submitting || !rescheduleData.newDay || !rescheduleData.reason}
               className="bg-cyan-500 hover:bg-cyan-600"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
