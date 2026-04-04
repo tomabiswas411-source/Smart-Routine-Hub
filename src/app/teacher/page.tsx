@@ -43,11 +43,13 @@ import {
   useRealtimeNotices,
   useRealtimeTimeSlots,
   useRealtimeRooms,
+  useRealtimeCourses,
   type Schedule,
   type ScheduleChange,
   type TimeSlot,
   type Room,
-  type Notice
+  type Notice,
+  type Course
 } from "@/hooks/use-realtime-data";
 
 // Types
@@ -385,6 +387,14 @@ export default function TeacherDashboard() {
   const { timeSlots, loading: timeSlotsLoading } = useRealtimeTimeSlots();
   const { rooms, loading: roomsLoading } = useRealtimeRooms();
   const { notices, loading: noticesLoading } = useRealtimeNotices({ limitCount: 10 });
+  const { courses, loading: coursesLoading } = useRealtimeCourses();
+  
+  // Teacher's assigned courses (extracted from their schedules)
+  const teacherCourseIds = [...new Set(schedules.map(s => s.courseId))];
+  const teacherCourses = courses.filter(c => teacherCourseIds.includes(c.id));
+  
+  // All unique courses not yet assigned to this teacher
+  const availableCoursesToAdd = courses.filter(c => !teacherCourseIds.includes(c.id));
 
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [filterSemester, setFilterSemester] = useState<string>("all");
@@ -401,6 +411,7 @@ export default function TeacherDashboard() {
   
   // Add class form state
   const [newClassForm, setNewClassForm] = useState({
+    courseId: "",
     courseCode: "",
     courseName: "",
     dayOfWeek: "",
@@ -411,6 +422,10 @@ export default function TeacherDashboard() {
     program: "bsc",
     classType: "theory" as "theory" | "lab"
   });
+  
+  // Available rooms for new class (based on selected day/time)
+  const [availableRoomsForNewClass, setAvailableRoomsForNewClass] = useState<{room: Room; isAvailable: boolean; occupiedBy?: string}[]>([]);
+  const [loadingAvailableRooms, setLoadingAvailableRooms] = useState(false);
   
   const [useCustomTime, setUseCustomTime] = useState(false);
   const [customStartTime, setCustomStartTime] = useState("09:00");
@@ -542,6 +557,26 @@ export default function TeacherDashboard() {
     }
   }, [selectedSchedule?.id]);
 
+  // Fetch room availability for Add Class dialog
+  const fetchAvailableRoomsForNewClass = useCallback(async (day: string, startTime: string, endTime: string) => {
+    if (!day || !startTime || !endTime) { 
+      setAvailableRoomsForNewClass([]); 
+      return; 
+    }
+    setLoadingAvailableRooms(true);
+    try {
+      const res = await fetch(`/api/rooms/availability?day=${day}&startTime=${startTime}&endTime=${endTime}`);
+      const data = await res.json();
+      if (data.success) {
+        setAvailableRoomsForNewClass(data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching available rooms:", error);
+    } finally {
+      setLoadingAvailableRooms(false);
+    }
+  }, []);
+
   // Get current time values
   const getCurrentTimeValues = useCallback(() => {
     let startTime = customStartTime;
@@ -553,13 +588,20 @@ export default function TeacherDashboard() {
     return { startTime, endTime };
   }, [useCustomTime, customStartTime, customEndTime, rescheduleData.timeSlotId, timeSlots]);
 
-  // Update available rooms
+  // Update available rooms for reschedule
   useEffect(() => {
     if (showRescheduleDialog && rescheduleData.newDay) {
       const { startTime, endTime } = getCurrentTimeValues();
       fetchAvailableRooms(rescheduleData.newDay, startTime, endTime);
     }
   }, [showRescheduleDialog, rescheduleData.newDay, rescheduleData.timeSlotId, customStartTime, customEndTime, useCustomTime, getCurrentTimeValues, fetchAvailableRooms]);
+  
+  // Update available rooms for Add Class dialog
+  useEffect(() => {
+    if (showAddClassDialog && newClassForm.dayOfWeek && newClassForm.startTime && newClassForm.endTime) {
+      fetchAvailableRoomsForNewClass(newClassForm.dayOfWeek, newClassForm.startTime, newClassForm.endTime);
+    }
+  }, [showAddClassDialog, newClassForm.dayOfWeek, newClassForm.startTime, newClassForm.endTime, fetchAvailableRoomsForNewClass]);
 
   // Handlers
   const handleOpenCancel = (schedule: TeacherSchedule) => { setSelectedSchedule(schedule); setCancelReason(""); setShowCancelDialog(true); };
@@ -732,10 +774,38 @@ export default function TeacherDashboard() {
   const handleMarkAsRead = (id: string) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   const resetFilters = () => { setFilterSemester("all"); setFilterProgram("all"); setFilterRoom("all"); setFilterDay("all"); };
   
+  // Handle course selection in Add Class dialog
+  const handleCourseSelect = (courseId: string) => {
+    if (courseId === "custom") {
+      setNewClassForm({
+        ...newClassForm,
+        courseId: "custom",
+        courseCode: "",
+        courseName: "",
+        classType: "theory",
+        semester: 1,
+        program: "bsc"
+      });
+    } else {
+      const course = courses.find(c => c.id === courseId);
+      if (course) {
+        setNewClassForm({
+          ...newClassForm,
+          courseId: course.id,
+          courseCode: course.code,
+          courseName: course.name,
+          classType: course.type as "theory" | "lab",
+          semester: course.semester || 1,
+          program: course.program || "bsc"
+        });
+      }
+    }
+  };
+  
   // Handle Add Class
   const handleAddClass = async () => {
     if (!newClassForm.courseCode.trim() || !newClassForm.courseName.trim() || !newClassForm.dayOfWeek || !newClassForm.roomId) {
-      toast({ title: "Error", description: "Please fill all required fields (Course Code, Name, Day, Room)", variant: "destructive" });
+      toast({ title: "Error", description: "Please fill all required fields (Course, Day, Room)", variant: "destructive" });
       return;
     }
     
@@ -752,6 +822,7 @@ export default function TeacherDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          courseId: newClassForm.courseId !== "custom" ? newClassForm.courseId : undefined,
           courseCode: newClassForm.courseCode,
           courseName: newClassForm.courseName,
           dayOfWeek: newClassForm.dayOfWeek,
@@ -770,6 +841,7 @@ export default function TeacherDashboard() {
         toast({ title: "✅ Class Added", description: `${newClassForm.courseCode} has been added to your schedule` });
         setShowAddClassDialog(false);
         setNewClassForm({
+          courseId: "",
           courseCode: "",
           courseName: "",
           dayOfWeek: "",
@@ -793,7 +865,7 @@ export default function TeacherDashboard() {
     }
   };
 
-  const loading = status === "loading" || schedulesLoading || changesLoading || timeSlotsLoading || roomsLoading;
+  const loading = status === "loading" || schedulesLoading || changesLoading || timeSlotsLoading || roomsLoading || coursesLoading;
 
   if (loading) {
     return (
@@ -1263,30 +1335,90 @@ export default function TeacherDashboard() {
               Add New Class
             </DialogTitle>
             <DialogDescription>
-              Add a new class to your schedule. Conflicts will be automatically detected.
+              Select a course and check room availability before adding.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Course Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-teal-500" />
+                Select Course *
+              </Label>
+              <Select value={newClassForm.courseId} onValueChange={handleCourseSelect}>
+                <SelectTrigger className="h-10 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
+                  <SelectValue placeholder="Choose a course..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {/* Teacher's existing courses */}
+                  {teacherCourses.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-teal-600 bg-teal-50 dark:bg-teal-900/30">Your Courses</div>
+                      {teacherCourses.map((course) => (
+                        <SelectItem key={course.id} value={course.id}>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px] px-1.5">{course.code}</Badge>
+                            <span className="truncate">{course.name}</span>
+                            <span className="text-xs text-muted-foreground">({course.type})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                  {/* Other available courses */}
+                  {availableCoursesToAdd.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50 dark:bg-amber-900/30 mt-1">Other Courses</div>
+                      {availableCoursesToAdd.slice(0, 20).map((course) => (
+                        <SelectItem key={course.id} value={course.id}>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px] px-1.5">{course.code}</Badge>
+                            <span className="truncate">{course.name}</span>
+                            <span className="text-xs text-muted-foreground">({course.type})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                  <SelectItem value="custom">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Plus className="w-4 h-4" />
+                      <span>Enter custom course...</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Course Details (editable if custom) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Course Code *</Label>
-                <Input placeholder="e.g. ICE-301" value={newClassForm.courseCode} onChange={(e) => setNewClassForm({ ...newClassForm, courseCode: e.target.value })} className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
+                <Label className="text-xs text-muted-foreground font-medium">Course Code</Label>
+                <Input 
+                  placeholder="e.g. ICE-301" 
+                  value={newClassForm.courseCode} 
+                  onChange={(e) => setNewClassForm({ ...newClassForm, courseCode: e.target.value })} 
+                  className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" 
+                />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Class Type</Label>
+                <Label className="text-xs text-muted-foreground font-medium">Class Type</Label>
                 <Select value={newClassForm.classType} onValueChange={(v: "theory" | "lab") => setNewClassForm({ ...newClassForm, classType: v })}>
                   <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="theory">Theory</SelectItem>
-                    <SelectItem value="lab">Lab</SelectItem>
+                    <SelectItem value="theory">📖 Theory</SelectItem>
+                    <SelectItem value="lab">🔬 Lab</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+            
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Course Name *</Label>
-              <Input placeholder="e.g. Digital Signal Processing" value={newClassForm.courseName} onChange={(e) => setNewClassForm({ ...newClassForm, courseName: e.target.value })} className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
+              <Label className="text-xs text-muted-foreground font-medium">Course Name</Label>
+              <Input placeholder="e.g. Digital Signal Processing" value={newClassForm.courseName} onChange={(e) => setNewClassForm({ ...newClassForm, courseName: e.target.value })} className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
             </div>
+            
+            {/* Day and Time */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground font-medium">Day *</Label>
@@ -1298,23 +1430,29 @@ export default function TeacherDashboard() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground font-medium">Room *</Label>
-                <Select value={newClassForm.roomId} onValueChange={(v) => setNewClassForm({ ...newClassForm, roomId: v })}>
-                  <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue placeholder="Select room" /></SelectTrigger>
+                <Label className="text-xs text-muted-foreground font-medium">Time Slot</Label>
+                <Select 
+                  value={`${newClassForm.startTime}-${newClassForm.endTime}`} 
+                  onValueChange={(v) => {
+                    const [start, end] = v.split('-');
+                    setNewClassForm({ ...newClassForm, startTime: start, endTime: end });
+                  }}
+                >
+                  <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {rooms.map((room) => (
-                      <SelectItem key={room.id} value={room.id}>
-                        <div className="flex items-center gap-2">
-                          {roomTypeIcons[room.type]}
-                          {room.roomNumber}
-                          <span className="text-muted-foreground text-xs">({room.capacity} seats)</span>
-                        </div>
+                    {timeSlots.map((slot) => (
+                      <SelectItem key={slot.id} value={`${slot.startTime}-${slot.endTime}`}>
+                        {slot.label} ({slot.startTime} - {slot.endTime})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+            
+            {/* Custom Time */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground font-medium">Start Time</Label>
@@ -1325,6 +1463,77 @@ export default function TeacherDashboard() {
                 <Input type="time" value={newClassForm.endTime} onChange={(e) => setNewClassForm({ ...newClassForm, endTime: e.target.value })} className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900" />
               </div>
             </div>
+            
+            {/* Room Selection with Availability */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                Select Room *
+                {loadingAvailableRooms && <Loader2 className="w-3 h-3 animate-spin" />}
+              </Label>
+              {newClassForm.dayOfWeek && newClassForm.startTime && newClassForm.endTime ? (
+                <div className="space-y-2">
+                  {/* Available Rooms */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {availableRoomsForNewClass.filter(r => r.isAvailable).slice(0, 6).map((item) => (
+                      <motion.button
+                        key={item.room.id}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setNewClassForm({ ...newClassForm, roomId: item.room.id })}
+                        className={cn(
+                          "p-2.5 rounded-xl border-2 text-left transition-all",
+                          newClassForm.roomId === item.room.id
+                            ? "border-teal-500 bg-teal-50 dark:bg-teal-900/30 shadow-md"
+                            : "border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20 hover:border-green-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-green-500/20 flex items-center justify-center">
+                            {roomTypeIcons[item.room.type]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{item.room.roomNumber}</p>
+                            <p className="text-[10px] text-muted-foreground">{item.room.capacity} seats</p>
+                          </div>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                  
+                  {/* Occupied Rooms */}
+                  {availableRoomsForNewClass.filter(r => !r.isAvailable).length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-muted-foreground mb-2">⚠️ Occupied Rooms (click to view)</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {availableRoomsForNewClass.filter(r => !r.isAvailable).slice(0, 4).map((item) => (
+                          <div
+                            key={item.room.id}
+                            className="p-2.5 rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20 opacity-70"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-red-500/20 flex items-center justify-center">
+                                {roomTypeIcons[item.room.type]}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{item.room.roomNumber}</p>
+                                <p className="text-[10px] text-red-600 dark:text-red-400 truncate">{item.occupiedBy}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg text-center">
+                  Select day and time to see room availability
+                </p>
+              )}
+            </div>
+            
+            {/* Program and Semester */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground font-medium">Program</Label>
@@ -1341,7 +1550,7 @@ export default function TeacherDashboard() {
                 <Select value={newClassForm.semester.toString()} onValueChange={(v) => setNewClassForm({ ...newClassForm, semester: parseInt(v) })}>
                   <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {[1,2,3,4,5,6,7,8].map((sem) => (
+                    {(newClassForm.program === "msc" ? [1, 2, 3] : [1, 2, 3, 4, 5, 6, 7, 8]).map((sem) => (
                       <SelectItem key={sem} value={sem.toString()}>{sem}{sem === 1 ? 'st' : sem === 2 ? 'nd' : sem === 3 ? 'rd' : 'th'} Semester</SelectItem>
                     ))}
                   </SelectContent>
