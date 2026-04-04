@@ -36,6 +36,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Helper to remove undefined values from an object
+function removeUndefined(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+}
+
 // POST - Create a schedule change (cancel, reschedule, etc.)
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { scheduleId, changeType, reason, effectiveDate, newDay, newTimeSlotId, newRoomId } = body;
+    const { scheduleId, changeType, reason, effectiveDate, newDay, newTimeSlotId, newRoomId, newStartTime, newEndTime } = body;
 
     // Get the original schedule
     const schedule = await getSchedule(scheduleId);
@@ -81,8 +92,8 @@ export async function POST(request: NextRequest) {
       newRoomNumber = newRoom?.roomNumber;
     }
 
-    // Create schedule change record
-    const scheduleChange = await createScheduleChange({
+    // Build the schedule change data - only include defined values
+    const changeData: Record<string, any> = {
       scheduleId,
       changeType,
       originalDay: schedule.dayOfWeek,
@@ -91,10 +102,6 @@ export async function POST(request: NextRequest) {
       originalEndTime: schedule.endTime,
       originalRoomId: schedule.roomId,
       originalRoomNumber: schedule.roomNumber,
-      newDay,
-      newTimeSlotId,
-      newRoomId,
-      newRoomNumber,
       effectiveDate,
       reason,
       courseName: schedule.courseName,
@@ -103,11 +110,22 @@ export async function POST(request: NextRequest) {
       teacherName: schedule.teacherName,
       year: schedule.year,
       semester: schedule.semester,
-      program: schedule.program || body.program || "bsc", // Changed from section
+      program: schedule.program || body.program || "bsc",
       changedBy: session.user.id,
       changedByName: user?.fullName || "Unknown",
       isActive: true,
-    });
+    };
+
+    // Only add new values if they are defined
+    if (newDay) changeData.newDay = newDay;
+    if (newTimeSlotId) changeData.newTimeSlotId = newTimeSlotId;
+    if (newStartTime) changeData.newStartTime = newStartTime;
+    if (newEndTime) changeData.newEndTime = newEndTime;
+    if (newRoomId) changeData.newRoomId = newRoomId;
+    if (newRoomNumber) changeData.newRoomNumber = newRoomNumber;
+
+    // Create schedule change record
+    const scheduleChange = await createScheduleChange(removeUndefined(changeData));
 
     // Create auto notification
     const notificationTitle = getNotificationTitle(changeType, schedule);
@@ -120,7 +138,7 @@ export async function POST(request: NextRequest) {
       scheduleChangeId: scheduleChange.id,
       affectedYear: schedule.year,
       affectedSemester: schedule.semester,
-      affectedProgram: schedule.program || body.program || "bsc", // Changed from affectedSection
+      affectedProgram: schedule.program || body.program || "bsc",
       postedBy: session.user.id,
       postedByName: user?.fullName || "Unknown",
       isPinned: false,

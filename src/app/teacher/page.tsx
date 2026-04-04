@@ -291,6 +291,110 @@ function NotificationBar({
   );
 }
 
+// Schedule Card Component - Separate for cleaner code
+function ScheduleCard({ 
+  schedule, 
+  isSelected, 
+  onSelect,
+  onCancel,
+  onReschedule 
+}: { 
+  schedule: TeacherSchedule;
+  isSelected: boolean;
+  onSelect: () => void;
+  onCancel: () => void;
+  onReschedule: () => void;
+}) {
+  const typeColors = schedule.classType === "lab" ? classColors.lab : classColors.theory;
+  
+  const formatTime = (time: string) => {
+    if (!time) return "";
+    const [hours, minutes] = time.split(":");
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
+  return (
+    <div className="relative">
+      <div
+        className={cn(
+          "p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-lg",
+          typeColors.bg,
+          typeColors.border,
+          isSelected && "ring-2 ring-emerald-500"
+        )}
+        onClick={onSelect}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-sm">{schedule.courseCode}</h3>
+              <Badge className={cn("text-[9px]", typeColors.badge)}>
+                {schedule.classType === "lab" ? "LAB" : "THEORY"}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{schedule.courseName}</p>
+          </div>
+        </div>
+        
+        {/* Info Grid */}
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Calendar className="w-3.5 h-3.5" />
+            <span className="capitalize">{schedule.dayOfWeek}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            <span>{formatTime(schedule.startTime)}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5" />
+            <span>{schedule.roomNumber}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>{schedule.semester}{schedule.semester === 1 ? 'st' : schedule.semester === 2 ? 'nd' : schedule.semester === 3 ? 'rd' : 'th'} Sem ({schedule.program?.toUpperCase()})</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Action Buttons - OUTSIDE the clickable card area */}
+      <AnimatePresence>
+        {isSelected && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            className="grid grid-cols-2 gap-2"
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600 border-red-300 bg-red-50 hover:bg-red-100 h-9 text-xs font-medium"
+              onClick={onCancel}
+            >
+              <Ban className="w-3.5 h-3.5 mr-1.5" />
+              Cancel Class
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-cyan-600 border-cyan-300 bg-cyan-50 hover:bg-cyan-100 h-9 text-xs font-medium"
+              onClick={onReschedule}
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Reschedule
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // Main Teacher Dashboard Component
 export default function TeacherDashboard() {
   const { data: session, status } = useSession();
@@ -487,6 +591,24 @@ export default function TeacherDashboard() {
   // Get unique values for filters
   const uniqueSemesters = [...new Set(schedules.map(s => s.semester))].sort((a, b) => a - b);
   const uniquePrograms = [...new Set(schedules.map(s => s.program))];
+
+  // Open Cancel Dialog
+  const handleOpenCancel = (schedule: TeacherSchedule) => {
+    setSelectedSchedule(schedule);
+    setCancelReason("");
+    setShowCancelDialog(true);
+  };
+
+  // Open Reschedule Dialog
+  const handleOpenReschedule = (schedule: TeacherSchedule) => {
+    setSelectedSchedule(schedule);
+    setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
+    setUseCustomTime(false);
+    setCustomStartTime(schedule.startTime || "09:00");
+    setCustomEndTime(schedule.endTime || "10:00");
+    setNewRoomId("");
+    setShowRescheduleDialog(true);
+  };
 
   // Handle Cancel Class
   const handleCancelClass = async () => {
@@ -820,102 +942,22 @@ export default function TeacherDashboard() {
                 if (dayOrder !== dayOrderB) return dayOrder - dayOrderB;
                 return (a.startTime || "").localeCompare(b.startTime || "");
               })
-              .map((schedule, index) => {
-                const typeColors = schedule.classType === "lab" ? colors.lab : colors.theory;
-                const isSelected = selectedSchedule?.id === schedule.id;
-                
-                return (
-                  <motion.div
-                    key={schedule.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.03 }}
-                    className={cn(
-                      "p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-lg",
-                      typeColors.bg,
-                      typeColors.border,
-                      isSelected && "ring-2 ring-emerald-500"
-                    )}
-                    onClick={() => setSelectedSchedule(isSelected ? null : schedule)}
-                  >
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-bold text-sm">{schedule.courseCode}</h3>
-                          <Badge className={cn("text-[9px]", typeColors.badge)}>
-                            {schedule.classType === "lab" ? "LAB" : "THEORY"}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">{schedule.courseName}</p>
-                      </div>
-                    </div>
-                    
-                    {/* Info Grid */}
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span className="capitalize">{schedule.dayOfWeek}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{formatTime(schedule.startTime)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{schedule.roomNumber}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <GraduationCap className="w-3.5 h-3.5" />
-                        <span>{schedule.semester}{schedule.semester === 1 ? 'st' : schedule.semester === 2 ? 'nd' : schedule.semester === 3 ? 'rd' : 'th'} Sem ({schedule.program?.toUpperCase()})</span>
-                      </div>
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <AnimatePresence>
-                      {isSelected && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t"
-                        >
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 border-red-200 hover:bg-red-50 h-8 text-[10px]"
-                            onClick={(e) => { 
-                              e.stopPropagation();
-                              setCancelReason("");
-                              setShowCancelDialog(true);
-                            }}
-                          >
-                            <Ban className="w-3 h-3 mr-1" />
-                            Cancel Class
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-cyan-600 border-cyan-200 hover:bg-cyan-50 h-8 text-[10px]"
-                            onClick={(e) => { 
-                              e.stopPropagation();
-                              setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
-                              setUseCustomTime(false);
-                              setCustomStartTime(schedule.startTime || "09:00");
-                              setCustomEndTime(schedule.endTime || "10:00");
-                              setNewRoomId("");
-                              setShowRescheduleDialog(true);
-                            }}
-                          >
-                            <RefreshCw className="w-3 h-3 mr-1" />
-                            Reschedule
-                          </Button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                );
-              })}
+              .map((schedule, index) => (
+                <motion.div
+                  key={schedule.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                >
+                  <ScheduleCard
+                    schedule={schedule}
+                    isSelected={selectedSchedule?.id === schedule.id}
+                    onSelect={() => setSelectedSchedule(selectedSchedule?.id === schedule.id ? null : schedule)}
+                    onCancel={() => handleOpenCancel(schedule)}
+                    onReschedule={() => handleOpenReschedule(schedule)}
+                  />
+                </motion.div>
+              ))}
           </div>
         ) : (
           <Card className="shadow-md">
@@ -975,31 +1017,19 @@ export default function TeacherDashboard() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-red-600 border-red-200 hover:bg-red-50 h-7 text-[10px]"
-                              onClick={(e) => { 
-                                e.stopPropagation();
-                                setCancelReason("");
-                                setShowCancelDialog(true);
-                              }}
+                              className="text-red-600 border-red-300 bg-red-50 hover:bg-red-100 h-8 text-xs"
+                              onClick={() => handleOpenCancel(schedule)}
                             >
-                              <Ban className="w-3 h-3 mr-1" />
+                              <Ban className="w-3.5 h-3.5 mr-1.5" />
                               Cancel
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-cyan-600 border-cyan-200 hover:bg-cyan-50 h-7 text-[10px]"
-                              onClick={(e) => { 
-                                e.stopPropagation();
-                                setRescheduleData({ newDay: "", timeSlotId: "", reason: "" });
-                                setUseCustomTime(false);
-                                setCustomStartTime(schedule.startTime || "09:00");
-                                setCustomEndTime(schedule.endTime || "10:00");
-                                setNewRoomId("");
-                                setShowRescheduleDialog(true);
-                              }}
+                              className="text-cyan-600 border-cyan-300 bg-cyan-50 hover:bg-cyan-100 h-8 text-xs"
+                              onClick={() => handleOpenReschedule(schedule)}
                             >
-                              <RefreshCw className="w-3 h-3 mr-1" />
+                              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                               Reschedule
                             </Button>
                           </motion.div>
