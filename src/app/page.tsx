@@ -33,6 +33,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { usePWA, usePushNotifications } from "@/hooks/use-pwa";
+import { useRealtimeNotices, useRealtimeSchedules, useRealtimeScheduleChanges, type Notice as RealtimeNotice, type Schedule as RealtimeScheduleType, type ScheduleChange } from "@/hooks/use-realtime-data";
 
 // Types
 interface Schedule {
@@ -473,27 +474,41 @@ function NotificationList({
   );
 }
 
-// Notification Section Component (for home page)
+// Notification Section Component (for home page) - Now with Real-time Updates
 function NotificationSection() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { notices, loading } = useRealtimeNotices({ limitCount: 20 });
+  
+  // Transform notices to notification format
+  const notifications: NotificationItem[] = notices.map((notice) => {
+    let type: "class_cancelled" | "class_rescheduled" | "room_changed" | "general" = "general";
+    if (notice.changeType === "cancelled") type = "class_cancelled";
+    else if (notice.changeType === "rescheduled") type = "class_rescheduled";
+    else if (notice.changeType === "room_changed") type = "room_changed";
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch("/api/notifications");
-        const data = await res.json();
-        if (data.success) {
-          setNotifications(data.data || []);
+    let timestamp = new Date().toISOString();
+    if (notice.createdAt) {
+      if (typeof notice.createdAt === "string") {
+        timestamp = notice.createdAt;
+      } else if (typeof notice.createdAt === "object" && notice.createdAt !== null) {
+        const ts = notice.createdAt as { seconds?: number; _seconds?: number };
+        if (ts.seconds || ts._seconds) {
+          timestamp = new Date((ts.seconds || ts._seconds || 0) * 1000).toISOString();
         }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-      } finally {
-        setLoading(false);
       }
+    }
+
+    return {
+      id: notice.id,
+      type,
+      title: notice.title,
+      message: notice.content,
+      semester: notice.affectedSemester,
+      program: notice.affectedProgram,
+      courseCode: notice.content?.match(/[A-Z]+-\d+/)?.[0] || undefined,
+      timestamp,
+      isRead: false,
     };
-    fetchNotifications();
-  }, []);
+  });
 
   return (
     <Card className="overflow-hidden">

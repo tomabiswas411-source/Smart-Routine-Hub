@@ -107,26 +107,26 @@ export default function LoginPage() {
     setPinError("");
 
     try {
-      // PIN to email/password mapping (demo PINs)
-      const pinMap: Record<string, { email: string; password: string }> = {
-        "123456": { email: "admin@ice.ru.ac.bd", password: "password123" },
-        "654321": { email: "rahman@ru.ac.bd", password: "password123" },
-        "111111": { email: "karim@ru.ac.bd", password: "password123" },
-        "222222": { email: "ahmed@ru.ac.bd", password: "password123" },
-      };
-
-      const credentials = pinMap[pinCode];
+      // Verify PIN via API
+      const pinResponse = await fetch("/api/auth/pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: pinCode }),
+      });
       
-      if (!credentials) {
-        setPinError("Invalid PIN code");
+      const pinData = await pinResponse.json();
+      
+      if (!pinData.success) {
+        setPinError(pinData.error || "Invalid PIN code");
         setPin("");
         setIsPinLoading(false);
         return;
       }
 
+      // Sign in with credentials from PIN verification
       const result = await signIn("credentials", {
-        email: credentials.email,
-        password: credentials.password,
+        email: pinData.data.email,
+        password: pinData.data.password,
         redirect: false,
       });
 

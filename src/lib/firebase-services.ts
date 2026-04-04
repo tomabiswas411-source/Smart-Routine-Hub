@@ -566,7 +566,8 @@ export async function getStats() {
     ]);
 
     const currentMonth = new Date().getMonth() + 1;
-    const currentSemester = currentMonth >= 1 && currentMonth <= 6 ? "Spring 2025" : "Fall 2025";
+    const currentYear = new Date().getFullYear();
+    const currentSemester = currentMonth >= 1 && currentMonth <= 6 ? `Spring ${currentYear}` : `Fall ${currentYear}`;
 
     return {
       totalTeachers: teachers.size,
@@ -578,14 +579,16 @@ export async function getStats() {
     };
   } catch (error) {
     console.error("Error getting stats:", error);
-    return {
-      totalTeachers: 0,
-      activeCourses: 0,
-      totalRooms: 0,
-      totalSchedules: 0,
-      pendingNotices: 0,
-      currentSemester: "Spring 2025",
-    };
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+      return {
+        totalTeachers: 0,
+        activeCourses: 0,
+        totalRooms: 0,
+        totalSchedules: 0,
+        pendingNotices: 0,
+        currentSemester: currentMonth >= 1 && currentMonth <= 6 ? `Spring ${currentYear}` : `Fall ${currentYear}`,
+      };
   }
 }
 

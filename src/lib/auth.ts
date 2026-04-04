@@ -60,5 +60,7 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET || "ice-ru-department-secret-key-2025",
+  secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === "production" 
+    ? (() => { throw new Error("NEXTAUTH_SECRET environment variable is required in production"); })()
+    : "ice-ru-dev-secret-key-2025"),
 };
