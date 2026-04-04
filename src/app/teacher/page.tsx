@@ -9,7 +9,7 @@ import {
   Ban, RefreshCw, MapPin, Bell,
   Building,
   AlignJustify, Grid3X3, BellOff, CheckCircle,
-  DoorOpen, Sparkles,
+  Sparkles,
   GraduationCap, Funnel, FlaskConical, Presentation,
   XCircle, CalendarClock, Info, ChevronUp, Check,
   AlertTriangle
