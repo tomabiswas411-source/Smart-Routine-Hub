@@ -750,22 +750,40 @@ export default function AdminDashboard() {
 
   // Library Link CRUD
   const handleSaveLibraryLink = async () => {
-    if (!libraryForm.url.trim()) {
+    console.log("handleSaveLibraryLink called", libraryForm);
+    
+    if (!libraryForm.url || !libraryForm.url.trim()) {
       toast({ title: "Error", description: "Please enter a URL", variant: "destructive" });
+      return;
+    }
+    
+    if (!libraryForm.degree || !libraryForm.semester) {
+      toast({ title: "Error", description: "Please select degree and semester", variant: "destructive" });
       return;
     }
     
     setSubmitting(true);
     try {
+      const payload = {
+        degree: libraryForm.degree,
+        semester: libraryForm.semester,
+        url: libraryForm.url.trim(),
+        title: libraryForm.title?.trim() || null,
+      };
+      
+      console.log("Sending payload:", payload);
+      
       const res = await fetch("/api/library-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(libraryForm),
+        body: JSON.stringify(payload),
       });
       
       const data = await res.json();
+      console.log("API response:", data);
+      
       if (data.success) {
-        toast({ title: editingItem ? "Link updated" : "Link added" });
+        toast({ title: "Success", description: editingItem ? "Link updated successfully" : "Link added successfully" });
         setShowLibraryDialog(false);
         resetLibraryForm();
         fetchAllData();
@@ -774,7 +792,7 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error("Error saving library link:", error);
-      toast({ title: "Error", description: "Failed to save library link.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to save library link. Please try again.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -2678,72 +2696,98 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Library Link Dialog - Mobile Friendly */}
+      {/* Library Link Dialog - Simple and Working */}
       <Dialog open={showLibraryDialog} onOpenChange={setShowLibraryDialog}>
-        <DialogContent className="max-w-md w-[95vw] sm:w-full">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
-                <Link className="w-4 h-4 text-white" />
-              </div>
-              {editingItem ? "Edit Library Link" : "Add Library Link"}
-            </DialogTitle>
+            <DialogTitle>Add Library Link</DialogTitle>
           </DialogHeader>
+          
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Degree</Label>
-                <Select value={libraryForm.degree} onValueChange={(v) => setLibraryForm({ ...libraryForm, degree: v, semester: v === 'msc' && libraryForm.semester > 3 ? 1 : libraryForm.semester })}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bsc">B.Sc.</SelectItem>
-                    <SelectItem value="msc">M.Sc.</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Semester</Label>
-                <Select value={libraryForm.semester.toString()} onValueChange={(v) => setLibraryForm({ ...libraryForm, semester: parseInt(v) })}>
-                  <SelectTrigger className="h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {libraryForm.degree === 'msc' ? [1, 2, 3] : [1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                      <SelectItem key={sem} value={sem.toString()}>
-                        {sem}{getOrdinal(sem)} Semester
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {/* Degree Select */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Google Drive URL *</Label>
+              <Label>Degree</Label>
+              <Select 
+                value={libraryForm.degree} 
+                onValueChange={(v) => {
+                  const newSemester = v === 'msc' && libraryForm.semester > 3 ? 1 : libraryForm.semester;
+                  setLibraryForm({ ...libraryForm, degree: v, semester: newSemester });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select degree" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bsc">B.Sc.</SelectItem>
+                  <SelectItem value="msc">M.Sc.</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Semester Select */}
+            <div className="space-y-2">
+              <Label>Semester</Label>
+              <Select 
+                value={libraryForm.semester.toString()} 
+                onValueChange={(v) => setLibraryForm({ ...libraryForm, semester: parseInt(v) })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select semester" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(libraryForm.degree === 'msc' ? [1, 2, 3] : [1, 2, 3, 4, 5, 6, 7, 8]).map((sem) => (
+                    <SelectItem key={sem} value={sem.toString()}>
+                      {sem}{getOrdinal(sem)} Semester
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* URL Input */}
+            <div className="space-y-2">
+              <Label>Google Drive URL *</Label>
               <Input
-                className="h-11"
                 value={libraryForm.url}
                 onChange={(e) => setLibraryForm({ ...libraryForm, url: e.target.value })}
                 placeholder="https://drive.google.com/..."
               />
-              <p className="text-xs text-muted-foreground">Paste the Google Drive folder link here</p>
             </div>
+
+            {/* Title Input */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Title (Optional)</Label>
+              <Label>Title (Optional)</Label>
               <Input
-                className="h-11"
                 value={libraryForm.title}
                 onChange={(e) => setLibraryForm({ ...libraryForm, title: e.target.value })}
                 placeholder="e.g., 1st Semester Resources"
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 pt-2">
-            <Button variant="outline" onClick={() => setShowLibraryDialog(false)} className="w-full sm:w-auto">Cancel</Button>
-            <Button onClick={handleSaveLibraryLink} disabled={submitting} className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white">
-              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editingItem ? "Update" : "Add"} Link
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 justify-end">
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={() => setShowLibraryDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={handleSaveLibraryLink} 
+              disabled={submitting}
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                editingItem ? "Update Link" : "Add Link"
+              )}
             </Button>
           </div>
         </DialogContent>
