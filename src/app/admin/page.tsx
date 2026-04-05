@@ -249,7 +249,6 @@ export default function AdminDashboard() {
     code: "",
     creditHours: 3,
     type: "theory",
-    year: 1,
     semester: 1,
     program: "bsc",
   });
@@ -508,7 +507,7 @@ export default function AdminDashboard() {
   };
 
   const resetCourseForm = () => {
-    setCourseForm({ name: "", code: "", creditHours: 3, type: "theory", year: 1, semester: 1, program: "bsc" });
+    setCourseForm({ name: "", code: "", creditHours: 3, type: "theory", semester: 1, program: "bsc" });
     setEditingItem(null);
   };
 
@@ -1140,6 +1139,7 @@ export default function AdminDashboard() {
                                     creditHours: course.creditHours,
                                     type: course.type,
                                     semester: course.semester,
+                                    program: course.program || "bsc",
                                   });
                                   setShowCourseDialog(true);
                                 }}

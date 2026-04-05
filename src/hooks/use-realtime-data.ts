@@ -163,7 +163,7 @@ export function useRealtimeSchedules(filters?: {
           data = data.filter(s => s.program === filters.program);
         }
         if (filters?.day) {
-          data = data.filter(s => s.dayOfWeek?.toLowerCase() === filters.day.toLowerCase());
+          data = data.filter(s => s.dayOfWeek?.toLowerCase() === filters.day!.toLowerCase());
         }
         if (filters?.teacherId) {
           data = data.filter(s => s.teacherId === filters.teacherId);

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Remove password from response
-    const { password: _, ...userWithoutPassword } = user as { password?: string; [key: string]: unknown };
+    const { password: _, ...userWithoutPassword } = user as unknown as { password?: string; [key: string]: unknown };
 
     return NextResponse.json({ success: true, data: userWithoutPassword });
   } catch (error) {
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       isActive: isActive ?? true,
     });
 
-    const { password: _, ...userWithoutPassword } = user as { password?: string; [key: string]: unknown };
+    const { password: _, ...userWithoutPassword } = user as unknown as { password?: string; [key: string]: unknown };
 
     return NextResponse.json({ success: true, data: userWithoutPassword });
   } catch (error) {

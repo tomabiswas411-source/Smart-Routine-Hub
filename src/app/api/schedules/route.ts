@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSchedules, getScheduleChanges, createSchedule } from "@/lib/firebase-services";
+import type { Schedule } from "@/lib/firebase-services";
 import { doc, updateDoc, deleteDoc, serverTimestamp, query, where, getDocs, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -31,7 +32,7 @@ async function checkScheduleConflicts(data: {
       where("dayOfWeek", "==", data.dayOfWeek.toLowerCase())
     );
     const snapshot = await getDocs(schedulesQuery);
-    const schedules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const schedules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Schedule[];
 
     for (const schedule of schedules) {
       // Skip the schedule being edited

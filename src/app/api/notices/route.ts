@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getNotices, createNotice, getNotice } from "@/lib/firebase-services";
+import type { Notice } from "@/lib/firebase-services";
 import { doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
     if (affectedSemester) noticeData.affectedSemester = affectedSemester;
     if (affectedProgram) noticeData.affectedProgram = affectedProgram;
 
-    const notice = await createNotice(noticeData);
+    const notice = await createNotice(noticeData as Omit<Notice, "id" | "createdAt" | "updatedAt">);
 
     return NextResponse.json({ 
       success: true, 

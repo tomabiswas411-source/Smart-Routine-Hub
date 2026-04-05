@@ -196,12 +196,11 @@ export function usePWA() {
           badge: data.badge || '/icons/badge-72x72.png',
           tag: data.tag || 'routine-notification',
           data: data.data,
-          vibrate: [100, 50, 100],
           actions: [
             { action: 'view', title: 'View Details' },
             { action: 'dismiss', title: 'Dismiss' }
           ]
-        });
+        } as NotificationOptions);
       } else {
         new Notification(data.title, {
           body: data.body,
@@ -244,7 +243,7 @@ export function usePushNotifications() {
       
       const pushSubscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as unknown as BufferSource
       });
 
       setSubscription(pushSubscription);

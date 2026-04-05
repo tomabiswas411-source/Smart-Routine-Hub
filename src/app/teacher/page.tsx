@@ -448,7 +448,18 @@ export default function TeacherDashboard() {
   // Convert notices to notifications
   useEffect(() => {
     if (notices.length > 0) {
-      setNotifications(notices.map((n: Notice) => ({ ...n, isRead: false })));
+      setNotifications(notices.map((n: Notice) => ({ 
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        type: n.category,
+        changeType: n.changeType,
+        courseCode: n.content?.match(/[A-Z]+-\d+/)?.[0],
+        affectedSemester: n.affectedSemester,
+        affectedProgram: n.affectedProgram,
+        createdAt: n.createdAt,
+        isRead: false 
+      })));
     }
   }, [notices]);
 
@@ -457,7 +468,7 @@ export default function TeacherDashboard() {
     const map: Record<string, ScheduleChange> = {};
     changes.forEach((change) => {
       if (change.isActive && change.scheduleId) {
-        if (!map[change.scheduleId] || (change.createdAt && map[change.scheduleId].createdAt && new Date(change.createdAt) > new Date(map[change.scheduleId].createdAt))) {
+        if (!map[change.scheduleId] || (change.createdAt && map[change.scheduleId].createdAt && toDate(change.createdAt).getTime() > toDate(map[change.scheduleId].createdAt).getTime())) {
           map[change.scheduleId] = change;
         }
       }
@@ -515,7 +526,7 @@ export default function TeacherDashboard() {
   const getNext7Days = () => {
     const today = new Date();
     const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    const result = [];
+    const result: { date: Date; dayName: string; schedules: TeacherSchedule[] }[] = [];
     for (let i = 0; i < 7; i++) {
       const date = addDays(today, i);
       const dayName = dayNames[date.getDay()];

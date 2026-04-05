@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       const schedules = await getSchedules({ teacherId });
 
       // Remove password from response
-      const { password: _, ...teacherWithoutPassword } = teacher as { password?: string; [key: string]: unknown };
+      const { password: _, ...teacherWithoutPassword } = teacher as unknown as { password?: string; [key: string]: unknown };
 
       return NextResponse.json({
         success: true,
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // Remove passwords from response
     const teachersWithoutPasswords = filteredTeachers.map((teacher) => {
-      const { password: _, ...teacherWithoutPassword } = teacher as { password?: string; [key: string]: unknown };
+      const { password: _, ...teacherWithoutPassword } = teacher as unknown as { password?: string; [key: string]: unknown };
       return teacherWithoutPassword;
     });
 

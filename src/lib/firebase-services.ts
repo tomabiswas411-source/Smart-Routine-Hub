@@ -553,7 +553,7 @@ export async function updateNotice(id: string, data: Partial<Notice>): Promise<v
 // ============ ACADEMIC CALENDAR ============
 export async function getCalendarEvents(type?: string): Promise<AcademicCalendarEvent[]> {
   try {
-    const constraints: unknown[] = [];
+    const constraints: ReturnType<typeof where>[] = [];
     if (type) {
       constraints.push(where("eventType", "==", type));
     }

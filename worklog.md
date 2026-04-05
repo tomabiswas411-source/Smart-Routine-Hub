@@ -493,3 +493,63 @@ Stage Summary:
 - Firebase rules are working properly
 - All API calls returning 200 status
 - Notification system fully functional with read tracking
+
+---
+Task ID: 14
+Agent: Main Agent
+Task: Prepare Project for GitHub and Vercel Deployment
+
+Work Log:
+- Moved Firebase config to environment variables:
+  - Updated firebase.ts to use process.env for all config values
+  - All Firebase keys now use NEXT_PUBLIC_ prefix
+- Updated .env file with all Firebase environment variables
+- Created .env.example file with documentation for all required variables
+- Updated .gitignore to allow .env.example but ignore .env
+- Updated next.config.ts for Vercel deployment:
+  - Removed standalone output
+  - Added proper image optimization settings
+  - Added environment variable declarations
+- Updated package.json:
+  - Changed name to "ice-ru-department-management"
+  - Updated version to "1.0.0"
+  - Simplified build scripts for Vercel
+- Fixed multiple TypeScript errors:
+  - Added type imports for Notice, ScheduleChange, Schedule
+  - Fixed type assertions for password removal
+  - Fixed notification type mapping in teacher dashboard
+  - Fixed date handling in schedule change map
+  - Fixed next-auth types for name and role
+  - Fixed Firebase settings (removed deprecated experimentalForceOwningTab)
+  - Fixed PWA notification options
+  - Fixed Uint8Array type for push subscription
+- Removed unnecessary folders:
+  - Deleted examples/ folder (websocket demo)
+  - Deleted skills/ folder (not needed for production)
+- Build now compiles successfully without errors
+
+Files Modified:
+1. /src/lib/firebase.ts - Environment variables for Firebase config
+2. /.env - Added Firebase environment variables
+3. /.env.example - Created with documentation
+4. /.gitignore - Allow .env.example
+5. /next.config.ts - Production configuration
+6. /package.json - Updated name and scripts
+7. /src/types/next-auth.d.ts - Added name property
+8. /src/lib/auth.ts - Pass name through JWT/session
+9. /src/app/admin/page.tsx - Fixed courseForm type
+10. /src/app/api/notices/route.ts - Fixed Notice type
+11. /src/app/api/schedule-changes/route.ts - Fixed ScheduleChange type
+12. /src/app/api/schedules/route.ts - Fixed Schedule type
+13. /src/app/api/teachers/route.ts - Fixed type assertions
+14. /src/app/api/user/route.ts - Fixed type assertions
+15. /src/app/teacher/page.tsx - Fixed multiple type issues
+16. /src/hooks/use-pwa.ts - Fixed notification options
+17. /src/hooks/use-realtime-data.ts - Fixed day filter type
+18. /src/lib/firebase-services.ts - Fixed constraints type
+
+Stage Summary:
+- Project is ready for GitHub deployment
+- Build compiles successfully
+- All environment variables documented
+- Production configuration optimized for Vercel
