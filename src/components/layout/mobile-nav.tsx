@@ -5,7 +5,7 @@ import { Home, CalendarDays, User, BookOpen, Bell, BellOff } from "lucide-react"
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSettingsStore } from "@/store/settings-store";
 import {
   Sheet,
@@ -101,6 +101,7 @@ function MobileBottomNavContent() {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const hasMarkedAsRead = useRef(false);
 
   // Set client-side flag
   useEffect(() => {
@@ -140,6 +141,7 @@ function MobileBottomNavContent() {
   // Fetch notifications when drawer opens
   useEffect(() => {
     if (notificationDrawerOpen) {
+      hasMarkedAsRead.current = false; // Reset the flag when drawer opens
       const fetchAndMark = async () => {
         setNotificationsLoading(true);
         try {
@@ -154,7 +156,8 @@ function MobileBottomNavContent() {
 
   // Mark all notifications as read when drawer closes
   useEffect(() => {
-    if (!notificationDrawerOpen && notifications.length > 0) {
+    if (!notificationDrawerOpen && notifications.length > 0 && !hasMarkedAsRead.current) {
+      hasMarkedAsRead.current = true; // Mark as processed to prevent infinite loop
       // Mark all current notifications as read
       const allIds = [...new Set([...readIds, ...notifications.map(n => n.id)])];
       setReadIds(allIds);
@@ -163,7 +166,7 @@ function MobileBottomNavContent() {
       // Update local notification state
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     }
-  }, [notificationDrawerOpen, notifications, readIds]);
+  }, [notificationDrawerOpen, notifications.length, readIds]);
 
   // Use header links from settings, fallback to default
   const navItems = settings.headerLinks?.length > 0 
