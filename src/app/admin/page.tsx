@@ -1667,6 +1667,7 @@ export default function AdminDashboard() {
                                 variant="outline"
                                 className="w-full h-7 text-xs"
                                 onClick={() => {
+                                  setEditingItem(null);
                                   setLibraryForm({ degree: 'bsc', semester: sem, url: '', title: '' });
                                   setShowLibraryDialog(true);
                                 }}
@@ -1756,6 +1757,7 @@ export default function AdminDashboard() {
                                 variant="outline"
                                 className="w-full h-7 text-xs"
                                 onClick={() => {
+                                  setEditingItem(null);
                                   setLibraryForm({ degree: 'msc', semester: sem, url: '', title: '' });
                                   setShowLibraryDialog(true);
                                 }}
@@ -2672,18 +2674,23 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Library Link Dialog */}
+      {/* Library Link Dialog - Mobile Friendly */}
       <Dialog open={showLibraryDialog} onOpenChange={setShowLibraryDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingItem ? "Edit Library Link" : "Add Library Link"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                <Link className="w-4 h-4 text-white" />
+              </div>
+              {editingItem ? "Edit Library Link" : "Add Library Link"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Degree</Label>
+                <Label className="text-sm font-medium">Degree</Label>
                 <Select value={libraryForm.degree} onValueChange={(v) => setLibraryForm({ ...libraryForm, degree: v, semester: v === 'msc' && libraryForm.semester > 3 ? 1 : libraryForm.semester })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -2693,9 +2700,9 @@ export default function AdminDashboard() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Semester</Label>
+                <Label className="text-sm font-medium">Semester</Label>
                 <Select value={libraryForm.semester.toString()} onValueChange={(v) => setLibraryForm({ ...libraryForm, semester: parseInt(v) })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -2709,25 +2716,28 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Google Drive URL *</Label>
+              <Label className="text-sm font-medium">Google Drive URL *</Label>
               <Input
+                className="h-11"
                 value={libraryForm.url}
                 onChange={(e) => setLibraryForm({ ...libraryForm, url: e.target.value })}
                 placeholder="https://drive.google.com/..."
               />
+              <p className="text-xs text-muted-foreground">Paste the Google Drive folder link here</p>
             </div>
             <div className="space-y-2">
-              <Label>Title (Optional)</Label>
+              <Label className="text-sm font-medium">Title (Optional)</Label>
               <Input
+                className="h-11"
                 value={libraryForm.title}
                 onChange={(e) => setLibraryForm({ ...libraryForm, title: e.target.value })}
                 placeholder="e.g., 1st Semester Resources"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLibraryDialog(false)}>Cancel</Button>
-            <Button onClick={handleSaveLibraryLink} disabled={submitting}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowLibraryDialog(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={handleSaveLibraryLink} disabled={submitting} className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600">
               {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingItem ? "Update" : "Add"} Link
             </Button>
