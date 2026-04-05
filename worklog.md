@@ -631,3 +631,47 @@ Stage Summary:
 - Admin can manage all 11 links (8 BSc + 3 MSc) from dashboard
 - Mobile navigation properly navigates to library page
 - All lint checks pass
+
+---
+Task ID: 17
+Agent: Main Agent
+Task: Add All Library Links Directly to Database and Add "Others" Category
+
+Work Log:
+- Updated Prisma schema for "others" category support:
+  - Changed degree field comment to include "others"
+  - Changed semester field to default(0) for others (semester 0)
+- Created seed script (scripts/seed-library-links.ts) with all library links:
+  - M.Sc. 1st, 2nd, 3rd Semester links
+  - B.Sc. 1st through 8th Semester links (7th is empty)
+  - Others category link
+- Ran seed script to populate database with all 12 links
+- Updated LibraryView component in page.tsx:
+  - Added "Others" button with purple gradient styling
+  - Clicking "Others" directly opens the Google Drive link
+  - Added ExternalLink icon to indicate external link
+- Updated Admin Dashboard library management section:
+  - Added "Others (Additional Resources)" card after M.Sc. section
+  - Purple gradient styling for consistency
+  - Edit/Delete functionality for Others link
+- Updated API route to accept "others" as valid degree:
+  - Changed validation to include "others" in valid degrees
+  - Set maxSemester to 0 for "others" degree
+  - Updated error messages accordingly
+
+Files Modified:
+1. /prisma/schema.prisma - Added support for "others" category
+2. /scripts/seed-library-links.ts - Created seed script with all links
+3. /src/app/page.tsx - Added Others option in LibraryView
+4. /src/app/admin/page.tsx - Added Others card in library management
+5. /src/app/api/library-links/route.ts - Updated validation for "others"
+
+Stage Summary:
+- All 12 library links added directly to database:
+  - M.Sc.: 1st, 2nd, 3rd Semester
+  - B.Sc.: 1st-8th Semester (7th has no link)
+  - Others: Additional resources
+- LibraryView now shows 3 options: B.Sc., M.Sc., Others
+- Admin dashboard shows all categories with Edit/Delete functionality
+- API properly handles "others" degree with semester 0
+- No need for admin form to add links - all pre-populated

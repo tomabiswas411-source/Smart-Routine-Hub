@@ -2071,6 +2071,30 @@ function LibraryView() {
                     </div>
                   </div>
                 </motion.button>
+
+                {/* Others Option */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    const othersLink = libraryLinks.find(l => l.degree === "others");
+                    if (othersLink?.url) {
+                      window.open(othersLink.url, '_blank');
+                    }
+                  }}
+                  className="p-6 rounded-2xl border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/40 dark:to-pink-900/20 hover:border-purple-400 dark:hover:border-purple-600 transition-all duration-300"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-600 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                      <BookOpen className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <h3 className="text-lg font-bold text-foreground">Others</h3>
+                      <p className="text-sm text-muted-foreground">Additional Resources & Materials</p>
+                    </div>
+                    <ExternalLink className="w-5 h-5 text-purple-500" />
+                  </div>
+                </motion.button>
               </div>
             </motion.div>
           ) : (

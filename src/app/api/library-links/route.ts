@@ -70,20 +70,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate degree
-    if (!["bsc", "msc"].includes(degree)) {
+    if (!["bsc", "msc", "others"].includes(degree)) {
       console.log("Validation failed - invalid degree:", degree);
       return NextResponse.json(
-        { success: false, error: "Degree must be 'bsc' or 'msc'" },
+        { success: false, error: "Degree must be 'bsc', 'msc', or 'others'" },
         { status: 400 }
       );
     }
 
     // Validate semester
-    const maxSemester = degree === "msc" ? 3 : 8;
-    if (semester < 1 || semester > maxSemester) {
+    let maxSemester = 8;
+    if (degree === "msc") maxSemester = 3;
+    if (degree === "others") maxSemester = 0;
+    
+    if (semester < 0 || semester > maxSemester) {
       console.log("Validation failed - invalid semester:", semester);
       return NextResponse.json(
-        { success: false, error: `Semester must be between 1 and ${maxSemester} for ${degree.toUpperCase()}` },
+        { success: false, error: `Semester must be between 0 and ${maxSemester} for ${degree.toUpperCase()}` },
         { status: 400 }
       );
     }

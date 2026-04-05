@@ -1790,6 +1790,92 @@ export default function AdminDashboard() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Others Links */}
+                <Card className="card-3d card-inner-glow overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-purple-500 to-pink-500" />
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <BookOpen className="w-5 h-5 text-purple-500" />
+                      Others (Additional Resources)
+                    </CardTitle>
+                    <CardDescription>Extra materials & resources</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const link = libraryLinks.find(l => l.degree === 'others' && l.semester === 0);
+                      return (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className={cn(
+                            "p-4 rounded-xl border-2 transition-all",
+                            link
+                              ? "border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/10"
+                              : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/20"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold">Additional Resources</span>
+                            {link && (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => {
+                                    setEditingItem(link);
+                                    setLibraryForm({
+                                      degree: 'others',
+                                      semester: 0,
+                                      url: link.url,
+                                      title: link.title || "",
+                                    });
+                                    setShowLibraryDialog(true);
+                                  }}
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6 text-red-500 hover:text-red-600"
+                                  onClick={() => handleDeleteLibraryLink(link.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          {link ? (
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-purple-600 dark:text-purple-400 hover:underline truncate block"
+                            >
+                              <ExternalLink className="w-3 h-3 inline mr-1" />
+                              Open Drive
+                            </a>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full h-7 text-xs"
+                              onClick={() => {
+                                setEditingItem(null);
+                                setLibraryForm({ degree: 'others', semester: 0, url: '', title: '' });
+                                setShowLibraryDialog(true);
+                              }}
+                            >
+                              <Plus className="w-3 h-3 mr-1" /> Add Link
+                            </Button>
+                          )}
+                        </motion.div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
               </motion.div>
             )}
 
