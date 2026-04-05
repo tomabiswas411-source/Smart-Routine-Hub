@@ -70,12 +70,10 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: false, // Set to true in production with HTTPS
+        secure: process.env.NODE_ENV === 'production',
       },
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === "production" 
-    ? (() => { throw new Error("NEXTAUTH_SECRET environment variable is required in production"); })()
-    : "ice-ru-dev-secret-key-2025"),
+  secret: process.env.NEXTAUTH_SECRET,
   debug: false,
 };
