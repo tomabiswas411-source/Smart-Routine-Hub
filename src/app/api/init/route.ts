@@ -52,9 +52,9 @@ export async function GET() {
 
     // Create basic rooms
     const rooms = [
-      { roomNumber: "301", building: "Main Building", type: "classroom", capacity: 60 },
-      { roomNumber: "302", building: "Main Building", type: "classroom", capacity: 60 },
-      { roomNumber: "Lab 101", building: "ICE Building", type: "lab", capacity: 30 },
+      { roomNumber: "301", building: "Main Building", type: "classroom" as const, capacity: 60 },
+      { roomNumber: "302", building: "Main Building", type: "classroom" as const, capacity: 60 },
+      { roomNumber: "Lab 101", building: "ICE Building", type: "lab" as const, capacity: 30 },
     ];
 
     for (const room of rooms) {
