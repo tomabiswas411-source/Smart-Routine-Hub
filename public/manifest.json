@@ -88,6 +88,13 @@
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
+      "name": "Notifications",
+      "short_name": "Alerts",
+      "description": "View notifications",
+      "url": "/?view=notifications",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
       "name": "Login",
       "short_name": "Login",
       "description": "Teacher/Admin Login",
@@ -95,5 +102,27 @@
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "permissions": ["notifications", "push"],
+  "notifications": {
+    "default_icon": "/icons/icon-192x192.png",
+    "badge_icon": "/icons/badge-72x72.png",
+    "sounds": ["/notification.mp3"]
+  },
+  "share_target": {
+    "action": "/api/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+iceroutine",
+      "url": "/?schedule=%s"
+    }
+  ]
 }

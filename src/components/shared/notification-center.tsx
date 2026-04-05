@@ -1,17 +1,23 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Bell, X, Check, Trash2, ChevronUp, ChevronDown, 
   Calendar, Clock, MapPin, AlertCircle, Info, CheckCircle,
-  BellOff, RefreshCw
+  BellOff, RefreshCw, Volume2, VolumeX, Settings, BellRing
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { 
+  useNotificationSound, 
+  useNotificationBadge 
+} from "@/hooks/use-push-notifications";
 
 interface Notification {
   id: string;
@@ -35,6 +41,10 @@ interface NotificationCenterProps {
   userId?: string;
   className?: string;
 }
+
+// Storage keys
+const SOUND_ENABLED_KEY = "smartRoutineHub_soundEnabled";
+const SYSTEM_NOTIFICATIONS_KEY = "smartRoutineHub_systemNotifications";
 
 const typeConfig = {
   general: { icon: Info, color: "text-blue-500 bg-blue-100 dark:bg-blue-900/30", border: "border-blue-200 dark:border-blue-800" },
@@ -67,6 +77,54 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [systemNotificationsEnabled, setSystemNotificationsEnabled] = useState(false);
+  
+  const { soundEnabled, toggleSound } = useNotificationSound();
+  const { setBadge, clearBadge } = useNotificationBadge();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const previousUnreadCount = useRef(0);
+
+  // Initialize audio
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      audioRef.current = new Audio("/notification.mp3");
+      audioRef.current.volume = 0.7;
+    }
+    
+    // Load system notifications preference
+    const storedSystemNotifications = localStorage.getItem(SYSTEM_NOTIFICATIONS_KEY);
+    if (storedSystemNotifications !== null) {
+      setSystemNotificationsEnabled(storedSystemNotifications === "true");
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const playNotificationSound = useCallback(() => {
+    if (soundEnabled && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    }
+  }, [soundEnabled]);
+
+  const sendSystemNotification = useCallback((title: string, body: string, tag?: string) => {
+    if (!systemNotificationsEnabled || !("Notification" in window)) return;
+    
+    if (Notification.permission === "granted") {
+      new Notification(title, {
+        body,
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/badge-72x72.png",
+        tag: tag || "routine-notification",
+        silent: !soundEnabled,
+      });
+    }
+  }, [systemNotificationsEnabled, soundEnabled]);
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;
@@ -76,21 +134,67 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
       const res = await fetch(`/api/notifications?userId=${userId}&limit=30`);
       const data = await res.json();
       if (data.success) {
-        setNotifications(data.data || []);
-        setUnreadCount(data.unreadCount || 0);
+        const newNotifications = data.data || [];
+        const newUnreadCount = data.unreadCount || 0;
+        
+        // Check for new notifications
+        if (newUnreadCount > previousUnreadCount.current) {
+          // Find new notifications
+          const newOnes = newNotifications.filter(
+            (n: Notification) => !notifications.some(p => p.id === n.id) && !n.isRead
+          );
+          
+          // Play sound and show system notification for new items
+          if (newOnes.length > 0) {
+            playNotificationSound();
+            const latest = newOnes[0];
+            sendSystemNotification(
+              latest.title,
+              latest.body,
+              latest.id
+            );
+          }
+        }
+        
+        previousUnreadCount.current = newUnreadCount;
+        setNotifications(newNotifications);
+        setUnreadCount(newUnreadCount);
+        
+        // Update app badge
+        if (newUnreadCount > 0) {
+          setBadge(newUnreadCount);
+        } else {
+          clearBadge();
+        }
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, notifications, playNotificationSound, sendSystemNotification, setBadge, clearBadge]);
 
   useEffect(() => {
     fetchNotifications();
     // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Listen for service worker messages
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === "NEW_NOTIFICATION") {
+        fetchNotifications();
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener("message", handleSWMessage);
+    return () => {
+      navigator.serviceWorker?.removeEventListener("message", handleSWMessage);
+    };
   }, [fetchNotifications]);
 
   const markAsRead = async (notificationId: string) => {
@@ -103,7 +207,14 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
       setNotifications((prev) =>
         prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
       );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      const newCount = Math.max(0, unreadCount - 1);
+      setUnreadCount(newCount);
+      
+      if (newCount === 0) {
+        clearBadge();
+      } else {
+        setBadge(newCount);
+      }
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
@@ -119,6 +230,7 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
       });
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
+      clearBadge();
     } catch (error) {
       console.error("Error marking all as read:", error);
     }
@@ -132,6 +244,24 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
     } catch (error) {
       console.error("Error deleting notification:", error);
+    }
+  };
+
+  const toggleSystemNotifications = async () => {
+    if (!("Notification" in window)) {
+      alert("This browser does not support notifications");
+      return;
+    }
+
+    if (!systemNotificationsEnabled) {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        setSystemNotificationsEnabled(true);
+        localStorage.setItem(SYSTEM_NOTIFICATIONS_KEY, "true");
+      }
+    } else {
+      setSystemNotificationsEnabled(false);
+      localStorage.setItem(SYSTEM_NOTIFICATIONS_KEY, "false");
     }
   };
 
@@ -175,7 +305,12 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
                 {/* Header */}
                 <div className="flex items-center justify-between p-3 border-b border-border bg-muted/50">
                   <div className="flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-emerald-500" />
+                    <div className="relative">
+                      <BellRing className="w-4 h-4 text-emerald-500" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                      )}
+                    </div>
                     <span className="font-semibold text-sm">Notifications</span>
                     {unreadCount > 0 && (
                       <Badge className="bg-red-500 text-white text-[10px] px-1.5">
@@ -184,6 +319,14 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
                     )}
                   </div>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowSettings(!showSettings)}
+                      className="h-7 w-7"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                    </Button>
                     {unreadCount > 0 && (
                       <Button
                         variant="ghost"
@@ -192,7 +335,7 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
                         className="h-7 text-xs gap-1"
                       >
                         <Check className="w-3 h-3" />
-                        Mark all read
+                        Read all
                       </Button>
                     )}
                     <Button
@@ -205,6 +348,52 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
                     </Button>
                   </div>
                 </div>
+
+                {/* Settings Panel */}
+                <AnimatePresence>
+                  {showSettings && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="border-b border-border bg-muted/30"
+                    >
+                      <div className="p-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {soundEnabled ? (
+                              <Volume2 className="w-4 h-4 text-emerald-500" />
+                            ) : (
+                              <VolumeX className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <Label htmlFor="sound-toggle" className="text-sm">
+                              Sound
+                            </Label>
+                          </div>
+                          <Switch
+                            id="sound-toggle"
+                            checked={soundEnabled}
+                            onCheckedChange={toggleSound}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Bell className="w-4 h-4 text-emerald-500" />
+                            <Label htmlFor="system-toggle" className="text-sm">
+                              System Notifications
+                            </Label>
+                          </div>
+                          <Switch
+                            id="system-toggle"
+                            checked={systemNotificationsEnabled}
+                            onCheckedChange={toggleSystemNotifications}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Notifications List */}
                 <div className="overflow-y-auto max-h-[50vh] p-2 space-y-2">
@@ -341,6 +530,9 @@ export function NotificationCenter({ userId, className }: NotificationCenterProp
                   Clear all
                 </Button>
               )}
+              {soundEnabled && (
+                <Volume2 className="w-3.5 h-3.5 text-muted-foreground" />
+              )}
               <ChevronUp className={cn("w-5 h-5 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
             </div>
           </div>
@@ -371,5 +563,31 @@ export function NotificationBadge({ count, onClick }: { count: number; onClick?:
         </motion.span>
       )}
     </button>
+  );
+}
+
+// Notification Sound Button for settings
+export function NotificationSoundToggle() {
+  const { soundEnabled, toggleSound } = useNotificationSound();
+  
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={toggleSound}
+      className="gap-2"
+    >
+      {soundEnabled ? (
+        <>
+          <Volume2 className="w-4 h-4" />
+          Sound On
+        </>
+      ) : (
+        <>
+          <VolumeX className="w-4 h-4" />
+          Sound Off
+        </>
+      )}
+    </Button>
   );
 }
