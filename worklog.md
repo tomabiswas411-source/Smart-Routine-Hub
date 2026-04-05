@@ -203,3 +203,30 @@ Stage Summary:
 - Class conflict detection working correctly (room, teacher, batch conflicts)
 - Real-time sync working across all pages via Firebase onSnapshot
 - All types and interfaces updated for consistency
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: Fix Blank Page Issue on Admin/Teacher Login & Analyze Teacher Dashboard
+
+Work Log:
+- Identified JWT session decryption error in dev log (JWEDecryptionFailed)
+- Updated /src/lib/auth.ts with better session cookie configuration:
+  - Added explicit cookie configuration for session token
+  - Added session maxAge (30 days)
+  - Added secure cookie settings for development
+- Updated /src/app/login/page.tsx to auto-clear corrupted sessions:
+  - Added useEffect to check and clear corrupted session cookies
+  - Import signOut from next-auth/react
+- Created /src/app/api/auth/clear-session/route.ts for force clearing session
+- Analyzed Teacher Dashboard for bugs and issues:
+  - Fixed notices limit from 10 to 50 for better teacher notice visibility
+  - Added noticesLoading to combined loading state
+  - Added better error handling for session not found state
+  - Removed unused variables (teacherCourses, availableCoursesToAdd)
+
+Stage Summary:
+- JWT session decryption issue resolved with better cookie configuration
+- Login page now auto-clears corrupted sessions
+- Teacher dashboard improved with better loading states
+- Error handling enhanced for session issues

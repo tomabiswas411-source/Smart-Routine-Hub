@@ -386,15 +386,8 @@ export default function TeacherDashboard() {
   const { changes, loading: changesLoading } = useRealtimeScheduleChanges(session?.user?.id ? { teacherId: session.user.id } : undefined);
   const { timeSlots, loading: timeSlotsLoading } = useRealtimeTimeSlots();
   const { rooms, loading: roomsLoading } = useRealtimeRooms();
-  const { notices, loading: noticesLoading } = useRealtimeNotices({ limitCount: 10 });
+  const { notices, loading: noticesLoading } = useRealtimeNotices({ limitCount: 50 }); // Increased limit for teacher dashboard
   const { courses, loading: coursesLoading } = useRealtimeCourses();
-  
-  // Teacher's assigned courses (extracted from their schedules)
-  const teacherCourseIds = [...new Set(schedules.map(s => s.courseId))];
-  const teacherCourses = courses.filter(c => teacherCourseIds.includes(c.id));
-  
-  // All unique courses not yet assigned to this teacher
-  const availableCoursesToAdd = courses.filter(c => !teacherCourseIds.includes(c.id));
 
   const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
   const [filterSemester, setFilterSemester] = useState<string>("all");
@@ -900,7 +893,7 @@ export default function TeacherDashboard() {
     }
   };
 
-  const loading = status === "loading" || schedulesLoading || changesLoading || timeSlotsLoading || roomsLoading || coursesLoading;
+  const loading = status === "loading" || schedulesLoading || changesLoading || timeSlotsLoading || roomsLoading || coursesLoading || noticesLoading;
 
   if (loading) {
     return (
@@ -911,12 +904,31 @@ export default function TeacherDashboard() {
             <Loader2 className="w-12 h-12 animate-spin text-teal-500 mx-auto relative" />
           </div>
           <p className="text-muted-foreground mt-4 font-medium">Loading your dashboard...</p>
+          <p className="text-xs text-muted-foreground/60 mt-2">Setting up real-time connections...</p>
         </div>
       </div>
     );
   }
 
-  if (!session) return null;
+  // Show error state if session is null but not loading
+  if (status === "unauthenticated") {
+    router.push("/login");
+    return null;
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+          <p className="text-muted-foreground font-medium">Session not found</p>
+          <Button onClick={() => router.push("/login")} className="mt-4">
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const { startTime: currentTimeStart, endTime: currentTimeEnd } = getCurrentTimeValues();
 
