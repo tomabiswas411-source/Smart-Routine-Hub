@@ -92,19 +92,18 @@ export function DesktopNav() {
 
             {/* Right side */}
             <div className="flex items-center gap-2">
-              {/* Library Button - Only show if URL is configured */}
-              {settings.libraryURL && (
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              {/* Library Button - Navigate to Library View */}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link href="/?view=library">
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     className="rounded-xl hover:bg-teal-50 dark:hover:bg-teal-900/20"
-                    onClick={() => window.open(settings.libraryURL, '_blank')}
                   >
                     <BookOpen className="h-5 w-5 text-teal-500" />
                   </Button>
-                </motion.div>
-              )}
+                </Link>
+              </motion.div>
 
               {/* Theme Toggle */}
               {mounted && (
