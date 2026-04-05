@@ -163,14 +163,20 @@ export interface SiteSettings {
   facebookURL?: string;
   websiteURL?: string;
   twitterURL?: string;
-  youtubeURL?: string;
-  instagramURL?: string;
   libraryURL?: string;
   developerName?: string;
   developerURL?: string;
-  headerLinks?: { label: string; href: string }[];
-  footerQuickLinks?: { label: string; href: string }[];
-  footerDescription?: string;
+  updatedAt: Date;
+}
+
+export interface LibraryLink {
+  id: string;
+  degree: string; // "bsc", "msc", or "others"
+  semester: number; // 1-8 for BSc, 1-3 for MSc, 0 for Others
+  url: string;
+  title?: string;
+  isActive: boolean;
+  createdAt: Date;
   updatedAt: Date;
 }
 
@@ -706,4 +712,99 @@ export async function batchWrite(operations: Array<{ type: "set" | "update" | "d
   }
 
   await batch.commit();
+}
+
+// ============ LIBRARY LINKS ============
+export async function getLibraryLinks(degree?: string, semester?: number): Promise<LibraryLink[]> {
+  try {
+    let q = query(collection(db, "libraryLinks"), where("isActive", "==", true));
+    
+    if (degree) {
+      q = query(q, where("degree", "==", degree));
+    }
+    if (semester !== undefined) {
+      q = query(q, where("semester", "==", semester));
+    }
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((d) => docToObj<LibraryLink>(d as unknown as { id: string; data: () => Record<string, unknown> }));
+  } catch (error) {
+    console.error("Error getting library links:", error);
+    return [];
+  }
+}
+
+export async function getLibraryLinkByDegreeSemester(degree: string, semester: number): Promise<LibraryLink | null> {
+  try {
+    const q = query(
+      collection(db, "libraryLinks"),
+      where("degree", "==", degree),
+      where("semester", "==", semester),
+      where("isActive", "==", true),
+      limit(1)
+    );
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return null;
+    return docToObj<LibraryLink>(querySnapshot.docs[0] as unknown as { id: string; data: () => Record<string, unknown> });
+  } catch (error) {
+    console.error("Error getting library link:", error);
+    return null;
+  }
+}
+
+export async function createLibraryLink(data: Omit<LibraryLink, "id" | "createdAt" | "updatedAt">): Promise<LibraryLink> {
+  const docRef = await addDoc(collection(db, "libraryLinks"), {
+    ...data,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return { id: docRef.id, ...data, createdAt: new Date(), updatedAt: new Date() };
+}
+
+export async function updateLibraryLink(id: string, data: Partial<Omit<LibraryLink, "id" | "createdAt">>): Promise<void> {
+  await updateDoc(doc(db, "libraryLinks", id), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteLibraryLink(id: string): Promise<void> {
+  await deleteDoc(doc(db, "libraryLinks", id));
+}
+
+export async function seedLibraryLinks(): Promise<{ created: number; updated: number; total: number }> {
+  const libraryLinks = [
+    { degree: 'msc', semester: 1, url: 'https://drive.google.com/drive/folders/1VceHXEDmrp9r1cUlIABu18p3Uf33NmfB?usp=drive_link', title: '1st Semester M.Sc.', isActive: true },
+    { degree: 'msc', semester: 2, url: 'https://drive.google.com/drive/folders/101yM-H-_Je9gaI-a0kb8c0tPvv0sCdLP?usp=drive_link', title: '2nd Semester M.Sc.', isActive: true },
+    { degree: 'msc', semester: 3, url: 'https://drive.google.com/drive/folders/1Mll30F1tJGwitES0wAQlJb5abPfC2nCS?usp=drive_link', title: '3rd Semester M.Sc.', isActive: true },
+    { degree: 'bsc', semester: 1, url: 'https://drive.google.com/drive/folders/1l7zmdJNbk2T_MgpOCkBH_S2khxPbA42W?usp=sharing', title: '1st Semester B.Sc.', isActive: true },
+    { degree: 'bsc', semester: 2, url: 'https://drive.google.com/drive/folders/1ahuHL8DyIUFNCiS63JxTwOvkR9SHv3B7?usp=drive_link', title: '2nd Semester B.Sc.', isActive: true },
+    { degree: 'bsc', semester: 3, url: 'https://drive.google.com/drive/folders/1-vHXH9nz2fMw9Af7VwrhyjDOPyjIideD?usp=drive_link', title: '3rd Semester B.Sc.', isActive: true },
+    { degree: 'bsc', semester: 4, url: 'https://drive.google.com/drive/folders/1FHd6PMDEGgBoOC1gwrigzskaFjiXSiFN?usp=drive_link', title: '4th Semester B.Sc.', isActive: true },
+    { degree: 'bsc', semester: 5, url: 'https://drive.google.com/drive/folders/1SY-WSZzgyPVXDFqHX8FanOVXjkNGxlN_?usp=drive_link', title: '5th Semester B.Sc.', isActive: true },
+    { degree: 'bsc', semester: 6, url: 'https://drive.google.com/drive/folders/1wFirn1sbteUvygvuxFIIQrCcXme6-rwI?usp=drive_link', title: '6th Semester B.Sc.', isActive: true },
+    { degree: 'bsc', semester: 7, url: 'https://drive.google.com/drive/folders/1NVqjlf3UgySV8Z2lgbwmWS-vkmD0W3hY?usp=drive_link', title: '7th Semester B.Sc.', isActive: true },
+    { degree: 'bsc', semester: 8, url: 'https://drive.google.com/drive/folders/10sCVbVJracEi448rZLUopuHbOnZSoKJc?usp=drive_link', title: '8th Semester B.Sc.', isActive: true },
+    { degree: 'others', semester: 0, url: 'https://drive.google.com/drive/folders/1_Ag7tHC_yPkQpMSZHNDzdccx8AuLahGh?usp=drive_link', title: 'Others - Additional Resources', isActive: true },
+  ];
+
+  let created = 0;
+  let updated = 0;
+
+  for (const link of libraryLinks) {
+    if (!link.url) continue;
+
+    const existing = await getLibraryLinkByDegreeSemester(link.degree, link.semester);
+    
+    if (existing) {
+      await updateLibraryLink(existing.id, { url: link.url, title: link.title, isActive: true });
+      updated++;
+    } else {
+      await createLibraryLink(link);
+      created++;
+    }
+  }
+
+  const all = await getLibraryLinks();
+  return { created, updated, total: all.length };
 }

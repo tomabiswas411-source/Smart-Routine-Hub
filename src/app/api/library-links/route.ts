@@ -1,32 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { 
+  getLibraryLinks, 
+  getLibraryLinkByDegreeSemester, 
+  createLibraryLink, 
+  updateLibraryLink, 
+  deleteLibraryLink 
+} from "@/lib/firebase-services";
 
 // GET - Fetch all library links or filter by degree/semester
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const degree = searchParams.get("degree");
-    const semester = searchParams.get("semester");
+    const degree = searchParams.get("degree") || undefined;
+    const semesterParam = searchParams.get("semester");
+    const semester = semesterParam ? parseInt(semesterParam) : undefined;
 
-    let whereClause: { degree?: string; semester?: number; isActive: boolean } = {
-      isActive: true,
-    };
-
-    if (degree) {
-      whereClause.degree = degree;
-    }
-
-    if (semester) {
-      whereClause.semester = parseInt(semester);
-    }
-
-    const links = await db.libraryLink.findMany({
-      where: whereClause,
-      orderBy: [
-        { degree: "asc" },
-        { semester: "asc" },
-      ],
-    });
+    const links = await getLibraryLinks(degree, semester);
 
     return NextResponse.json({
       success: true,
@@ -94,45 +83,34 @@ export async function POST(request: NextRequest) {
     console.log("Checking for existing link...");
 
     // Check if link already exists
-    const existing = await db.libraryLink.findUnique({
-      where: {
-        degree_semester: {
-          degree,
-          semester,
-        },
-      },
-    });
+    const existing = await getLibraryLinkByDegreeSemester(degree, semester);
 
     if (existing) {
       console.log("Updating existing link:", existing.id);
       // Update existing link
-      const updated = await db.libraryLink.update({
-        where: {
-          id: existing.id,
-        },
-        data: {
-          url: url.trim(),
-          title: title?.trim() || null,
-          isActive: true,
-        },
+      await updateLibraryLink(existing.id, {
+        url: url.trim(),
+        title: title?.trim() || null,
+        isActive: true,
       });
-      console.log("Link updated successfully:", updated.id);
+      
+      const updatedLink = await getLibraryLinkByDegreeSemester(degree, semester);
+      console.log("Link updated successfully:", existing.id);
       return NextResponse.json({
         success: true,
-        data: updated,
+        data: updatedLink,
         message: "Library link updated successfully",
       });
     }
 
     console.log("Creating new link...");
     // Create new link
-    const link = await db.libraryLink.create({
-      data: {
-        degree,
-        semester,
-        url: url.trim(),
-        title: title?.trim() || null,
-      },
+    const link = await createLibraryLink({
+      degree,
+      semester,
+      url: url.trim(),
+      title: title?.trim() || null,
+      isActive: true,
     });
 
     console.log("Link created successfully:", link.id);
@@ -168,14 +146,10 @@ export async function PUT(request: NextRequest) {
     if (title !== undefined) updateData.title = title;
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    const link = await db.libraryLink.update({
-      where: { id },
-      data: updateData,
-    });
+    await updateLibraryLink(id, updateData);
 
     return NextResponse.json({
       success: true,
-      data: link,
       message: "Library link updated successfully",
     });
   } catch (error) {
@@ -200,9 +174,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await db.libraryLink.delete({
-      where: { id },
-    });
+    await deleteLibraryLink(id);
 
     return NextResponse.json({
       success: true,
