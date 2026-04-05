@@ -63,7 +63,7 @@ const libraryLinks = [
   {
     degree: 'bsc',
     semester: 7,
-    url: '', // Empty as per user input
+    url: 'https://drive.google.com/drive/folders/1NVqjlf3UgySV8Z2lgbwmWS-vkmD0W3hY?usp=drive_link',
     title: '7th Semester B.Sc.',
   },
   {
@@ -86,8 +86,8 @@ async function main() {
   
   for (const link of libraryLinks) {
     try {
-      // Skip empty URLs except for 7th semester which should be marked as no link
-      if (!link.url && link.semester !== 7) {
+      // Skip empty URLs
+      if (!link.url) {
         console.log(`Skipping ${link.title} - no URL provided`);
         continue;
       }
