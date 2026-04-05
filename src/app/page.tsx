@@ -1,5 +1,6 @@
 "use client";
 
+// Smart Routine Hub - ICE-RU Department Management System
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   GraduationCap, CalendarDays, User, BookOpen, LogIn, RefreshCw,
