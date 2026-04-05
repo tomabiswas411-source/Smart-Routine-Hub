@@ -33,7 +33,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { usePWA, usePushNotifications } from "@/hooks/use-pwa";
-import { useRealtimeNotices, useRealtimeSchedules, useRealtimeScheduleChanges, type Notice as RealtimeNotice, type Schedule as RealtimeScheduleType, type ScheduleChange } from "@/hooks/use-realtime-data";
+import { useRealtimeNotices, useRealtimeSchedules, useRealtimeScheduleChanges, useRealtimeTeachers, useRealtimeRooms, type Notice as RealtimeNotice, type Schedule as RealtimeScheduleType, type ScheduleChange } from "@/hooks/use-realtime-data";
 
 // Types
 interface Schedule {
@@ -909,54 +909,31 @@ function HomePage({
   );
 }
 
-// Student View Component
+// Student View Component - Now with Real-time Updates
 function StudentView() {
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [scheduleChanges, setScheduleChanges] = useState<Record<string, ScheduleChangeForView>>({});
-  const [loading, setLoading] = useState(true);
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
   const [selectedProgram, setSelectedProgram] = useState<string>("bsc");
   const [viewMode, setViewMode] = useState<"cards" | "list" | "timeline">("cards");
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
 
-  // Fetch schedules and schedule changes
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [schedulesRes, changesRes] = await Promise.all([
-          fetch("/api/schedules"),
-          fetch("/api/schedule-changes"),
-        ]);
-        
-        const schedulesData = await schedulesRes.json();
-        const changesData = await changesRes.json();
-        
-        if (schedulesData.success) setSchedules(schedulesData.data || []);
-        
-        // Create a map of scheduleId -> active change
-        if (changesData.success && changesData.data) {
-          const changeMap: Record<string, ScheduleChangeForView> = {};
-          changesData.data.forEach((change: ScheduleChangeForView) => {
-            if (change.isActive && change.scheduleId) {
-              // Only keep the most recent change per schedule
-              if (!changeMap[change.scheduleId] || 
-                  (change.createdAt && changeMap[change.scheduleId].createdAt &&
-                   new Date(change.createdAt) > new Date(changeMap[change.scheduleId].createdAt))) {
-                changeMap[change.scheduleId] = change;
-              }
-            }
-          });
-          setScheduleChanges(changeMap);
-        }
-      } catch (error) {
-        console.error("Error fetching schedules:", error);
-      } finally {
-        setLoading(false);
+  // Use real-time hooks instead of fetch
+  const { schedules, loading: schedulesLoading } = useRealtimeSchedules();
+  const { changes, loading: changesLoading } = useRealtimeScheduleChanges();
+
+  const loading = schedulesLoading || changesLoading;
+
+  // Create a map of scheduleId -> active change (same logic as before)
+  const scheduleChanges: Record<string, ScheduleChangeForView> = {};
+  changes.forEach((change) => {
+    if (change.isActive && change.scheduleId) {
+      // Only keep the most recent change per schedule
+      if (!scheduleChanges[change.scheduleId] || 
+          (change.createdAt && scheduleChanges[change.scheduleId].createdAt &&
+           new Date(change.createdAt as Date) > new Date(scheduleChanges[change.scheduleId].createdAt as Date))) {
+        scheduleChanges[change.scheduleId] = change as ScheduleChangeForView;
       }
-    };
-    fetchData();
-  }, []);
+    }
+  });
 
   // Get effective schedule based on schedule changes
   const getEffectiveSchedule = (schedule: Schedule): Schedule => {
@@ -1326,11 +1303,6 @@ function StudentView() {
 
 // Master Routine Calendar Component
 function MasterRoutineCalendar() {
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [scheduleChanges, setScheduleChanges] = useState<Record<string, ScheduleChangeForView>>({});
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [viewMode, setViewMode] = useState<"grid" | "cards" | "list">("cards");
   
@@ -1341,52 +1313,25 @@ function MasterRoutineCalendar() {
   const [filterRoom, setFilterRoom] = useState<string>("all");
   const [filterDay, setFilterDay] = useState<string>("all");
 
-  // Fetch data
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [schedulesRes, teachersRes, roomsRes, changesRes] = await Promise.all([
-          fetch("/api/schedules"),
-          fetch("/api/teachers"),
-          fetch("/api/rooms"),
-          fetch("/api/schedule-changes"),
-        ]);
+  // Use real-time hooks instead of fetch
+  const { schedules, loading: schedulesLoading } = useRealtimeSchedules();
+  const { changes, loading: changesLoading } = useRealtimeScheduleChanges();
+  const { teachers, loading: teachersLoading } = useRealtimeTeachers();
+  const { rooms, loading: roomsLoading } = useRealtimeRooms();
 
-        const [schedulesData, teachersData, roomsData, changesData] = await Promise.all([
-          schedulesRes.json(),
-          teachersRes.json(),
-          roomsRes.json(),
-          changesRes.json(),
-        ]);
+  const loading = schedulesLoading || changesLoading || teachersLoading || roomsLoading;
 
-        if (schedulesData.success) setSchedules(schedulesData.data || []);
-        if (teachersData.success) setTeachers(teachersData.data || []);
-        if (roomsData.success) setRooms(roomsData.data || []);
-        
-        // Create a map of scheduleId -> active change
-        if (changesData.success && changesData.data) {
-          const changeMap: Record<string, ScheduleChangeForView> = {};
-          changesData.data.forEach((change: ScheduleChangeForView) => {
-            if (change.isActive && change.scheduleId) {
-              if (!changeMap[change.scheduleId] || 
-                  (change.createdAt && changeMap[change.scheduleId].createdAt &&
-                   new Date(change.createdAt) > new Date(changeMap[change.scheduleId].createdAt))) {
-                changeMap[change.scheduleId] = change;
-              }
-            }
-          });
-          setScheduleChanges(changeMap);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
+  // Create a map of scheduleId -> active change
+  const scheduleChanges: Record<string, ScheduleChangeForView> = {};
+  changes.forEach((change) => {
+    if (change.isActive && change.scheduleId) {
+      if (!scheduleChanges[change.scheduleId] || 
+          (change.createdAt && scheduleChanges[change.scheduleId].createdAt &&
+           new Date(change.createdAt as Date) > new Date(scheduleChanges[change.scheduleId].createdAt as Date))) {
+        scheduleChanges[change.scheduleId] = change as ScheduleChangeForView;
       }
-    };
-
-    fetchData();
-  }, []);
+    }
+  });
 
   // Get effective schedule based on schedule changes
   const getEffectiveSchedule = (schedule: Schedule): Schedule => {
