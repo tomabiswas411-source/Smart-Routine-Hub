@@ -2680,7 +2680,7 @@ export default function AdminDashboard() {
 
       {/* Library Link Dialog - Mobile Friendly */}
       <Dialog open={showLibraryDialog} onOpenChange={setShowLibraryDialog}>
-        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
@@ -2739,13 +2739,13 @@ export default function AdminDashboard() {
               />
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button variant="outline" onClick={() => setShowLibraryDialog(false)} className="w-full sm:w-auto">Cancel</Button>
-            <Button onClick={handleSaveLibraryLink} disabled={submitting} className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600">
+            <Button onClick={handleSaveLibraryLink} disabled={submitting} className="w-full sm:w-auto bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white">
               {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingItem ? "Update" : "Add"} Link
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
