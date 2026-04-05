@@ -102,7 +102,7 @@ const days = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday"
 const daysShort = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
 const timeSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
 
-// Semester Card Component - Premium Design with Subtle Depth
+// Semester Card Component - Premium 3D Design
 function SemesterCard({ 
   number, 
   program, 
@@ -121,30 +121,54 @@ function SemesterCard({
         duration: 0.3,
         ease: "easeOut"
       }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="group flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl bg-card border border-border hover:border-primary/30 transition-all duration-200 card-depth"
+      className="group relative flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl overflow-hidden transition-all duration-300 grid-item-card"
     >
-      {/* Icon Container - Clean Design */}
-      <div className={cn(
-        "w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center text-lg sm:text-xl font-bold text-white transition-transform duration-200 group-hover:scale-105",
-        program.iconBg
-      )}>
-        <span className="drop-shadow-sm">{number}</span>
+      {/* Premium hover indicator */}
+      <div className="premium-hover-indicator" />
+      
+      {/* 3D Icon Container with Inner Glow */}
+      <div className="relative">
+        <div className={cn(
+          "w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center text-lg sm:text-xl font-bold text-white transition-transform duration-300 group-hover:scale-110",
+          program.iconBg
+        )}
+        style={{
+          boxShadow: program.id === 'bsc' 
+            ? '0 4px 12px -2px rgba(13, 148, 136, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)'
+            : '0 4px 12px -2px rgba(245, 158, 11, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)'
+        }}
+        >
+          <span className="drop-shadow-sm">{number}</span>
+        </div>
+        {/* Subtle glow effect on hover */}
+        <div className={cn(
+          "absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md -z-10",
+          program.iconBg
+        )} />
       </div>
       
       {/* Semester Label */}
       <div className="text-center">
-        <span className="text-xs sm:text-sm font-medium text-foreground">
+        <span className="text-xs sm:text-sm font-semibold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
           {number}<sup className="text-[7px] sm:text-[8px] ml-0.5">{getOrdinalSuffix(number)}</sup> Sem
         </span>
       </div>
       
-      {/* Program Badge */}
+      {/* Program Badge with Premium Styling */}
       <div className={cn(
-        "px-2 py-0.5 rounded-full text-[10px] font-medium",
+        "px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-transform duration-200 group-hover:scale-105",
         program.badgeBg,
         program.textColor
-      )}>
+      )}
+      style={{
+        boxShadow: program.id === 'bsc'
+          ? '0 2px 8px -2px rgba(13, 148, 136, 0.3)'
+          : '0 2px 8px -2px rgba(245, 158, 11, 0.3)'
+      }}
+      >
         {program.shortName}
       </div>
     </motion.button>
@@ -893,19 +917,22 @@ function HomePage({
                 icon: CalendarDays,
                 title: "Smart Scheduling",
                 description: "Real-time class schedule with instant updates and notifications",
-                color: "bg-teal-500"
+                gradient: "from-teal-500 via-emerald-500 to-cyan-500",
+                shadow: "shadow-teal-500/30"
               },
               {
                 icon: User,
                 title: "Teacher Directory",
                 description: "Find and connect with faculty members easily",
-                color: "bg-amber-500"
+                gradient: "from-amber-500 via-orange-500 to-yellow-500",
+                shadow: "shadow-amber-500/30"
               },
               {
                 icon: BookOpen,
                 title: "Resource Library",
                 description: "Access course materials and resources in one place",
-                color: "bg-cyan-500"
+                gradient: "from-cyan-500 via-sky-500 to-blue-500",
+                shadow: "shadow-cyan-500/30"
               }
             ].map((feature, index) => (
               <motion.div
@@ -913,15 +940,20 @@ function HomePage({
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + index * 0.08, duration: 0.3 }}
-                className="feature-card card-depth"
+                whileHover={{ y: -6, scale: 1.01 }}
+                className="relative p-5 rounded-2xl overflow-hidden grid-item-card"
               >
+                {/* Decorative corner glow */}
+                <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-white/30 to-transparent dark:from-white/5 rounded-full blur-xl pointer-events-none" />
+                
                 <div className={cn(
-                  "feature-icon w-11 h-11 rounded-xl flex items-center justify-center mb-4 text-white shadow-sm",
-                  feature.color
+                  "relative w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-white shadow-lg",
+                  `bg-gradient-to-br ${feature.gradient}`,
+                  feature.shadow
                 )}>
                   <feature.icon className="w-5 h-5" />
                 </div>
-                <h3 className="font-semibold text-base text-foreground mb-1.5">{feature.title}</h3>
+                <h3 className="font-semibold text-base bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent mb-1.5">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
               </motion.div>
             ))}

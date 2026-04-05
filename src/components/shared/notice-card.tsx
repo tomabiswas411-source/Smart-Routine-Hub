@@ -37,75 +37,75 @@ interface NoticeCardProps {
   compact?: boolean;
 }
 
-// Category badge colors
-const categoryColors: Record<string, string> = {
-  academic: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  exam: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  event: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
-  general: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20",
-  schedule_change: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+// Category badge colors with gradients
+const categoryStyles: Record<string, { gradient: string; shadow: string }> = {
+  academic: { gradient: "from-blue-500 to-indigo-500", shadow: "shadow-blue-500/30" },
+  exam: { gradient: "from-red-500 to-rose-500", shadow: "shadow-red-500/30" },
+  event: { gradient: "from-purple-500 to-violet-500", shadow: "shadow-purple-500/30" },
+  general: { gradient: "from-gray-500 to-slate-500", shadow: "shadow-gray-500/30" },
+  schedule_change: { gradient: "from-amber-500 to-orange-500", shadow: "shadow-amber-500/30" },
 };
 
-// Change type icons
-const changeTypeIcons = {
-  cancelled: Ban,
-  rescheduled: RefreshCw,
-  room_changed: MapPinned,
-  time_changed: Timer,
-  extra_class: Plus,
+// Change type icons and styles
+const changeTypeStyles: Record<string, { gradient: string; icon: typeof Ban }> = {
+  cancelled: { gradient: "from-red-500 to-rose-500", icon: Ban },
+  rescheduled: { gradient: "from-orange-500 to-amber-500", icon: RefreshCw },
+  room_changed: { gradient: "from-yellow-500 to-amber-500", icon: MapPinned },
+  time_changed: { gradient: "from-blue-500 to-cyan-500", icon: Timer },
+  extra_class: { gradient: "from-green-500 to-emerald-500", icon: Plus },
 };
 
 export function NoticeCard({ notice, index = 0, compact = false }: NoticeCardProps) {
-  const categoryColor = categoryColors[notice.category] || categoryColors.general;
+  const categoryStyle = categoryStyles[notice.category] || categoryStyles.general;
   const isScheduleChange = notice.category === "schedule_change";
-  const ChangeIcon = notice.changeType ? changeTypeIcons[notice.changeType] : AlertCircle;
+  const changeStyle = notice.changeType ? changeTypeStyles[notice.changeType] : null;
+  const ChangeIcon = changeStyle?.icon || AlertCircle;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
+      whileHover={{ y: -4, scale: 1.01 }}
       className={cn(
-        "relative bg-card rounded-xl border border-border overflow-hidden transition-all",
-        "hover:shadow-md card-hover cursor-pointer",
-        notice.isPinned && "border-l-4 border-l-amber-500"
+        "relative rounded-2xl overflow-hidden transition-all duration-300 grid-item-card",
+        notice.isPinned && "ring-2 ring-amber-400/50"
       )}
     >
+      {/* Top gradient bar */}
+      <div className={cn("h-1 bg-gradient-to-r", categoryStyle.gradient)} />
+      
       {/* Pinned Indicator */}
       {notice.isPinned && (
-        <div className="absolute top-3 right-3">
-          <Pin className="w-4 h-4 text-amber-500 fill-amber-500" />
+        <div className="absolute top-3 right-3 z-10">
+          <div className="relative">
+            <div className="absolute inset-0 bg-amber-400 rounded-full blur-md opacity-50" />
+            <Pin className="w-4 h-4 text-amber-500 fill-amber-500 relative" />
+          </div>
         </div>
       )}
 
-      <div className={cn("p-4", compact && "p-3")}>
+      <div className={cn("p-4 relative", compact && "p-3")}>
         {/* Header */}
         <div className="flex items-start gap-3 mb-3">
-          {/* Schedule Change Icon */}
-          {isScheduleChange && ChangeIcon && (
+          {/* Schedule Change Icon with 3D effect */}
+          {isScheduleChange && changeStyle && (
             <div className={cn(
-              "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-              notice.changeType === "cancelled" && "bg-red-500/10",
-              notice.changeType === "rescheduled" && "bg-orange-500/10",
-              notice.changeType === "room_changed" && "bg-yellow-500/10",
-              notice.changeType === "time_changed" && "bg-blue-500/10",
-              notice.changeType === "extra_class" && "bg-green-500/10",
-            )}>
-              <ChangeIcon className={cn(
-                "w-5 h-5",
-                notice.changeType === "cancelled" && "text-red-500",
-                notice.changeType === "rescheduled" && "text-orange-500",
-                notice.changeType === "room_changed" && "text-yellow-500",
-                notice.changeType === "time_changed" && "text-blue-500",
-                notice.changeType === "extra_class" && "text-green-500",
-              )} />
+              "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg bg-gradient-to-br",
+              changeStyle.gradient
+            )}
+            style={{
+              boxShadow: `0 4px 12px -2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)`
+            }}
+            >
+              <ChangeIcon className="w-5 h-5 text-white" />
             </div>
           )}
 
           <div className="flex-1 min-w-0">
             {/* Title */}
             <h3 className={cn(
-              "font-semibold text-foreground pr-6",
+              "font-semibold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent pr-6",
               compact ? "text-sm" : "text-base"
             )}>
               {notice.title}
@@ -113,22 +113,26 @@ export function NoticeCard({ notice, index = 0, compact = false }: NoticeCardPro
 
             {/* Meta Row */}
             <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>{format(toDate(notice.createdAt), "MMM d, yyyy")}</span>
-              <span>•</span>
-              <Clock className="w-3.5 h-3.5" />
-              <span>{format(toDate(notice.createdAt), "h:mm a")}</span>
+              <Calendar className="w-3.5 h-3.5 text-teal-500" />
+              <span className="font-medium">{format(toDate(notice.createdAt), "MMM d, yyyy")}</span>
+              <span className="text-muted-foreground/50">•</span>
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <span className="font-medium">{format(toDate(notice.createdAt), "h:mm a")}</span>
             </div>
           </div>
         </div>
 
         {/* Category Badge */}
         <div className="flex items-center gap-2 flex-wrap mb-3">
-          <Badge variant="outline" className={cn("text-[10px] px-2", categoryColor)}>
+          <Badge className={cn(
+            "text-[10px] px-2.5 py-0.5 font-semibold shadow-md bg-gradient-to-r text-white border-0",
+            categoryStyle.gradient,
+            categoryStyle.shadow
+          )}>
             {notice.category === "schedule_change" ? "⚡ SCHEDULE CHANGE" : notice.category.toUpperCase()}
           </Badge>
           {notice.isAutoGenerated && (
-            <Badge variant="outline" className="text-[10px] px-2 bg-muted text-muted-foreground">
+            <Badge variant="outline" className="text-[10px] px-2 bg-muted/50 text-muted-foreground">
               AUTO
             </Badge>
           )}
@@ -136,23 +140,24 @@ export function NoticeCard({ notice, index = 0, compact = false }: NoticeCardPro
 
         {/* Content Preview */}
         {!compact && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
             {notice.content}
           </p>
         )}
 
         {/* Schedule Change Details */}
         {isScheduleChange && !compact && (
-          <div className="mt-3 pt-3 border-t border-border">
+          <div className="mt-3 pt-3 border-t border-border/50">
             <div className="text-xs text-muted-foreground">
               <span>Posted by: </span>
-              <span className="font-medium text-foreground">{notice.postedByName}</span>
+              <span className="font-semibold text-foreground">{notice.postedByName}</span>
             </div>
-            {notice.affectedYear && notice.affectedSemester && notice.affectedSection && (
+            {notice.affectedSemester && (
               <div className="text-xs text-muted-foreground mt-1">
                 <span>Affects: </span>
-                <span className="font-medium text-foreground">
-                  Year {notice.affectedYear}, Sem {notice.affectedSemester}, Sec {notice.affectedSection}
+                <span className="font-semibold text-foreground">
+                  {notice.affectedSemester}{notice.affectedSemester === 1 ? 'st' : notice.affectedSemester === 2 ? 'nd' : notice.affectedSemester === 3 ? 'rd' : 'th'} Semester
+                  {notice.affectedProgram && ` • ${notice.affectedProgram.toUpperCase()}`}
                 </span>
               </div>
             )}
