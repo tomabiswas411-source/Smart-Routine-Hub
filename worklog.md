@@ -553,3 +553,33 @@ Stage Summary:
 - Build compiles successfully
 - All environment variables documented
 - Production configuration optimized for Vercel
+
+---
+Task ID: 15
+Agent: Main Agent
+Task: Add Library URL Setting and Mobile Navigation Library Icon
+
+Work Log:
+- Added libraryURL field to SiteSettings interface in settings-store.ts
+- Added libraryURL default value (empty string) to defaultSettings
+- Updated mobile navigation (mobile-nav.tsx):
+  - Reduced nav items from 3 to 2 (Home, Student)
+  - Added Library button that opens external library URL in new tab
+  - Library button only shows if libraryURL is configured
+  - Added handleLibraryClick function to open external URL
+  - Updated active state detection for navigation
+- Updated admin page (admin/page.tsx):
+  - Added libraryURL to SiteSettings interface
+  - Added libraryURL to defaultSettings object
+  - Added Library URL input field in Social Settings tab
+  - Input appears after Website URL with BookOpen icon
+
+Files Modified:
+1. /src/store/settings-store.ts - Added libraryURL field
+2. /src/components/layout/mobile-nav.tsx - Added library button
+3. /src/app/admin/page.tsx - Added library URL setting input
+
+Stage Summary:
+- Library URL can now be configured from Admin > Settings > Social tab
+- Mobile navigation shows Library icon that opens the configured URL
+- Code pushed to GitHub: https://github.com/tomabiswas411-source/Smart-Routine-Hub
