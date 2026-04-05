@@ -5,7 +5,7 @@ import { Home, CalendarDays, User, BookOpen, Bell, BellOff } from "lucide-react"
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSettingsStore } from "@/store/settings-store";
 import {
   Sheet,
@@ -65,6 +65,30 @@ const formatNotificationTime = (timestamp: string) => {
   return date.toLocaleDateString();
 };
 
+// LocalStorage key for read notifications
+const READ_NOTIFICATIONS_KEY = "smartRoutineHub_readNotifications";
+
+// Get read notification IDs from localStorage
+function getReadNotificationIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(READ_NOTIFICATIONS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+// Save read notification IDs to localStorage
+function saveReadNotificationIds(ids: string[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(READ_NOTIFICATIONS_KEY, JSON.stringify(ids));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 function MobileBottomNavContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -75,49 +99,71 @@ function MobileBottomNavContent() {
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [readIds, setReadIds] = useState<string[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
-  // Fetch notifications
+  // Set client-side flag
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch("/api/notifications");
-        const data = await res.json();
-        if (data.success) {
-          setNotifications(data.data || []);
-          setUnreadCount((data.data || []).filter((n: NotificationItem) => !n.isRead).length);
-        }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
+    setIsClient(true);
+    setReadIds(getReadNotificationIds());
+  }, []);
+
+  // Calculate unread count based on readIds
+  const unreadCount = isClient 
+    ? notifications.filter(n => !readIds.includes(n.id)).length 
+    : 0;
+
+  // Fetch notifications with read status
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const currentReadIds = getReadNotificationIds();
+      const url = `/api/notifications?readIds=${encodeURIComponent(JSON.stringify(currentReadIds))}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setNotifications(data.data || []);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  }, []);
+
+  // Fetch notifications periodically
+  useEffect(() => {
     fetchNotifications();
     
     // Refresh every 60 seconds
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchNotifications]);
 
   // Fetch notifications when drawer opens
   useEffect(() => {
     if (notificationDrawerOpen) {
-      const fetchNotifications = async () => {
+      const fetchAndMark = async () => {
         setNotificationsLoading(true);
         try {
-          const res = await fetch("/api/notifications");
-          const data = await res.json();
-          if (data.success) {
-            setNotifications(data.data || []);
-          }
-        } catch (error) {
-          console.error("Error fetching notifications:", error);
+          await fetchNotifications();
         } finally {
           setNotificationsLoading(false);
         }
       };
-      fetchNotifications();
+      fetchAndMark();
     }
-  }, [notificationDrawerOpen]);
+  }, [notificationDrawerOpen, fetchNotifications]);
+
+  // Mark all notifications as read when drawer closes
+  useEffect(() => {
+    if (!notificationDrawerOpen && notifications.length > 0) {
+      // Mark all current notifications as read
+      const allIds = [...new Set([...readIds, ...notifications.map(n => n.id)])];
+      setReadIds(allIds);
+      saveReadNotificationIds(allIds);
+      
+      // Update local notification state
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    }
+  }, [notificationDrawerOpen, notifications, readIds]);
 
   // Use header links from settings, fallback to default
   const navItems = settings.headerLinks?.length > 0 
@@ -244,11 +290,6 @@ function MobileBottomNavContent() {
                   <Bell className="w-4 h-4 text-white" />
                 </div>
                 Notifications
-                {notifications.filter(n => !n.isRead).length > 0 && (
-                  <Badge className="bg-gradient-to-r from-red-500 to-rose-500 text-white text-[10px] px-1.5 py-0.5 shadow-md">
-                    {notifications.filter(n => !n.isRead).length} new
-                  </Badge>
-                )}
               </SheetTitle>
             </div>
           </SheetHeader>
@@ -266,45 +307,52 @@ function MobileBottomNavContent() {
                 </p>
               </div>
             ) : (
-              notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    "flex items-start gap-3 p-4 border-b last:border-b-0",
-                    !notification.isRead && "bg-teal-50/50 dark:bg-teal-900/10"
-                  )}
-                >
-                  <div className="mt-0.5 shrink-0">
-                    {getNotificationIcon(notification.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-foreground">
-                      {notification.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      {notification.message}
-                    </p>
-                    {notification.semester && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white text-[10px] px-2 py-0.5">
-                          {notification.semester}{notification.semester === 1 ? 'st' : notification.semester === 2 ? 'nd' : notification.semester === 3 ? 'rd' : 'th'} Semester
-                        </Badge>
-                        {notification.program && (
-                          <Badge variant="outline" className="text-[10px] uppercase px-2 py-0.5">
-                            {notification.program}
+              notifications.map((notification) => {
+                const isUnread = !readIds.includes(notification.id);
+                return (
+                  <div
+                    key={notification.id}
+                    className={cn(
+                      "flex items-start gap-3 p-4 border-b last:border-b-0",
+                      isUnread && "bg-teal-50/50 dark:bg-teal-900/10"
+                    )}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm text-foreground">
+                          {notification.title}
+                        </p>
+                        {isUnread && (
+                          <Badge className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white text-[8px] px-1.5 py-0">
+                            NEW
                           </Badge>
                         )}
                       </div>
-                    )}
-                    <p className="text-[10px] text-muted-foreground/70 mt-1">
-                      {formatNotificationTime(notification.timestamp)}
-                    </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                        {notification.message}
+                      </p>
+                      {notification.semester && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge className="bg-gradient-to-r from-teal-500/80 to-emerald-500/80 text-white text-[10px] px-2 py-0.5">
+                            {notification.semester}{notification.semester === 1 ? 'st' : notification.semester === 2 ? 'nd' : notification.semester === 3 ? 'rd' : 'th'} Semester
+                          </Badge>
+                          {notification.program && (
+                            <Badge variant="outline" className="text-[10px] uppercase px-2 py-0.5">
+                              {notification.program}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-[10px] text-muted-foreground/70 mt-1">
+                        {formatNotificationTime(notification.timestamp)}
+                      </p>
+                    </div>
                   </div>
-                  {!notification.isRead && (
-                    <div className="w-2 h-2 rounded-full bg-teal-500 shrink-0 mt-1.5" />
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </SheetContent>

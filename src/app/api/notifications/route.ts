@@ -4,6 +4,22 @@ import { getNotices } from "@/lib/firebase-services";
 // GET - Fetch all notifications from Firebase notices
 export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams;
+    const readIds = searchParams.get("readIds");
+
+    // Parse read notification IDs from client
+    const readIdSet = new Set<string>();
+    if (readIds) {
+      try {
+        const parsed = JSON.parse(readIds);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(id => readIdSet.add(id));
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
     // Fetch schedule_change notices from Firebase
     const notices = await getNotices({ 
       category: "schedule_change",
@@ -41,7 +57,7 @@ export async function GET(request: NextRequest) {
         program: notice.affectedProgram,
         courseCode: notice.content?.match(/[A-Z]+-\d+/)?.[0] || undefined,
         timestamp,
-        isRead: false, // For now, all are unread - could implement read tracking later
+        isRead: readIdSet.has(notice.id), // Check if this notification was read
       };
     });
 

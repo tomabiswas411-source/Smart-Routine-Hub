@@ -427,3 +427,38 @@ Stage Summary:
 - Admin can set developer name and URL from Settings > Footer tab
 - All lint checks pass
 - All functionality preserved
+
+---
+Task ID: 12
+Agent: Main Agent
+Task: Fix Hydration Error and Implement Notification Read Tracking
+
+Work Log:
+- Fixed hydration mismatch in footer.tsx:
+  - Added useMounted hook using useSyncExternalStore
+  - Only render developerName on client side with mounted check
+- Implemented notification read tracking system:
+  - Updated notifications API to accept readIds parameter
+  - Notifications are marked as read based on localStorage
+  - Mobile nav now tracks read notification IDs in localStorage
+  - When drawer closes, all notifications are marked as read
+- Updated mobile navigation (src/components/layout/mobile-nav.tsx):
+  - Added localStorage-based read tracking
+  - Added getReadNotificationIds and saveReadNotificationIds helper functions
+  - Notifications show "NEW" badge only for unread ones
+  - Badge count shows only unread notifications
+  - When user opens drawer and closes it, all notifications marked as read
+  - Next time opening shows no "NEW" badges for previously seen notifications
+
+Files Modified:
+1. /src/components/layout/footer.tsx - Added useMounted hook for hydration fix
+2. /src/app/api/notifications/route.ts - Added readIds parameter support
+3. /src/components/layout/mobile-nav.tsx - Complete read tracking implementation
+
+Stage Summary:
+- Hydration error fixed with proper client-side mounting check
+- Notification read tracking implemented using localStorage
+- "NEW" badge only shows for unread notifications
+- Once user views notifications, they are marked as read
+- Badge count correctly shows only unread notifications
+- All lint checks pass
