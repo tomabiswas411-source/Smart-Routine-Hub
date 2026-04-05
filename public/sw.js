@@ -1,5 +1,5 @@
 // Smart Routine Hub - Service Worker
-const CACHE_NAME = 'smart-routine-hub-v1';
+const CACHE_NAME = 'smart-routine-hub-v2';
 const NOTIFICATION_CACHE = 'notifications-cache-v1';
 
 // Files to cache for offline use
@@ -8,7 +8,11 @@ const STATIC_CACHE_URLS = [
   '/?view=master-calendar',
   '/?view=student',
   '/manifest.json',
-  '/logo.svg',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/icon-152x152.png',
+  '/favicon.png',
+  '/apple-touch-icon.png',
 ];
 
 // Install event - cache static assets
