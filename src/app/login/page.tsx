@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Database, CheckCircle, Smartphone, KeyRound, ArrowLeft, Delete, Sparkles, GraduationCap, Zap } from "lucide-react";
@@ -26,6 +26,27 @@ export default function LoginPage() {
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
   const [isPinLoading, setIsPinLoading] = useState(false);
+
+  // Clear any corrupted session cookies on mount
+  useEffect(() => {
+    const clearCorruptedSession = async () => {
+      try {
+        // Check if there's a corrupted session by trying to fetch it
+        const response = await fetch("/api/auth/session");
+        const data = await response.json();
+        
+        // If we get an error or the session is malformed, sign out to clear cookies
+        if (!response.ok || data.error) {
+          await signOut({ redirect: false });
+        }
+      } catch {
+        // If there's an error fetching the session, clear cookies
+        await signOut({ redirect: false });
+      }
+    };
+    
+    clearCorruptedSession();
+  }, []);
 
   const handleSeedDatabase = async () => {
     setIsSeeding(true);

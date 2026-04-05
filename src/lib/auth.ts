@@ -59,8 +59,21 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: false, // Set to true in production with HTTPS
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === "production" 
     ? (() => { throw new Error("NEXTAUTH_SECRET environment variable is required in production"); })()
     : "ice-ru-dev-secret-key-2025"),
+  debug: false,
 };
