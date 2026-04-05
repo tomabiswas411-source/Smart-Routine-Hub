@@ -1961,7 +1961,7 @@ function LibraryView() {
       semesters.push({
         number: i,
         hasLink: !!link,
-        url: link?.url,
+        url: link?.url || "",
       });
     }
     return semesters;
