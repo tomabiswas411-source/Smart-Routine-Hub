@@ -45,17 +45,33 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { degree, semester, url, title } = body;
+    const { degree, semester: semesterInput, url, title } = body;
 
-    if (!degree || !semester || !url) {
+    // Convert semester to number if it's a string
+    const semester = typeof semesterInput === 'string' ? parseInt(semesterInput) : semesterInput;
+
+    console.log("POST /api/library-links - Received:", { degree, semester, url, title });
+
+    // Validate URL
+    if (!url || typeof url !== 'string' || !url.trim()) {
+      console.log("Validation failed - missing or invalid URL");
       return NextResponse.json(
-        { success: false, error: "Degree, semester, and URL are required" },
+        { success: false, error: "URL is required and must be a valid string" },
+        { status: 400 }
+      );
+    }
+
+    if (!degree || !semester || isNaN(semester)) {
+      console.log("Validation failed - missing required fields");
+      return NextResponse.json(
+        { success: false, error: "Degree and semester are required" },
         { status: 400 }
       );
     }
 
     // Validate degree
     if (!["bsc", "msc"].includes(degree)) {
+      console.log("Validation failed - invalid degree:", degree);
       return NextResponse.json(
         { success: false, error: "Degree must be 'bsc' or 'msc'" },
         { status: 400 }
@@ -65,11 +81,14 @@ export async function POST(request: NextRequest) {
     // Validate semester
     const maxSemester = degree === "msc" ? 3 : 8;
     if (semester < 1 || semester > maxSemester) {
+      console.log("Validation failed - invalid semester:", semester);
       return NextResponse.json(
         { success: false, error: `Semester must be between 1 and ${maxSemester} for ${degree.toUpperCase()}` },
         { status: 400 }
       );
     }
+
+    console.log("Checking for existing link...");
 
     // Check if link already exists
     const existing = await db.libraryLink.findUnique({
@@ -82,17 +101,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (existing) {
+      console.log("Updating existing link:", existing.id);
       // Update existing link
       const updated = await db.libraryLink.update({
         where: {
           id: existing.id,
         },
         data: {
-          url,
-          title,
+          url: url.trim(),
+          title: title?.trim() || null,
           isActive: true,
         },
       });
+      console.log("Link updated successfully:", updated.id);
       return NextResponse.json({
         success: true,
         data: updated,
@@ -100,17 +121,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    console.log("Creating new link...");
     // Create new link
     const link = await db.libraryLink.create({
       data: {
         degree,
         semester,
-        url,
-        title,
-        isActive: true,
+        url: url.trim(),
+        title: title?.trim() || null,
       },
     });
 
+    console.log("Link created successfully:", link.id);
     return NextResponse.json({
       success: true,
       data: link,
@@ -119,7 +141,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating library link:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to create library link" },
+      { success: false, error: "Failed to create library link: " + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     );
   }
