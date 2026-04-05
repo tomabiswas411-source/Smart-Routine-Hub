@@ -258,11 +258,9 @@ function MobileBottomNavContent() {
 
   const activeId = getActiveId();
 
-  // Handle library link click
+  // Handle library link click - navigate to library page
   const handleLibraryClick = () => {
-    if (settings.libraryURL) {
-      window.open(settings.libraryURL, '_blank');
-    }
+    window.location.href = '/?view=library';
   };
 
   return (
@@ -320,37 +318,35 @@ function MobileBottomNavContent() {
           })}
           
           {/* Library Button */}
-          {settings.libraryURL && (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleLibraryClick}
-              className={cn(
-                "relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-200",
-                activeId === "library" && "scale-105"
-              )}
-            >
-              {activeId === "library" && (
-                <>
-                  <motion.div
-                    layoutId="activeMobileNavLibrary"
-                    className="absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-500 via-emerald-500 to-cyan-500 shadow-lg shadow-teal-500/30"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/30 via-transparent to-black/5" />
-                </>
-              )}
-              <BookOpen className={cn(
-                "w-5 h-5 transition-all duration-200",
-                activeId === "library" ? "text-white" : "text-muted-foreground"
-              )} />
-              <span className={cn(
-                "text-[10px] mt-1 font-medium transition-all duration-200",
-                activeId === "library" ? "text-white font-semibold" : "text-muted-foreground"
-              )}>
-                Library
-              </span>
-            </motion.button>
-          )}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleLibraryClick}
+            className={cn(
+              "relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-200",
+              activeId === "library" && "scale-105"
+            )}
+          >
+            {activeId === "library" && (
+              <>
+                <motion.div
+                  layoutId="activeMobileNavLibrary"
+                  className="absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-500 via-emerald-500 to-cyan-500 shadow-lg shadow-teal-500/30"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/30 via-transparent to-black/5" />
+              </>
+            )}
+            <BookOpen className={cn(
+              "w-5 h-5 transition-all duration-200",
+              activeId === "library" ? "text-white" : "text-muted-foreground"
+            )} />
+            <span className={cn(
+              "text-[10px] mt-1 font-medium transition-all duration-200",
+              activeId === "library" ? "text-white font-semibold" : "text-muted-foreground"
+            )}>
+              Library
+            </span>
+          </motion.button>
           
           {/* Notification Button */}
           <motion.button

@@ -6,7 +6,7 @@ import {
   Building, Clock, XCircle, CalendarClock, ChevronLeft, ChevronRight,
   LayoutGrid, Kanban, Filter, Funnel, Users, Download, Bell, BellOff,
   Smartphone, CheckCircle, Wifi, WifiOff, Grid3X3, AlignLeft,
-  Calendar, MapPin, Timer, AlignJustify, Home as HomeIcon, X
+  Calendar, MapPin, Timer, AlignJustify, Home as HomeIcon, X, ExternalLink
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useCallback, Suspense } from "react";
@@ -1915,6 +1915,271 @@ function MasterRoutineCalendar() {
   );
 }
 
+// Library Link Type
+interface LibraryLink {
+  id: string;
+  degree: string;
+  semester: number;
+  url: string;
+  title?: string | null;
+  isActive: boolean;
+}
+
+// Library View Component
+function LibraryView() {
+  const [selectedDegree, setSelectedDegree] = useState<string | null>(null);
+  const [selectedSemester, setSelectedSemester] = useState<number | null>(null);
+  const [libraryLinks, setLibraryLinks] = useState<LibraryLink[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch all library links
+  useEffect(() => {
+    const fetchLinks = async () => {
+      try {
+        const res = await fetch("/api/library-links");
+        const data = await res.json();
+        if (data.success) {
+          setLibraryLinks(data.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching library links:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLinks();
+  }, []);
+
+  // Get available semesters for selected degree
+  const getAvailableSemesters = () => {
+    if (!selectedDegree) return [];
+    const maxSemester = selectedDegree === "msc" ? 3 : 8;
+    const semesters = [];
+    for (let i = 1; i <= maxSemester; i++) {
+      const link = libraryLinks.find(l => l.degree === selectedDegree && l.semester === i);
+      semesters.push({
+        number: i,
+        hasLink: !!link,
+        url: link?.url,
+      });
+    }
+    return semesters;
+  };
+
+  // Handle semester click - redirect to Google Drive
+  const handleSemesterClick = (semester: number) => {
+    const link = libraryLinks.find(l => l.degree === selectedDegree && l.semester === semester);
+    if (link?.url) {
+      window.open(link.url, '_blank');
+    }
+  };
+
+  // Reset selection
+  const handleBack = () => {
+    if (selectedSemester !== null) {
+      setSelectedSemester(null);
+    } else if (selectedDegree) {
+      setSelectedDegree(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen pb-20 sm:pb-0">
+      {/* Hero Section */}
+      <section className="hero-bg py-10 sm:py-14">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center max-w-2xl mx-auto"
+          >
+            <motion.div 
+              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-6 glass border border-primary/20"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <BookOpen className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">
+                Resource Library
+              </span>
+            </motion.div>
+            
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+              <span className="text-gradient-primary">Google Library</span>
+            </h1>
+            
+            <p className="text-base sm:text-lg text-muted-foreground mb-8 max-w-lg mx-auto">
+              Access course materials and resources for your semester
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Selection Section */}
+      <section className="py-6 sm:py-8">
+        <div className="container mx-auto px-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : !selectedDegree ? (
+            /* Degree Selection */
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-md mx-auto"
+            >
+              <h2 className="text-xl font-semibold text-center mb-6 text-foreground">
+                Select Your Degree
+              </h2>
+              <div className="grid gap-4">
+                {/* BSc Option */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedDegree("bsc")}
+                  className="p-6 rounded-2xl border-2 border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/40 dark:to-cyan-900/20 hover:border-teal-400 dark:hover:border-teal-600 transition-all duration-300"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-teal-600 to-teal-500 flex items-center justify-center shadow-lg shadow-teal-500/30">
+                      <GraduationCap className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-lg font-bold text-foreground">B.Sc.</h3>
+                      <p className="text-sm text-muted-foreground">Bachelor of Science • 8 Semesters</p>
+                    </div>
+                  </div>
+                </motion.button>
+
+                {/* MSc Option */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedDegree("msc")}
+                  className="p-6 rounded-2xl border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/40 dark:to-orange-900/20 hover:border-amber-400 dark:hover:border-amber-600 transition-all duration-300"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-600 to-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                      <GraduationCap className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-lg font-bold text-foreground">M.Sc.</h3>
+                      <p className="text-sm text-muted-foreground">Master of Science • 3 Semesters</p>
+                    </div>
+                  </div>
+                </motion.button>
+              </div>
+            </motion.div>
+          ) : (
+            /* Semester Selection */
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-2xl mx-auto"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={handleBack}
+                  className="gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Back
+                </Button>
+                <Badge className={cn(
+                  "px-3 py-1",
+                  selectedDegree === "bsc" 
+                    ? "bg-gradient-to-r from-teal-500 to-cyan-500" 
+                    : "bg-gradient-to-r from-amber-500 to-orange-500"
+                )}>
+                  {selectedDegree === "bsc" ? "B.Sc." : "M.Sc."}
+                </Badge>
+              </div>
+
+              <h2 className="text-xl font-semibold text-center mb-6 text-foreground">
+                Select Your Semester
+              </h2>
+
+              <div className={cn(
+                "grid gap-4",
+                selectedDegree === "msc" ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"
+              )}>
+                {getAvailableSemesters().map((sem) => (
+                  <motion.button
+                    key={sem.number}
+                    whileHover={{ scale: sem.hasLink ? 1.02 : 1 }}
+                    whileTap={{ scale: sem.hasLink ? 0.98 : 1 }}
+                    onClick={() => sem.hasLink && handleSemesterClick(sem.number)}
+                    disabled={!sem.hasLink}
+                    className={cn(
+                      "relative p-6 rounded-2xl border-2 transition-all duration-300",
+                      sem.hasLink
+                        ? selectedDegree === "bsc"
+                          ? "border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/40 dark:to-cyan-900/20 hover:border-teal-400 dark:hover:border-teal-600 cursor-pointer"
+                          : "border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/40 dark:to-orange-900/20 hover:border-amber-400 dark:hover:border-amber-600 cursor-pointer"
+                        : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    {sem.hasLink && (
+                      <div className="absolute top-2 right-2">
+                        <ExternalLink className={cn(
+                          "w-4 h-4",
+                          selectedDegree === "bsc" ? "text-teal-500" : "text-amber-500"
+                        )} />
+                      </div>
+                    )}
+                    <div className="flex flex-col items-center gap-2">
+                      <div className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-lg",
+                        sem.hasLink
+                          ? selectedDegree === "bsc"
+                            ? "bg-gradient-to-br from-teal-600 to-teal-500 shadow-teal-500/30"
+                            : "bg-gradient-to-br from-amber-600 to-amber-500 shadow-amber-500/30"
+                          : "bg-gray-400"
+                      )}>
+                        {sem.number}
+                      </div>
+                      <span className="text-sm font-medium text-foreground">
+                        {sem.number}<sup className="text-[8px]">{getOrdinalSuffix(sem.number)}</sup> Semester
+                      </span>
+                      {!sem.hasLink && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Not Available
+                        </span>
+                      )}
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+
+              {getAvailableSemesters().filter(s => s.hasLink).length === 0 && (
+                <div className="text-center py-12">
+                  <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground">
+                    No library links available for {selectedDegree === "bsc" ? "B.Sc." : "M.Sc."} yet.
+                  </p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">
+                    Please check back later or contact the administrator.
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// Helper function for ordinal suffix
+function getOrdinalSuffix(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 // Main Page Component with Routing
 function PageContent() {
   const searchParams = useSearchParams();
@@ -1959,6 +2224,21 @@ function PageContent() {
     return (
       <>
         <StudentView />
+        <MobileBottomNav 
+          unreadCount={0} 
+          onNotificationClick={() => {}}
+          currentView={currentView}
+          onViewChange={handleViewChange}
+        />
+      </>
+    );
+  }
+
+  // Show Library View
+  if (view === "library") {
+    return (
+      <>
+        <LibraryView />
         <MobileBottomNav 
           unreadCount={0} 
           onNotificationClick={() => {}}

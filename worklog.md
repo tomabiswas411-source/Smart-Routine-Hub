@@ -583,3 +583,51 @@ Stage Summary:
 - Library URL can now be configured from Admin > Settings > Social tab
 - Mobile navigation shows Library icon that opens the configured URL
 - Code pushed to GitHub: https://github.com/tomabiswas411-source/Smart-Routine-Hub
+
+---
+Task ID: 16
+Agent: Main Agent
+Task: Implement Degree and Semester Based Google Library System
+
+Work Log:
+- Created Prisma schema for LibraryLink model:
+  - Added degree (bsc/msc) field
+  - Added semester (1-8 for BSc, 1-3 for MSc) field
+  - Added url field for Google Drive URL
+  - Added title field for optional description
+  - Added unique constraint on degree+semester combination
+- Created API endpoints for library links (/api/library-links/route.ts):
+  - GET: Fetch all library links or filter by degree/semester
+  - POST: Create new library link (or update existing)
+  - PUT: Update a library link
+  - DELETE: Remove a library link
+- Created LibraryView component in page.tsx:
+  - Degree selection screen (B.Sc. or M.Sc.)
+  - Semester selection screen (8 for BSc, 3 for MSc)
+  - Opens Google Drive link in new tab when semester clicked
+  - Shows "Not Available" for semesters without links
+- Updated Admin Dashboard for library link management:
+  - Added "Library" to navigation menu
+  - Created library management section with BSc and MSc cards
+  - Shows all 8 semesters for BSc and 3 for MSc
+  - Add/Edit/Delete functionality for each link
+  - Added Library Link Dialog for adding/editing links
+- Updated mobile navigation:
+  - Library button now navigates to /?view=library page
+  - Removed dependency on libraryURL setting
+  - Library button always visible
+
+Files Modified:
+1. /prisma/schema.prisma - Added LibraryLink model
+2. /src/app/api/library-links/route.ts - Created new API
+3. /src/app/page.tsx - Added LibraryView component and routing
+4. /src/app/admin/page.tsx - Added library management section
+5. /src/components/layout/mobile-nav.tsx - Updated library button to navigate to page
+
+Stage Summary:
+- Users can now select their degree (B.Sc. or M.Sc.)
+- Users can then select their semester (1-8 for BSc, 1-3 for MSc)
+- Each semester has its own Google Drive link
+- Admin can manage all 11 links (8 BSc + 3 MSc) from dashboard
+- Mobile navigation properly navigates to library page
+- All lint checks pass

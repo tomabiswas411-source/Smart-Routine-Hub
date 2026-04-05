@@ -147,6 +147,15 @@ interface Notice {
   createdAt: unknown;
 }
 
+interface LibraryLink {
+  id: string;
+  degree: string;
+  semester: number;
+  url: string;
+  title?: string | null;
+  isActive: boolean;
+}
+
 interface SiteSettings {
   id?: string;
   siteName: string;
@@ -174,7 +183,7 @@ interface SiteSettings {
   developerURL: string;
 }
 
-type ActiveSection = "dashboard" | "teachers" | "courses" | "rooms" | "schedules" | "notices" | "settings";
+type ActiveSection = "dashboard" | "teachers" | "courses" | "rooms" | "schedules" | "notices" | "library" | "settings";
 
 const defaultSettings: SiteSettings = {
   siteName: "Smart Routine Hub",
@@ -223,6 +232,7 @@ export default function AdminDashboard() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(defaultSettings);
+  const [libraryLinks, setLibraryLinks] = useState<LibraryLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -232,6 +242,7 @@ export default function AdminDashboard() {
   const [showRoomDialog, setShowRoomDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showNoticeDialog, setShowNoticeDialog] = useState(false);
+  const [showLibraryDialog, setShowLibraryDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<unknown>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -279,6 +290,13 @@ export default function AdminDashboard() {
     isPinned: false,
   });
 
+  const [libraryForm, setLibraryForm] = useState({
+    degree: "bsc",
+    semester: 1,
+    url: "",
+    title: "",
+  });
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -296,7 +314,7 @@ export default function AdminDashboard() {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [statsRes, teachersRes, coursesRes, roomsRes, schedulesRes, noticesRes, timeSlotsRes, settingsRes] = await Promise.all([
+      const [statsRes, teachersRes, coursesRes, roomsRes, schedulesRes, noticesRes, timeSlotsRes, settingsRes, libraryLinksRes] = await Promise.all([
         fetch("/api/stats"),
         fetch("/api/teachers"),
         fetch("/api/courses"),
@@ -305,6 +323,7 @@ export default function AdminDashboard() {
         fetch("/api/notices?limit=50"),
         fetch("/api/timeslots"),
         fetch("/api/settings"),
+        fetch("/api/library-links"),
       ]);
       
       const statsData = await statsRes.json();
@@ -315,6 +334,7 @@ export default function AdminDashboard() {
       const noticesData = await noticesRes.json();
       const timeSlotsData = await timeSlotsRes.json();
       const settingsData = await settingsRes.json();
+      const libraryLinksData = await libraryLinksRes.json();
       
       if (statsData.success) setStats(statsData.data);
       if (teachersData.success) setTeachers(teachersData.data || []);
@@ -326,6 +346,7 @@ export default function AdminDashboard() {
       if (settingsData.success && settingsData.data) {
         setSiteSettings({ ...defaultSettings, ...settingsData.data });
       }
+      if (libraryLinksData.success) setLibraryLinks(libraryLinksData.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -719,6 +740,57 @@ export default function AdminDashboard() {
     setEditingItem(null);
   };
 
+  // Library Link CRUD
+  const handleSaveLibraryLink = async () => {
+    if (!libraryForm.url.trim()) {
+      toast({ title: "Error", description: "Please enter a URL", variant: "destructive" });
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/library-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(libraryForm),
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: editingItem ? "Link updated" : "Link added" });
+        setShowLibraryDialog(false);
+        resetLibraryForm();
+        fetchAllData();
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to save link", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error saving library link:", error);
+      toast({ title: "Error", description: "Failed to save library link.", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteLibraryLink = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this library link?")) return;
+    try {
+      const res = await fetch(`/api/library-links?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "Link deleted" });
+        fetchAllData();
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to delete link.", variant: "destructive" });
+    }
+  };
+
+  const resetLibraryForm = () => {
+    setLibraryForm({ degree: "bsc", semester: 1, url: "", title: "" });
+    setEditingItem(null);
+  };
+
   if (status === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -738,6 +810,7 @@ export default function AdminDashboard() {
     { id: "rooms", label: "Rooms", icon: DoorOpen },
     { id: "schedules", label: "Schedules", icon: Calendar },
     { id: "notices", label: "Notices", icon: Bell },
+    { id: "library", label: "Library", icon: Link },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -1484,6 +1557,211 @@ export default function AdminDashboard() {
                     </motion.div>
                   ))}
                 </div>
+              </motion.div>
+            )}
+
+            {/* Library Links */}
+            {activeSection === "library" && (
+              <motion.div
+                key="library"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center shadow-md shadow-teal-500/30">
+                      <Link className="w-4 h-4 text-white" />
+                    </div>
+                    Google Library Links
+                  </h2>
+                  <Button 
+                    onClick={() => { resetLibraryForm(); setShowLibraryDialog(true); }}
+                    className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-lg shadow-teal-500/30"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Link
+                  </Button>
+                </div>
+
+                {/* BSc Links */}
+                <Card className="card-3d card-inner-glow overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-teal-500 to-cyan-500" />
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5 text-teal-500" />
+                      B.Sc. (Bachelor of Science)
+                    </CardTitle>
+                    <CardDescription>8 Semesters</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => {
+                        const link = libraryLinks.find(l => l.degree === 'bsc' && l.semester === sem);
+                        return (
+                          <motion.div
+                            key={sem}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: sem * 0.03 }}
+                            className={cn(
+                              "p-3 rounded-xl border-2 transition-all",
+                              link
+                                ? "border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/10"
+                                : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/20"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-semibold">{sem}<sup className="text-[8px]">{getOrdinal(sem)}</sup> Sem</span>
+                              {link && (
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={() => {
+                                      setEditingItem(link);
+                                      setLibraryForm({
+                                        degree: link.degree,
+                                        semester: link.semester,
+                                        url: link.url,
+                                        title: link.title || "",
+                                      });
+                                      setShowLibraryDialog(true);
+                                    }}
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-red-500 hover:text-red-600"
+                                    onClick={() => handleDeleteLibraryLink(link.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                            {link ? (
+                              <a
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-teal-600 dark:text-teal-400 hover:underline truncate block"
+                              >
+                                <ExternalLink className="w-3 h-3 inline mr-1" />
+                                Open Drive
+                              </a>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full h-7 text-xs"
+                                onClick={() => {
+                                  setLibraryForm({ degree: 'bsc', semester: sem, url: '', title: '' });
+                                  setShowLibraryDialog(true);
+                                }}
+                              >
+                                <Plus className="w-3 h-3 mr-1" /> Add
+                              </Button>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* MSc Links */}
+                <Card className="card-3d card-inner-glow overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5 text-amber-500" />
+                      M.Sc. (Master of Science)
+                    </CardTitle>
+                    <CardDescription>3 Semesters</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[1, 2, 3].map((sem) => {
+                        const link = libraryLinks.find(l => l.degree === 'msc' && l.semester === sem);
+                        return (
+                          <motion.div
+                            key={sem}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: sem * 0.03 }}
+                            className={cn(
+                              "p-3 rounded-xl border-2 transition-all",
+                              link
+                                ? "border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10"
+                                : "border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/20"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-semibold">{sem}<sup className="text-[8px]">{getOrdinal(sem)}</sup> Sem</span>
+                              {link && (
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={() => {
+                                      setEditingItem(link);
+                                      setLibraryForm({
+                                        degree: link.degree,
+                                        semester: link.semester,
+                                        url: link.url,
+                                        title: link.title || "",
+                                      });
+                                      setShowLibraryDialog(true);
+                                    }}
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-red-500 hover:text-red-600"
+                                    onClick={() => handleDeleteLibraryLink(link.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                            {link ? (
+                              <a
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-amber-600 dark:text-amber-400 hover:underline truncate block"
+                              >
+                                <ExternalLink className="w-3 h-3 inline mr-1" />
+                                Open Drive
+                              </a>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full h-7 text-xs"
+                                onClick={() => {
+                                  setLibraryForm({ degree: 'msc', semester: sem, url: '', title: '' });
+                                  setShowLibraryDialog(true);
+                                }}
+                              >
+                                <Plus className="w-3 h-3 mr-1" /> Add
+                              </Button>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             )}
 
@@ -2319,6 +2597,69 @@ export default function AdminDashboard() {
             <Button onClick={handleSaveNotice} disabled={submitting}>
               {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingItem ? "Update" : "Post"} Notice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Library Link Dialog */}
+      <Dialog open={showLibraryDialog} onOpenChange={setShowLibraryDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingItem ? "Edit Library Link" : "Add Library Link"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Degree</Label>
+                <Select value={libraryForm.degree} onValueChange={(v) => setLibraryForm({ ...libraryForm, degree: v, semester: v === 'msc' && libraryForm.semester > 3 ? 1 : libraryForm.semester })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bsc">B.Sc.</SelectItem>
+                    <SelectItem value="msc">M.Sc.</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Semester</Label>
+                <Select value={libraryForm.semester.toString()} onValueChange={(v) => setLibraryForm({ ...libraryForm, semester: parseInt(v) })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {libraryForm.degree === 'msc' ? [1, 2, 3] : [1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                      <SelectItem key={sem} value={sem.toString()}>
+                        {sem}{getOrdinal(sem)} Semester
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Google Drive URL *</Label>
+              <Input
+                value={libraryForm.url}
+                onChange={(e) => setLibraryForm({ ...libraryForm, url: e.target.value })}
+                placeholder="https://drive.google.com/..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Title (Optional)</Label>
+              <Input
+                value={libraryForm.title}
+                onChange={(e) => setLibraryForm({ ...libraryForm, title: e.target.value })}
+                placeholder="e.g., 1st Semester Resources"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLibraryDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveLibraryLink} disabled={submitting}>
+              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {editingItem ? "Update" : "Add"} Link
             </Button>
           </DialogFooter>
         </DialogContent>
