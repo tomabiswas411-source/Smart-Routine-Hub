@@ -467,6 +467,11 @@ export default function TeacherDashboard() {
 
   const changeMap = scheduleChangeMap();
 
+  // Derive teacher's courses from their schedules
+  const teacherCourseIds = new Set(schedules.map(s => s.courseId));
+  const teacherCourses = courses.filter(c => teacherCourseIds.has(c.id));
+  const availableCoursesToAdd = courses.filter(c => !teacherCourseIds.has(c.id));
+
   // Get effective schedule
   const getEffectiveSchedule = useCallback((schedule: TeacherSchedule): TeacherSchedule => {
     const change = changeMap[schedule.id];
