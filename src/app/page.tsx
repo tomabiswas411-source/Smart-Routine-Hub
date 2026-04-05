@@ -1955,7 +1955,7 @@ function LibraryView() {
   const getAvailableSemesters = () => {
     if (!selectedDegree) return [];
     const maxSemester = selectedDegree === "msc" ? 3 : 8;
-    const semesters = [];
+    const semesters: { number: number; hasLink: boolean; url: string }[] = [];
     for (let i = 1; i <= maxSemester; i++) {
       const link = libraryLinks.find(l => l.degree === selectedDegree && l.semester === i);
       semesters.push({
