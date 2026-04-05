@@ -169,6 +169,25 @@ function docToObj<T>(doc: { id: string; data: () => Record<string, unknown> }): 
   return { id: doc.id, ...data } as T;
 }
 
+// Helper to convert Firestore timestamp to Date
+function timestampToDate(timestamp: unknown): Date {
+  if (!timestamp) return new Date(0);
+  if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp === "string" || typeof timestamp === "number") {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) return date;
+  }
+  if (typeof timestamp === "object" && timestamp !== null) {
+    const ts = timestamp as { seconds?: number; _seconds?: number; nanoseconds?: number };
+    const seconds = ts.seconds || ts._seconds || 0;
+    if (seconds) return new Date(seconds * 1000);
+  }
+  return new Date(0);
+}
+
+// Notice expiry configuration
+const NOTICE_EXPIRY_DAYS = 30; // Notices expire after 30 days (except pinned ones)
+
 // ============ USERS ============
 export async function getUser(id: string): Promise<User | null> {
   try {
@@ -458,20 +477,46 @@ export async function getNotices(filters?: {
 
     let q = query(collection(db, "notices"), ...constraints);
     
+    // Fetch more than needed to account for expired notices that will be filtered
     if (filters?.limitCount) {
-      q = query(q, limit(filters.limitCount));
+      q = query(q, limit(filters.limitCount * 2));
     }
 
     const querySnapshot = await getDocs(q);
-    const notices = querySnapshot.docs.map((doc) => docToObj<Notice>(doc as unknown as { id: string; data: () => Record<string, unknown> }));
+    let notices = querySnapshot.docs.map((doc) => docToObj<Notice>(doc as unknown as { id: string; data: () => Record<string, unknown> }));
     
-    // Sort in memory: pinned first, then by date
-    return notices.sort((a, b) => {
-      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-      const aTime = a.createdAt ? new Date(a.createdAt as unknown as string).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt as unknown as string).getTime() : 0;
-      return bTime - aTime;
+    // Filter out expired notices (older than NOTICE_EXPIRY_DAYS, except pinned ones)
+    const now = new Date();
+    const expiryMs = NOTICE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+    
+    notices = notices.filter(notice => {
+      // Pinned notices never expire
+      if (notice.isPinned) return true;
+      // Check if notice has expiry date set
+      if (notice.expiryDate) {
+        const expiryDate = timestampToDate(notice.expiryDate);
+        return expiryDate > now;
+      }
+      // Check creation date for auto-expiry
+      const createdDate = timestampToDate(notice.createdAt);
+      const ageMs = now.getTime() - createdDate.getTime();
+      return ageMs < expiryMs;
     });
+    
+    // Sort: pinned first, then by date (newest first)
+    notices.sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+      const aTime = timestampToDate(a.createdAt).getTime();
+      const bTime = timestampToDate(b.createdAt).getTime();
+      return bTime - aTime; // Newest first
+    });
+    
+    // Apply limit after filtering
+    if (filters?.limitCount) {
+      notices = notices.slice(0, filters.limitCount);
+    }
+    
+    return notices;
   } catch (error) {
     console.error("Error getting notices:", error);
     return [];

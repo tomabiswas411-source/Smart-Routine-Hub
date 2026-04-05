@@ -262,6 +262,26 @@ export function useRealtimeNotices(filters?: {
   const [error, setError] = useState<string | null>(null);
   const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
+  // Helper to convert Firestore timestamp to Date
+  const timestampToDate = (timestamp: unknown): Date => {
+    if (!timestamp) return new Date(0);
+    if (timestamp instanceof Date) return timestamp;
+    if (typeof timestamp === "string" || typeof timestamp === "number") {
+      const date = new Date(timestamp);
+      if (!isNaN(date.getTime())) return date;
+    }
+    if (typeof timestamp === "object" && timestamp !== null) {
+      const ts = timestamp as { seconds?: number; _seconds?: number };
+      const seconds = ts.seconds || ts._seconds || 0;
+      if (seconds) return new Date(seconds * 1000);
+    }
+    return new Date(0);
+  };
+
+  // Notice expiry: 30 days (except pinned)
+  const NOTICE_EXPIRY_DAYS = 30;
+  const expiryMs = NOTICE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+
   useEffect(() => {
     const constraints = [where("isApproved", "==", true)];
     
@@ -278,11 +298,27 @@ export function useRealtimeNotices(filters?: {
           docToObj<Notice>(doc as unknown as { id: string; data: () => DocumentData })
         );
         
-        // Sort: pinned first, then by date
+        // Filter out expired notices
+        const now = new Date();
+        data = data.filter(notice => {
+          // Pinned notices never expire
+          if (notice.isPinned) return true;
+          // Check if notice has expiry date set
+          if (notice.expiryDate) {
+            const expiryDate = timestampToDate(notice.expiryDate);
+            return expiryDate > now;
+          }
+          // Check creation date for auto-expiry
+          const createdDate = timestampToDate(notice.createdAt);
+          const ageMs = now.getTime() - createdDate.getTime();
+          return ageMs < expiryMs;
+        });
+        
+        // Sort: pinned first, then by date (newest first)
         data.sort((a, b) => {
           if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-          const aTime = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
-          const bTime = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+          const aTime = timestampToDate(a.createdAt).getTime();
+          const bTime = timestampToDate(b.createdAt).getTime();
           return bTime - aTime;
         });
         
