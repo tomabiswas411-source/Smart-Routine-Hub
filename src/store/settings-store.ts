@@ -15,6 +15,7 @@ export interface SiteSettings {
   twitterURL: string;
   youtubeURL: string;
   instagramURL: string;
+  libraryURL: string; // External library link
   headerLinks: { label: string; href: string }[];
   footerQuickLinks: { label: string; href: string }[];
   footerDescription: string;
@@ -45,6 +46,7 @@ const defaultSettings: SiteSettings = {
   twitterURL: "",
   youtubeURL: "",
   instagramURL: "",
+  libraryURL: "", // External library link (e.g., Google Drive, website)
   headerLinks: [
     { label: "Home", href: "/" },
     { label: "Master Routine", href: "/?view=master-calendar" },

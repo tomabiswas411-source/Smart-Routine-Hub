@@ -163,6 +163,7 @@ interface SiteSettings {
   twitterURL: string;
   youtubeURL: string;
   instagramURL: string;
+  libraryURL: string;
   // Header settings
   headerLinks: { label: string; href: string }[];
   // Footer settings
@@ -190,6 +191,7 @@ const defaultSettings: SiteSettings = {
   twitterURL: "",
   youtubeURL: "",
   instagramURL: "",
+  libraryURL: "",
   headerLinks: [
     { label: "Home", href: "/" },
     { label: "Master Routine", href: "/?view=master-calendar" },
@@ -1872,6 +1874,17 @@ export default function AdminDashboard() {
                             placeholder="Website URL"
                             value={siteSettings.websiteURL}
                             onChange={(e) => setSiteSettings({ ...siteSettings, websiteURL: e.target.value })}
+                            className="flex-1 bg-white dark:bg-gray-800 border-2"
+                          />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                            <BookOpen className="w-5 h-5 text-white" />
+                          </div>
+                          <Input
+                            placeholder="Library URL (e.g., Google Drive link for resources)"
+                            value={siteSettings.libraryURL}
+                            onChange={(e) => setSiteSettings({ ...siteSettings, libraryURL: e.target.value })}
                             className="flex-1 bg-white dark:bg-gray-800 border-2"
                           />
                         </div>

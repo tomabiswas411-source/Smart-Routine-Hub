@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, CalendarDays, User, BookOpen, Bell, BellOff } from "lucide-react";
+import { Home, CalendarDays, User, BookOpen, Bell, BellOff, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -19,7 +19,6 @@ import { XCircle, CalendarClock, MapPin, RefreshCw } from "lucide-react";
 
 const defaultNavItems = [
   { id: "home", label: "Home", icon: Home, href: "/" },
-  { id: "master", label: "Routine", icon: CalendarDays, href: "/?view=master-calendar" },
   { id: "student", label: "Student", icon: User, href: "/?view=student" },
 ];
 
@@ -168,24 +167,31 @@ function MobileBottomNavContent() {
     }
   }, [notificationDrawerOpen, notifications.length, readIds]);
 
-  // Use header links from settings, fallback to default
+  // Use header links from settings, fallback to default (only first 2 for mobile)
   const navItems = settings.headerLinks?.length > 0 
-    ? settings.headerLinks.slice(0, 3).map((link, index) => ({
+    ? settings.headerLinks.slice(0, 2).map((link, index) => ({
         id: `mobile-nav-${index}`,
         label: link.label.length > 10 ? link.label.slice(0, 8) + "..." : link.label,
-        icon: index === 0 ? Home : index === 1 ? CalendarDays : User,
+        icon: index === 0 ? Home : CalendarDays,
         href: link.href,
       }))
     : defaultNavItems;
 
   const getActiveId = () => {
     if (view === "master-calendar") return "mobile-nav-1";
-    if (view === "student") return "mobile-nav-2";
-    if (view === "notifications" || view === "library") return "notifications";
+    if (view === "student") return "mobile-nav-1";
+    if (view === "notifications") return "notifications";
     return "mobile-nav-0";
   };
 
   const activeId = getActiveId();
+
+  // Handle library link click
+  const handleLibraryClick = () => {
+    if (settings.libraryURL) {
+      window.open(settings.libraryURL, '_blank');
+    }
+  };
 
   return (
     <>
@@ -242,6 +248,20 @@ function MobileBottomNavContent() {
               </Link>
             );
           })}
+          
+          {/* Library Button */}
+          {settings.libraryURL && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleLibraryClick}
+              className="relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-200"
+            >
+              <BookOpen className="w-5 h-5 text-muted-foreground" />
+              <span className="text-[10px] mt-1 font-medium text-muted-foreground">
+                Library
+              </span>
+            </motion.button>
+          )}
           
           {/* Notification Button */}
           <motion.button
