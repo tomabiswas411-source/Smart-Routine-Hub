@@ -151,15 +151,26 @@ export interface AcademicCalendarEvent {
 
 export interface SiteSettings {
   id: string;
+  siteName?: string;
+  siteTagline?: string;
+  logoUrl?: string;
   departmentName: string;
   universityName: string;
-  logoURL?: string;
   contactEmail?: string;
   contactPhone?: string;
   address?: string;
   aboutText?: string;
   facebookURL?: string;
   websiteURL?: string;
+  twitterURL?: string;
+  youtubeURL?: string;
+  instagramURL?: string;
+  libraryURL?: string;
+  developerName?: string;
+  developerURL?: string;
+  headerLinks?: { label: string; href: string }[];
+  footerQuickLinks?: { label: string; href: string }[];
+  footerDescription?: string;
   updatedAt: Date;
 }
 

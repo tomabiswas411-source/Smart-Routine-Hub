@@ -26,6 +26,9 @@ export async function GET() {
         twitterURL: "",
         youtubeURL: "",
         instagramURL: "",
+        libraryURL: "",
+        developerName: "",
+        developerURL: "",
         headerLinks: [
           { label: "Home", href: "/" },
           { label: "Master Routine", href: "/?view=master-calendar" },
