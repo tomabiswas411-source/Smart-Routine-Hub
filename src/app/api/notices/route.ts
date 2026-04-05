@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
       content, 
       category, 
       isPinned, 
-      affectedYear,
       affectedSemester,
       affectedProgram
     } = body;
@@ -80,7 +79,6 @@ export async function POST(request: NextRequest) {
     };
     
     // Only add optional fields if they have values
-    if (affectedYear) noticeData.affectedYear = affectedYear;
     if (affectedSemester) noticeData.affectedSemester = affectedSemester;
     if (affectedProgram) noticeData.affectedProgram = affectedProgram;
 

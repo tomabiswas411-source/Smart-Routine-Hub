@@ -40,8 +40,8 @@ model Course {
   code        String   @unique // "ICE-1101"
   creditHours Float    // 3.0
   type        String   @default("theory") // "theory" | "lab"
-  year        Int      // 1-4
-  semester    Int      // 1-2
+  program     String   @default("bsc") // "bsc" | "msc"
+  semester    Int      // 1-8 for BSc, 1-3 for MSc
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -101,9 +101,8 @@ model Schedule {
   
   // Schedule info
   dayOfWeek String  // "saturday" | "sunday" | "monday" | "tuesday" | "wednesday" | "thursday"
-  year      Int     // 1-4
-  semester  Int     // 1-2
-  section   String  @default("A") // "A" | "B"
+  program   String  @default("bsc") // "bsc" | "msc"
+  semester  Int     // 1-8 for BSc, 1-3 for MSc
   classType String  @default("theory") // "theory" | "lab"
   
   // Status
@@ -153,9 +152,8 @@ model ScheduleChange {
   courseCode  String
   teacherId   String
   teacherName String
-  year        Int
+  program     String  @default("bsc") // "bsc" | "msc"
   semester    Int
-  section     String
   
   // Meta
   changedBy     String
@@ -178,9 +176,8 @@ model Notice {
   // For schedule_change type
   changeType       String?  // "cancelled" | "rescheduled" | "room_changed" | "time_changed"
   scheduleChangeId String?  // Reference to scheduleChanges doc
-  affectedYear     Int?
+  affectedProgram  String?  // "bsc" | "msc"
   affectedSemester Int?
-  affectedSection  String?
   
   // Meta
   postedBy        String
