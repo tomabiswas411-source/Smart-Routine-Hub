@@ -1472,64 +1472,116 @@ export default function TeacherDashboard() {
                 {loadingAvailableRooms && <Loader2 className="w-3 h-3 animate-spin" />}
               </Label>
               {newClassForm.dayOfWeek && newClassForm.startTime && newClassForm.endTime ? (
-                <div className="space-y-2">
-                  {/* Available Rooms */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {availableRoomsForNewClass.filter(r => r.isAvailable).slice(0, 6).map((item) => (
-                      <motion.button
-                        key={item.room.id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setNewClassForm({ ...newClassForm, roomId: item.room.id })}
-                        className={cn(
-                          "p-2.5 rounded-xl border-2 text-left transition-all",
-                          newClassForm.roomId === item.room.id
-                            ? "border-teal-500 bg-teal-50 dark:bg-teal-900/30 shadow-md"
-                            : "border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20 hover:border-green-300"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-green-500/20 flex items-center justify-center">
-                            {roomTypeIcons[item.room.type]}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{item.room.roomNumber}</p>
-                            <p className="text-[10px] text-muted-foreground">{item.room.capacity} seats</p>
-                          </div>
-                        </div>
-                      </motion.button>
-                    ))}
+                <div className="space-y-3">
+                  {/* Availability Summary */}
+                  <div className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                      <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                        {availableRoomsForNewClass.filter(r => r.isAvailable).length} Available
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                      <span className="text-xs font-medium text-red-700 dark:text-red-400">
+                        {availableRoomsForNewClass.filter(r => !r.isAvailable).length} Occupied
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {formatTime(newClassForm.startTime)} - {formatTime(newClassForm.endTime)}
+                    </span>
                   </div>
+                  
+                  {/* Available Rooms */}
+                  {availableRoomsForNewClass.filter(r => r.isAvailable).length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-green-700 dark:text-green-400 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Available Rooms (click to select)
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {availableRoomsForNewClass.filter(r => r.isAvailable).map((item) => (
+                          <motion.button
+                            key={item.room.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setNewClassForm({ ...newClassForm, roomId: item.room.id })}
+                            className={cn(
+                              "p-2.5 rounded-xl border-2 text-left transition-all",
+                              newClassForm.roomId === item.room.id
+                                ? "border-teal-500 bg-teal-50 dark:bg-teal-900/30 shadow-md ring-2 ring-teal-500/20"
+                                : "border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20 hover:border-green-400 dark:hover:border-green-600"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-green-500/20 flex items-center justify-center text-green-600 dark:text-green-400">
+                                {roomTypeIcons[item.room.type]}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{item.room.roomNumber}</p>
+                                <p className="text-[10px] text-muted-foreground">{item.room.capacity} seats • {item.room.type}</p>
+                              </div>
+                              {newClassForm.roomId === item.room.id && (
+                                <CheckCircle className="w-4 h-4 text-teal-500 shrink-0" />
+                              )}
+                            </div>
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-center">
+                      <AlertTriangle className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                      <p className="text-xs text-amber-700 dark:text-amber-300">No rooms available at this time</p>
+                    </div>
+                  )}
                   
                   {/* Occupied Rooms */}
                   {availableRoomsForNewClass.filter(r => !r.isAvailable).length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-xs text-muted-foreground mb-2">⚠️ Occupied Rooms (click to view)</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {availableRoomsForNewClass.filter(r => !r.isAvailable).slice(0, 4).map((item) => (
-                          <div
-                            key={item.room.id}
-                            className="p-2.5 rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20 opacity-70"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-lg bg-red-500/20 flex items-center justify-center">
-                                {roomTypeIcons[item.room.type]}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium">{item.room.roomNumber}</p>
-                                <p className="text-[10px] text-red-600 dark:text-red-400 truncate">{item.occupiedBy}</p>
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-red-700 dark:text-red-400 flex items-center gap-1">
+                        <XCircle className="w-3 h-3" />
+                        Occupied Rooms
+                      </p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {availableRoomsForNewClass.filter(r => !r.isAvailable).map((item) => {
+                          const occupied = item.occupiedBy as { courseCode?: string; courseName?: string; teacherName?: string; startTime?: string; endTime?: string } | null;
+                          return (
+                            <div
+                              key={item.room.id}
+                              className="p-2.5 rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg bg-red-500/20 flex items-center justify-center text-red-500">
+                                  {roomTypeIcons[item.room.type]}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{item.room.roomNumber}</p>
+                                  <p className="text-[10px] text-red-600 dark:text-red-400 truncate">
+                                    {occupied?.courseCode} • {occupied?.teacherName}
+                                  </p>
+                                </div>
+                                <Badge variant="outline" className="text-[9px] border-red-300 text-red-600 shrink-0">
+                                  {occupied?.startTime}-{occupied?.endTime}
+                                </Badge>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg text-center">
-                  Select day and time to see room availability
-                </p>
+                <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Select Day & Time First</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Room availability will be shown based on your selected time slot</p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             
