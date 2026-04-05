@@ -10,7 +10,7 @@ import {
   Building, AlignJustify, Grid3X3, BellOff, CheckCircle,
   Sparkles, GraduationCap, Funnel, FlaskConical, Presentation,
   XCircle, CalendarClock, Info, ChevronUp, Check,
-  AlertTriangle, Megaphone, Save, Layers, Zap
+  AlertTriangle, Megaphone, Save, Layers, Zap, Trash2, Eye
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -406,6 +406,8 @@ export default function TeacherDashboard() {
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [showNoticeDialog, setShowNoticeDialog] = useState(false);
   const [showAddClassDialog, setShowAddClassDialog] = useState(false);
+  const [showDeleteNoticeDialog, setShowDeleteNoticeDialog] = useState(false);
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<TeacherSchedule | null>(null);
   const [submitting, setSubmitting] = useState(false);
   
@@ -770,6 +772,39 @@ export default function TeacherDashboard() {
       setSubmitting(false);
     }
   };
+
+  // Handle Delete Notice
+  const handleDeleteNotice = async () => {
+    if (!selectedNotice) return;
+    
+    if (!session?.user?.id) {
+      toast({ title: "Error", description: "You must be logged in to delete a notice", variant: "destructive" });
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/notices?id=${selectedNotice.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "✅ Notice Deleted", description: "The notice has been removed" });
+        setShowDeleteNoticeDialog(false);
+        setSelectedNotice(null);
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to delete notice", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error deleting notice:", error);
+      toast({ title: "Error", description: "Failed to delete notice. Please try again.", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Get my notices (notices created by this teacher)
+  const myNotices = notices.filter((n: Notice) => n.postedBy === session?.user?.id);
 
   const handleMarkAsRead = (id: string) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   const resetFilters = () => { setFilterSemester("all"); setFilterProgram("all"); setFilterRoom("all"); setFilterDay("all"); };
@@ -1145,6 +1180,88 @@ export default function TeacherDashboard() {
         )}
       </div>
 
+      {/* My Notices Section */}
+      <div className="container mx-auto px-4 mt-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-emerald-500" />
+            My Notices
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {myNotices.length} notice{myNotices.length !== 1 ? 's' : ''} • Auto-delete after 30 days
+          </p>
+        </div>
+        
+        {myNotices.length === 0 ? (
+          <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl">
+            <CardContent className="py-8 text-center">
+              <Megaphone className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+              <p className="text-sm text-muted-foreground">You haven't posted any notices yet</p>
+              <Button variant="outline" size="sm" onClick={() => setShowNoticeDialog(true)} className="mt-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0">
+                <Plus className="w-3.5 h-3.5 mr-1.5" />Create Notice
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3">
+            {myNotices.map((notice: Notice, index: number) => (
+              <motion.div
+                key={notice.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="shadow-lg border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500" />
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-sm truncate">{notice.title}</h3>
+                          {notice.isPinned && (
+                            <Badge className="bg-amber-500 text-white text-[9px] px-1.5 py-0.5">📌 Pinned</Badge>
+                          )}
+                          <Badge variant="outline" className="text-[10px] capitalize">
+                            {notice.category}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notice.content}</p>
+                        <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+                          <span>{notice.createdAt ? format(toDate(notice.createdAt), "dd MMM yyyy, hh:mm a") : 'Just now'}</span>
+                          {notice.affectedSemester && (
+                            <>
+                              <span>•</span>
+                              <span>{notice.affectedSemester}{notice.affectedSemester === 1 ? 'st' : notice.affectedSemester === 2 ? 'nd' : notice.affectedSemester === 3 ? 'rd' : 'th'} Sem</span>
+                            </>
+                          )}
+                          {notice.affectedProgram && (
+                            <>
+                              <span>•</span>
+                              <span className="uppercase">{notice.affectedProgram}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 w-8 p-0 shrink-0"
+                        onClick={() => {
+                          setSelectedNotice(notice);
+                          setShowDeleteNoticeDialog(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Cancel Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent className="max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0 shadow-2xl">
@@ -1319,6 +1436,36 @@ export default function TeacherDashboard() {
             <Button variant="outline" onClick={() => setShowNoticeDialog(false)} disabled={submitting}>Cancel</Button>
             <Button onClick={handleCreateNotice} disabled={submitting || !noticeForm.title.trim() || !noticeForm.content.trim()} className="bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30">
               {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : <><Plus className="w-4 h-4 mr-2" />Create Notice</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Notice Dialog */}
+      <Dialog open={showDeleteNoticeDialog} onOpenChange={setShowDeleteNoticeDialog}>
+        <DialogContent className="max-w-sm bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-0 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30">
+                <Trash2 className="w-4 h-4 text-white" />
+              </div>
+              Delete Notice
+            </DialogTitle>
+            <DialogDescription>Are you sure you want to delete this notice?</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+              <p className="font-medium text-sm truncate">{selectedNotice?.title}</p>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{selectedNotice?.content}</p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              This action cannot be undone. The notice will be permanently removed.
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowDeleteNoticeDialog(false)} disabled={submitting}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteNotice} disabled={submitting} className="bg-gradient-to-r from-red-500 to-rose-500 shadow-lg shadow-red-500/30">
+              {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</> : <><Trash2 className="w-4 h-4 mr-2" />Delete</>}
             </Button>
           </DialogFooter>
         </DialogContent>

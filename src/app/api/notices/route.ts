@@ -124,12 +124,12 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Delete notice (Admin only)
+// DELETE - Delete notice (Admin can delete any, teachers can delete their own)
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id || session.user.role !== "admin") {
+    if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
@@ -138,6 +138,23 @@ export async function DELETE(request: NextRequest) {
 
     if (!noticeId) {
       return NextResponse.json({ success: false, error: "Notice ID required" }, { status: 400 });
+    }
+
+    // Get the notice to check ownership
+    const notice = await getNotice(noticeId);
+    if (!notice) {
+      return NextResponse.json({ success: false, error: "Notice not found" }, { status: 404 });
+    }
+
+    // Admin can delete any notice, teachers can only delete their own
+    const isAdmin = session.user.role === "admin";
+    const isOwner = notice.postedBy === session.user.id;
+
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "You can only delete your own notices" 
+      }, { status: 403 });
     }
 
     await deleteDoc(doc(db, "notices", noticeId));
