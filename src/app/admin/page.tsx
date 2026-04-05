@@ -252,6 +252,7 @@ export default function AdminDashboard() {
   const [showLibraryDialog, setShowLibraryDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<unknown>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Form States
   const [teacherForm, setTeacherForm] = useState({
@@ -2239,7 +2240,7 @@ export default function AdminDashboard() {
           })}
           
           {/* More Button - Opens Sheet with remaining items */}
-          <Sheet>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <motion.button
                 whileTap={{ scale: 0.95 }}
@@ -2262,7 +2263,10 @@ export default function AdminDashboard() {
                   return (
                     <motion.button
                       key={item.id}
-                      onClick={() => setActiveSection(item.id)}
+                      onClick={() => {
+                        setActiveSection(item.id);
+                        setMobileMenuOpen(false);
+                      }}
                       whileTap={{ scale: 0.95 }}
                       className={cn(
                         "relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200",
