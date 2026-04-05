@@ -11,7 +11,7 @@ import {
   LayoutDashboard, Key, Mail, Phone, Globe,
   MapPin, FileText, GraduationCap, Building, Link,
   Facebook, Twitter, Instagram, Youtube, ExternalLink,
-  Palette, Type, Image, Code
+  Palette, Type, Image, Code, Menu
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -2192,12 +2199,14 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* Mobile Navigation with Premium Design */}
+      {/* Mobile Navigation with Premium Design - Shows All Sections */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 overflow-hidden">
         <div className="absolute inset-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl" />
-        <div className="absolute inset-0 border-t border-gray-200 dark:border-gray-700" />
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
+        
+        {/* Main Navigation Row - 4 items + More button */}
         <div className="relative grid grid-cols-5 gap-1 p-2">
-          {navItems.slice(0, 5).map((item) => {
+          {navItems.slice(0, 4).map((item) => {
             const isActive = activeSection === item.id;
             return (
               <motion.button
@@ -2226,6 +2235,67 @@ export default function AdminDashboard() {
               </motion.button>
             );
           })}
+          
+          {/* More Button - Opens Sheet with remaining items */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                className="relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 text-muted-foreground hover:text-foreground"
+              >
+                <div className="relative w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                  <Menu className="w-4 h-4" />
+                </div>
+                <span className="relative text-[10px] font-medium truncate">More</span>
+              </motion.button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-auto rounded-t-3xl p-0">
+              <div className="h-1 w-10 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mt-2" />
+              <SheetHeader className="p-4 pb-2">
+                <SheetTitle className="text-left text-base">All Sections</SheetTitle>
+              </SheetHeader>
+              <div className="grid grid-cols-4 gap-3 p-4 pb-8">
+                {navItems.map((item) => {
+                  const isActive = activeSection === item.id;
+                  return (
+                    <motion.button
+                      key={item.id}
+                      onClick={() => setActiveSection(item.id)}
+                      whileTap={{ scale: 0.95 }}
+                      className={cn(
+                        "relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200",
+                        isActive 
+                          ? "text-teal-600 dark:text-teal-400 bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/30 dark:to-emerald-900/30" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800"
+                      )}
+                    >
+                      <div className={cn(
+                        "relative w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                        isActive 
+                          ? "bg-gradient-to-br from-teal-500 to-emerald-500 shadow-md shadow-teal-500/30" 
+                          : "bg-gray-100 dark:bg-gray-800"
+                      )}>
+                        <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "")} />
+                      </div>
+                      <span className="relative text-[11px] font-medium truncate">{item.label}</span>
+                    </motion.button>
+                  );
+                })}
+                
+                {/* Sign Out Button in More Menu */}
+                <motion.button
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <div className="relative w-10 h-10 rounded-xl flex items-center justify-center bg-red-100 dark:bg-red-900/30">
+                    <LogOut className="w-5 h-5" />
+                  </div>
+                  <span className="relative text-[11px] font-medium truncate">Sign Out</span>
+                </motion.button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </nav>
 
