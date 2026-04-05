@@ -8,7 +8,8 @@ import {
   createSchedule, 
   createNotice, 
   createCalendarEvent,
-  updateSiteSettings
+  updateSiteSettings,
+  getUserByEmail
 } from "@/lib/firebase-services";
 import { hash } from "bcryptjs";
 
