@@ -424,7 +424,7 @@ export default function TeacherDashboard() {
   });
   
   // Available rooms for new class (based on selected day/time)
-  const [availableRoomsForNewClass, setAvailableRoomsForNewClass] = useState<{room: Room; isAvailable: boolean; occupiedBy?: string}[]>([]);
+  const [availableRoomsForNewClass, setAvailableRoomsForNewClass] = useState<{room: Room; isAvailable: boolean; occupiedBy?: { courseCode?: string; courseName?: string; teacherName?: string; startTime?: string; endTime?: string } | null}[]>([]);
   const [loadingAvailableRooms, setLoadingAvailableRooms] = useState(false);
   
   const [useCustomTime, setUseCustomTime] = useState(false);
