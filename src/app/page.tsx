@@ -288,7 +288,25 @@ interface ScheduleChangeForView {
   createdAt?: any;
 }
 
-// Schedule Card Component (Reusable)
+// Premium Color palettes for Schedule Cards (matching Admin/Teacher)
+const scheduleColors = {
+  theory: {
+    bg: "bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 dark:from-teal-900/40 dark:via-emerald-900/30 dark:to-cyan-900/40",
+    border: "border-teal-200/80 dark:border-teal-500/50",
+    badge: "bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500 text-white shadow-lg shadow-teal-500/40",
+    glow: "shadow-[0_8px_30px_rgb(0,150,136,0.12)] hover:shadow-[0_12px_40px_rgb(0,150,136,0.18)]",
+    innerGlow: "from-teal-200/30 via-transparent to-emerald-300/20",
+  },
+  lab: {
+    bg: "bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-900/40 dark:via-orange-900/30 dark:to-yellow-900/40",
+    border: "border-amber-200/80 dark:border-amber-500/50",
+    badge: "bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white shadow-lg shadow-amber-500/40",
+    glow: "shadow-[0_8px_30px_rgb(245,158,11,0.12)] hover:shadow-[0_12px_40px_rgb(245,158,11,0.18)]",
+    innerGlow: "from-amber-200/30 via-transparent to-orange-300/20",
+  }
+};
+
+// Schedule Card Component (Reusable) - Premium 3D Design
 function ScheduleCard({ 
   schedule, 
   compact = false,
@@ -305,73 +323,89 @@ function ScheduleCard({
   const wasMoved = isRescheduled && scheduleChange?.newDay && 
                    scheduleChange.newDay.toLowerCase() !== scheduleChange.originalDay?.toLowerCase();
 
+  // Get colors based on class type
+  const typeColors = schedule.classType === "lab" ? scheduleColors.lab : scheduleColors.theory;
+
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ duration: 0.2 }}
       className={cn(
-        "rounded-lg border overflow-hidden relative",
-        schedule.classType === "lab"
-          ? "border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20"
-          : "border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20"
+        "relative rounded-2xl border-2 overflow-hidden transition-all duration-300",
+        typeColors.bg, typeColors.border, typeColors.glow
       )}
     >
+      {/* 3D Card Effect - Multi-layer gradients */}
+      <div className={cn("absolute inset-0 rounded-2xl bg-gradient-to-br pointer-events-none", typeColors.innerGlow)} />
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/5 via-transparent to-white/40 dark:from-black/20 dark:via-transparent dark:to-white/10 pointer-events-none" />
+      
+      {/* Decorative corner glow */}
+      <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-white/40 to-transparent dark:from-white/10 rounded-full blur-xl pointer-events-none" />
+      
       {/* Status Badge for rescheduled classes */}
       {showStatus && wasMoved && (
-        <div className="absolute -top-1 -right-1 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shadow-md z-10 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+        <div className="absolute -top-1 -right-1 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg z-10 border backdrop-blur-sm bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-600">
           <CalendarClock className="w-3 h-3" />
           Moved
         </div>
       )}
       
-      <div className={cn("p-3", compact && "p-2")}>
+      <div className={cn("relative z-10 p-4", compact && "p-2")}>
         {/* Course Info */}
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-foreground truncate">{schedule.courseCode}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-base bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">{schedule.courseCode}</h3>
+              <Badge className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", typeColors.badge)}>
+                {schedule.classType === "lab" ? "LAB" : "THEORY"}
+              </Badge>
+            </div>
             {!compact && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">{schedule.courseName}</p>
+              <p className="text-xs text-muted-foreground truncate mt-0.5 font-medium">{schedule.courseName}</p>
             )}
           </div>
-          <Badge 
-            variant={schedule.classType === "lab" ? "secondary" : "default"} 
-            className={cn(
-              "text-[10px] px-1.5 py-0.5 shrink-0",
-              schedule.classType === "lab" 
-                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" 
-                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-            )}
-          >
-            {schedule.classType}
-          </Badge>
         </div>
         
-        {/* Details */}
-        <div className={cn("mt-2 space-y-1", compact && "mt-1.5")}>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="w-3 h-3 shrink-0" />
-            <span className="truncate">{schedule.startTime} - {schedule.endTime}</span>
+        {/* Details with premium styling */}
+        <div className={cn("grid grid-cols-2 gap-2 text-xs", compact && "grid-cols-1 gap-1")}>
+          <div className="flex items-center gap-1.5 text-muted-foreground bg-white/50 dark:bg-black/20 rounded-lg px-2 py-1">
+            <Clock className="w-3.5 h-3.5 text-teal-500" />
+            <span className="font-medium truncate">{schedule.startTime} - {schedule.endTime}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{schedule.roomNumber}</span>
+          <div className="flex items-center gap-1.5 text-muted-foreground bg-white/50 dark:bg-black/20 rounded-lg px-2 py-1">
+            <MapPin className="w-3.5 h-3.5 text-rose-500" />
+            <span className="font-medium truncate">{schedule.roomNumber}</span>
           </div>
           {!compact && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <User className="w-3 h-3 shrink-0" />
-              <span className="truncate">{schedule.teacherName}</span>
-            </div>
+            <>
+              <div className="flex items-center gap-1.5 text-muted-foreground bg-white/50 dark:bg-black/20 rounded-lg px-2 py-1">
+                <User className="w-3.5 h-3.5 text-purple-500" />
+                <span className="font-medium truncate">{schedule.teacherName}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground bg-white/50 dark:bg-black/20 rounded-lg px-2 py-1">
+                <GraduationCap className="w-3.5 h-3.5 text-cyan-500" />
+                <span className="font-medium">{schedule.semester}{schedule.semester === 1 ? 'st' : schedule.semester === 2 ? 'nd' : schedule.semester === 3 ? 'rd' : 'th'} Sem</span>
+              </div>
+            </>
           )}
         </div>
         
         {/* Show original schedule info if moved */}
         {showStatus && wasMoved && scheduleChange && (
-          <div className="mt-2 p-2 rounded bg-amber-50 dark:bg-amber-900/20 text-[10px]">
+          <div className="mt-3 p-2 rounded-xl text-[10px] border backdrop-blur-sm bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/20 border-amber-300 dark:border-amber-600">
+            <div className="flex items-center gap-1 font-medium text-amber-700 dark:text-amber-300 mb-0.5">
+              <CalendarClock className="w-3 h-3" />
+              Moved from original schedule
+            </div>
             <p className="text-muted-foreground">
-              Moved from <span className="capitalize font-medium text-foreground">{scheduleChange.originalDay}</span>
+              Original: <span className="capitalize font-medium text-foreground">{scheduleChange.originalDay}</span>
             </p>
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -493,7 +527,7 @@ function NotificationList({
   );
 }
 
-// Notification Section Component (for home page) - Now with Real-time Updates
+// Notification Section Component (for home page) - Now with Real-time Updates and Premium Design
 function NotificationSection() {
   const { notices, loading } = useRealtimeNotices({ limitCount: 20 });
   
@@ -530,13 +564,16 @@ function NotificationSection() {
   });
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
+    <Card className="overflow-hidden card-3d card-inner-glow">
+      <div className="h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
+      <CardHeader className="pb-2 bg-gradient-to-r from-teal-500/10 to-emerald-500/10">
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-          <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center shadow-md shadow-teal-500/30">
+            <Bell className="w-4 h-4 text-white" />
+          </div>
           Notifications
           {notifications.filter(n => !n.isRead).length > 0 && (
-            <Badge className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 ml-auto">
+            <Badge className="bg-gradient-to-r from-red-500 to-rose-500 text-white text-[10px] px-1.5 py-0.5 ml-auto shadow-md shadow-red-500/30">
               {notifications.filter(n => !n.isRead).length} new
             </Badge>
           )}
@@ -1093,27 +1130,33 @@ function StudentView() {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+            {/* Stats - Premium 3D Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               {[
-                { label: "Classes", value: filteredSchedules.length, icon: CalendarDays, color: "text-blue-500 bg-blue-100 dark:bg-blue-900/30" },
-                { label: "Days", value: Object.values(schedulesByDay).filter((s) => s.length > 0).length, icon: Clock, color: "text-green-500 bg-green-100 dark:bg-green-900/30" },
-                { label: "Semester", value: `${selectedSemester}${getOrdinalSuffix(selectedSemester)}`, icon: GraduationCap, color: "text-purple-500 bg-purple-100 dark:bg-purple-900/30" },
-                { label: "Program", value: getCurrentProgram().shortName, icon: Users, color: "text-amber-500 bg-amber-100 dark:bg-amber-900/30" },
-              ].map((stat) => (
-                <Card key={stat.label}>
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className={cn("w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center", stat.color)}>
-                        <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </div>
-                      <div>
-                        <p className="text-base sm:text-xl font-bold text-foreground">{stat.value}</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{stat.label}</p>
-                      </div>
+                { label: "Classes", value: filteredSchedules.length, icon: CalendarDays, gradient: "from-teal-500 via-emerald-500 to-cyan-500", shadow: "shadow-teal-500/30" },
+                { label: "Days", value: Object.values(schedulesByDay).filter((s) => s.length > 0).length, icon: Clock, gradient: "from-green-500 via-emerald-500 to-teal-500", shadow: "shadow-green-500/30" },
+                { label: "Semester", value: `${selectedSemester}${getOrdinalSuffix(selectedSemester)}`, icon: GraduationCap, gradient: "from-purple-500 via-violet-500 to-indigo-500", shadow: "shadow-purple-500/30" },
+                { label: "Program", value: getCurrentProgram().shortName, icon: Users, gradient: "from-amber-500 via-orange-500 to-yellow-500", shadow: "shadow-amber-500/30" },
+              ].map((stat, index) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  className="stat-card-premium card-inner-glow"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className={cn(
+                      "w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-lg",
+                      stat.gradient, stat.shadow
+                    )}>
+                      <stat.icon className="w-5 h-5 text-white" />
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground font-medium mt-1">{stat.label}</p>
+                </motion.div>
               ))}
             </div>
 
@@ -1129,54 +1172,102 @@ function StudentView() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Cards View */}
+                {/* Cards View - Premium Day Sections */}
                 {viewMode === "cards" && (
                   <div className="space-y-4 sm:space-y-6">
-                    {days.map((day) => {
+                    {days.map((day, dayIndex) => {
                       const daySchedules = schedulesByDay[day] || [];
                       const isCurrentDay = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase() === day.toLowerCase();
                       
                       return (
-                        <div key={day} className={cn(
-                          "p-3 sm:p-4 rounded-xl border",
-                          isCurrentDay && "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
-                        )}>
-                          <div className="flex items-center justify-between mb-2 sm:mb-3">
-                            <h3 className={cn(
-                              "font-semibold capitalize text-sm sm:text-base",
-                              isCurrentDay && "text-emerald-600 dark:text-emerald-400"
-                            )}>
-                              {day}
-                              {isCurrentDay && (
-                                <Badge className="ml-2 bg-emerald-500 text-white text-[10px]">Today</Badge>
-                              )}
-                            </h3>
-                            <Badge variant="outline" className="text-[10px] sm:text-xs">{daySchedules.length} classes</Badge>
-                          </div>
-
-                          {daySchedules.length > 0 ? (
-                            <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                              {daySchedules.map((schedule) => (
-                                <ScheduleCard 
-                                  key={schedule.id} 
-                                  schedule={schedule} 
-                                  scheduleChange={scheduleChanges[schedule.id]}
-                                  showStatus={true}
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs sm:text-sm text-muted-foreground text-center py-4">
-                              No classes scheduled
-                            </p>
+                        <motion.div 
+                          key={day} 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: dayIndex * 0.05 }}
+                          className={cn(
+                            "relative rounded-2xl border-2 overflow-hidden transition-all duration-300",
+                            isCurrentDay 
+                              ? "border-teal-300 dark:border-teal-600 shadow-lg shadow-teal-500/10" 
+                              : "border-border"
                           )}
-                        </div>
+                        >
+                          {/* Day Header with Gradient */}
+                          <div className={cn(
+                            "px-4 py-3 flex items-center justify-between",
+                            isCurrentDay
+                              ? "bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500"
+                              : "bg-gradient-to-r from-muted to-muted/50"
+                          )}>
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                "w-8 h-8 rounded-lg flex items-center justify-center",
+                                isCurrentDay
+                                  ? "bg-white/20"
+                                  : "bg-background/50"
+                              )}>
+                                <Calendar className={cn(
+                                  "w-4 h-4",
+                                  isCurrentDay ? "text-white" : "text-muted-foreground"
+                                )} />
+                              </div>
+                              <h3 className={cn(
+                                "font-semibold capitalize text-sm sm:text-base",
+                                isCurrentDay ? "text-white" : "text-foreground"
+                              )}>
+                                {day}
+                              </h3>
+                              {isCurrentDay && (
+                                <Badge className="bg-white/20 text-white text-[10px] border-0">Today</Badge>
+                              )}
+                            </div>
+                            <Badge className={cn(
+                              "text-[10px] sm:text-xs font-medium",
+                              isCurrentDay
+                                ? "bg-white/20 text-white border-0"
+                                : "bg-background/50"
+                            )}>
+                              {daySchedules.length} {daySchedules.length === 1 ? 'class' : 'classes'}
+                            </Badge>
+                          </div>
+                          
+                          {/* Day Content */}
+                          <div className={cn(
+                            "p-3 sm:p-4",
+                            isCurrentDay && "bg-gradient-to-br from-teal-50/50 via-transparent to-cyan-50/50 dark:from-teal-900/10 dark:via-transparent dark:to-cyan-900/10"
+                          )}>
+                            {daySchedules.length > 0 ? (
+                              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                                {daySchedules.map((schedule, index) => (
+                                  <motion.div
+                                    key={schedule.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                  >
+                                    <ScheduleCard 
+                                      schedule={schedule} 
+                                      scheduleChange={scheduleChanges[schedule.id]}
+                                      showStatus={true}
+                                    />
+                                  </motion.div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center py-8 text-center">
+                                <CalendarDays className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                                <p className="text-sm text-muted-foreground font-medium">No classes scheduled</p>
+                                <p className="text-xs text-muted-foreground/70 mt-0.5">Enjoy your free time!</p>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
                       );
                     })}
                   </div>
                 )}
 
-                {/* List View */}
+                {/* List View - Premium Styling */}
                 {viewMode === "list" && (
                   <div className="space-y-2">
                     {filteredSchedules.length > 0 ? (
@@ -1187,19 +1278,27 @@ function StudentView() {
                           if (dayOrder !== dayOrderB) return dayOrder - dayOrderB;
                           return (a.startTime || "").localeCompare(b.startTime || "");
                         })
-                        .map((schedule) => (
-                          <div
+                        .map((schedule, index) => (
+                          <motion.div
                             key={schedule.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.03 }}
                             className={cn(
-                              "flex items-center gap-3 p-3 rounded-lg border",
+                              "flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200",
                               schedule.classType === "lab"
-                                ? "border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10"
-                                : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10"
+                                ? "border-amber-200/80 dark:border-amber-500/50 bg-gradient-to-r from-amber-50/50 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/10"
+                                : "border-teal-200/80 dark:border-teal-500/50 bg-gradient-to-r from-teal-50/50 to-emerald-50/50 dark:from-teal-900/20 dark:to-emerald-900/10"
                             )}
                           >
                             {/* Day Badge */}
                             <div className="w-14 sm:w-16 shrink-0">
-                              <Badge variant="outline" className="text-[10px] sm:text-xs w-full justify-center capitalize">
+                              <Badge className={cn(
+                                "text-[10px] sm:text-xs w-full justify-center capitalize font-medium",
+                                schedule.classType === "lab"
+                                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
+                                  : "bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-0"
+                              )}>
                                 {schedule.dayOfWeek?.substring(0, 3)}
                               </Badge>
                             </div>
@@ -1207,39 +1306,44 @@ function StudentView() {
                             {/* Time */}
                             <div className="w-20 sm:w-24 shrink-0">
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Clock className="w-3 h-3" />
-                                <span>{schedule.startTime?.substring(0, 5)}</span>
+                                <Clock className="w-3 h-3 text-teal-500" />
+                                <span className="font-medium">{schedule.startTime?.substring(0, 5)}</span>
                               </div>
                             </div>
                             
                             {/* Course */}
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-xs sm:text-sm truncate">{schedule.courseCode}</p>
-                              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{schedule.roomNumber}</p>
+                              <p className="font-semibold text-sm truncate bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">{schedule.courseCode}</p>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{schedule.roomNumber} • {schedule.teacherName}</p>
                             </div>
                             
                             {/* Type Badge */}
                             <Badge 
-                              variant={schedule.classType === "lab" ? "secondary" : "default"} 
-                              className="text-[10px] px-1.5 py-0.5 shrink-0"
+                              className={cn(
+                                "text-[10px] px-2 py-0.5 shrink-0 font-medium",
+                                schedule.classType === "lab"
+                                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
+                                  : "bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-0"
+                              )}
                             >
-                              {schedule.classType}
+                              {schedule.classType === "lab" ? "LAB" : "THEORY"}
                             </Badge>
-                          </div>
+                          </motion.div>
                         ))
                     ) : (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        No classes found
-                      </p>
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <CalendarDays className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                        <p className="text-sm text-muted-foreground font-medium">No classes found</p>
+                      </div>
                     )}
                   </div>
                 )}
 
-                {/* Timeline View */}
+                {/* Timeline View - Premium Styling */}
                 {viewMode === "timeline" && (
                   <div className="relative">
-                    {/* Timeline line */}
-                    <div className="absolute left-4 sm:left-8 top-0 bottom-0 w-0.5 bg-border" />
+                    {/* Premium Timeline line with gradient */}
+                    <div className="absolute left-4 sm:left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-teal-500 via-emerald-500 to-cyan-500 rounded-full" />
                     
                     <div className="space-y-4 sm:space-y-6">
                       {days.map((day, dayIndex) => {
@@ -1247,46 +1351,66 @@ function StudentView() {
                         const isCurrentDay = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase() === day.toLowerCase();
                         
                         return (
-                          <div key={day} className="relative pl-10 sm:pl-16">
-                            {/* Day marker */}
+                          <motion.div 
+                            key={day} 
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: dayIndex * 0.05 }}
+                            className="relative pl-10 sm:pl-16"
+                          >
+                            {/* Day marker with premium styling */}
                             <div className={cn(
-                              "absolute left-2 sm:left-6 w-4 h-4 rounded-full border-2 border-background",
-                              isCurrentDay ? "bg-emerald-500" : "bg-muted"
-                            )} />
+                              "absolute left-2 sm:left-6 w-5 h-5 rounded-full border-3 border-background shadow-lg",
+                              isCurrentDay 
+                                ? "bg-gradient-to-br from-teal-500 to-emerald-500 shadow-teal-500/30" 
+                                : "bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700"
+                            )}>
+                              {isCurrentDay && (
+                                <div className="absolute inset-0 rounded-full bg-teal-500 animate-ping opacity-30" />
+                              )}
+                            </div>
                             
                             {/* Day header */}
                             <div className="mb-2 sm:mb-3">
                               <h3 className={cn(
-                                "font-semibold capitalize text-sm sm:text-base",
-                                isCurrentDay && "text-emerald-600 dark:text-emerald-400"
+                                "font-semibold capitalize text-sm sm:text-base flex items-center gap-2",
+                                isCurrentDay && "text-teal-600 dark:text-teal-400"
                               )}>
                                 {day}
                                 {isCurrentDay && (
-                                  <Badge className="ml-2 bg-emerald-500 text-white text-[10px]">Today</Badge>
+                                  <Badge className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white text-[10px] border-0 shadow-lg shadow-teal-500/30">Today</Badge>
                                 )}
                               </h3>
                             </div>
                             
                             {/* Classes */}
                             {daySchedules.length > 0 ? (
-                              <div className="space-y-2">
-                                {daySchedules.map((schedule) => (
-                                  <div key={schedule.id} className="relative">
+                              <div className="space-y-3">
+                                {daySchedules.map((schedule, index) => (
+                                  <motion.div 
+                                    key={schedule.id} 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className="relative"
+                                  >
                                     {/* Time connector */}
-                                    <div className="absolute -left-6 sm:-left-8 top-3 w-3 sm:w-4 h-0.5 bg-border" />
+                                    <div className="absolute -left-6 sm:-left-8 top-4 w-3 sm:w-4 h-0.5 bg-gradient-to-r from-teal-300 to-transparent dark:from-teal-600 dark:to-transparent" />
                                     
                                     <ScheduleCard 
                                       schedule={schedule} 
                                       scheduleChange={scheduleChanges[schedule.id]}
                                       showStatus={true}
                                     />
-                                  </div>
+                                  </motion.div>
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-xs text-muted-foreground pl-2">No classes</p>
+                              <div className="pl-2 py-3 text-xs text-muted-foreground italic">
+                                No classes scheduled
+                              </div>
                             )}
-                          </div>
+                          </motion.div>
                         );
                       })}
                     </div>
