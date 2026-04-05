@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, CalendarDays, User, BookOpen, Bell, BellOff, ExternalLink } from "lucide-react";
+import { Home, CalendarDays, User, BookOpen, Bell, BellOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -17,8 +17,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { XCircle, CalendarClock, MapPin, RefreshCw } from "lucide-react";
 
+// Navigation items - always show these 3
 const defaultNavItems = [
   { id: "home", label: "Home", icon: Home, href: "/" },
+  { id: "routine", label: "Routine", icon: CalendarDays, href: "/?view=master-calendar" },
   { id: "student", label: "Student", icon: User, href: "/?view=student" },
 ];
 
@@ -167,21 +169,15 @@ function MobileBottomNavContent() {
     }
   }, [notificationDrawerOpen, notifications.length, readIds]);
 
-  // Use header links from settings, fallback to default (only first 2 for mobile)
-  const navItems = settings.headerLinks?.length > 0 
-    ? settings.headerLinks.slice(0, 2).map((link, index) => ({
-        id: `mobile-nav-${index}`,
-        label: link.label.length > 10 ? link.label.slice(0, 8) + "..." : link.label,
-        icon: index === 0 ? Home : CalendarDays,
-        href: link.href,
-      }))
-    : defaultNavItems;
+  // Navigation items - use default items
+  const navItems = defaultNavItems;
 
   const getActiveId = () => {
-    if (view === "master-calendar") return "mobile-nav-1";
-    if (view === "student") return "mobile-nav-1";
+    if (view === "master-calendar") return "routine";
+    if (view === "student") return "student";
     if (view === "notifications") return "notifications";
-    return "mobile-nav-0";
+    if (view === "library") return "library";
+    return "home";
   };
 
   const activeId = getActiveId();
@@ -203,8 +199,8 @@ function MobileBottomNavContent() {
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-teal-500 via-emerald-500 to-cyan-500" />
         
         {/* Navigation items */}
-        <div className="relative flex items-center justify-around h-16 pb-safe px-2">
-          {navItems.map((item, index) => {
+        <div className="relative flex items-center justify-around h-16 pb-safe px-1">
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeId === item.id;
             
@@ -249,15 +245,34 @@ function MobileBottomNavContent() {
             );
           })}
           
-          {/* Library Button */}
+          {/* Library Button - Only show if URL is configured */}
           {settings.libraryURL && (
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleLibraryClick}
-              className="relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-200"
+              className={cn(
+                "relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-200",
+                activeId === "library" && "scale-105"
+              )}
             >
-              <BookOpen className="w-5 h-5 text-muted-foreground" />
-              <span className="text-[10px] mt-1 font-medium text-muted-foreground">
+              {activeId === "library" && (
+                <>
+                  <motion.div
+                    layoutId="activeMobileNavLibrary"
+                    className="absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-500 via-emerald-500 to-cyan-500 shadow-lg shadow-teal-500/30"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/30 via-transparent to-black/5" />
+                </>
+              )}
+              <BookOpen className={cn(
+                "w-5 h-5 transition-all duration-200",
+                activeId === "library" ? "text-white" : "text-muted-foreground"
+              )} />
+              <span className={cn(
+                "text-[10px] mt-1 font-medium transition-all duration-200",
+                activeId === "library" ? "text-white font-semibold" : "text-muted-foreground"
+              )}>
                 Library
               </span>
             </motion.button>
