@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, CalendarDays, User, BookOpen, Bell, BellOff } from "lucide-react";
+import { Home, CalendarDays, User, BookOpen, Bell, BellOff, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { XCircle, CalendarClock, MapPin, RefreshCw } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { XCircle, CalendarClock, MapPin, RefreshCw, Settings } from "lucide-react";
 
 // Navigation items - always show these 3
 const defaultNavItems = [
@@ -36,6 +37,10 @@ interface NotificationItem {
   timestamp: string;
   isRead: boolean;
 }
+
+// Storage keys
+const SOUND_ENABLED_KEY = "smartRoutineHub_soundEnabled";
+const READ_NOTIFICATIONS_KEY = "smartRoutineHub_readNotifications";
 
 // Helper functions for notifications
 const getNotificationIcon = (type: string) => {
@@ -66,9 +71,6 @@ const formatNotificationTime = (timestamp: string) => {
   return date.toLocaleDateString();
 };
 
-// LocalStorage key for read notifications
-const READ_NOTIFICATIONS_KEY = "smartRoutineHub_readNotifications";
-
 // Get read notification IDs from localStorage
 function getReadNotificationIds(): string[] {
   if (typeof window === "undefined") return [];
@@ -90,6 +92,12 @@ function saveReadNotificationIds(ids: string[]): void {
   }
 }
 
+// Get sound preference
+function getSoundEnabled(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem(SOUND_ENABLED_KEY) !== "false";
+}
+
 function MobileBottomNavContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -102,18 +110,64 @@ function MobileBottomNavContent() {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   const hasMarkedAsRead = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const previousUnreadCount = useRef(0);
 
-  // Set client-side flag
+  // Initialize
   useEffect(() => {
     setIsClient(true);
     setReadIds(getReadNotificationIds());
+    setSoundEnabled(getSoundEnabled());
+    
+    // Initialize audio
+    audioRef.current = new Audio("/notification.mp3");
+    audioRef.current.volume = 0.7;
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current = null;
+      }
+    };
   }, []);
 
   // Calculate unread count based on readIds
   const unreadCount = isClient 
     ? notifications.filter(n => !readIds.includes(n.id)).length 
     : 0;
+
+  // Play notification sound
+  const playNotificationSound = useCallback(() => {
+    if (soundEnabled && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {
+        // Ignore autoplay restrictions
+      });
+    }
+  }, [soundEnabled]);
+
+  // Update app badge
+  const updateAppBadge = useCallback(async (count: number) => {
+    if (!isClient) return;
+    
+    try {
+      if ("setAppBadge" in navigator) {
+        const nav = navigator as Navigator & { 
+          setAppBadge: (count: number) => Promise<void>;
+          clearAppBadge: () => Promise<void>;
+        };
+        if (count > 0) {
+          await nav.setAppBadge(count);
+        } else {
+          await nav.clearAppBadge();
+        }
+      }
+    } catch (error) {
+      // Ignore badge errors
+    }
+  }, [isClient]);
 
   // Fetch notifications with read status
   const fetchNotifications = useCallback(async () => {
@@ -123,26 +177,40 @@ function MobileBottomNavContent() {
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
-        setNotifications(data.data || []);
+        const newNotifications = data.data || [];
+        const newUnreadCount = newNotifications.filter(
+          (n: NotificationItem) => !currentReadIds.includes(n.id)
+        ).length;
+        
+        // Check for new notifications and play sound
+        if (newUnreadCount > previousUnreadCount.current && previousUnreadCount.current >= 0) {
+          playNotificationSound();
+        }
+        
+        previousUnreadCount.current = newUnreadCount;
+        setNotifications(newNotifications);
+        
+        // Update app badge
+        updateAppBadge(newUnreadCount);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
     }
-  }, []);
+  }, [playNotificationSound, updateAppBadge]);
 
   // Fetch notifications periodically
   useEffect(() => {
     fetchNotifications();
     
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchNotifications, 60000);
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
   // Fetch notifications when drawer opens
   useEffect(() => {
     if (notificationDrawerOpen) {
-      hasMarkedAsRead.current = false; // Reset the flag when drawer opens
+      hasMarkedAsRead.current = false;
       const fetchAndMark = async () => {
         setNotificationsLoading(true);
         try {
@@ -158,18 +226,26 @@ function MobileBottomNavContent() {
   // Mark all notifications as read when drawer closes
   useEffect(() => {
     if (!notificationDrawerOpen && notifications.length > 0 && !hasMarkedAsRead.current) {
-      hasMarkedAsRead.current = true; // Mark as processed to prevent infinite loop
-      // Mark all current notifications as read
+      hasMarkedAsRead.current = true;
       const allIds = [...new Set([...readIds, ...notifications.map(n => n.id)])];
       setReadIds(allIds);
       saveReadNotificationIds(allIds);
-      
-      // Update local notification state
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      
+      // Clear badge
+      updateAppBadge(0);
+      previousUnreadCount.current = 0;
     }
-  }, [notificationDrawerOpen, notifications.length, readIds]);
+  }, [notificationDrawerOpen, notifications.length, readIds, updateAppBadge]);
 
-  // Navigation items - use default items
+  // Toggle sound
+  const toggleSound = () => {
+    const newValue = !soundEnabled;
+    setSoundEnabled(newValue);
+    localStorage.setItem(SOUND_ENABLED_KEY, String(newValue));
+  };
+
+  // Navigation items
   const navItems = defaultNavItems;
 
   const getActiveId = () => {
@@ -219,13 +295,11 @@ function MobileBottomNavContent() {
                 >
                   {isActive && (
                     <>
-                      {/* Active background with gradient */}
                       <motion.div
                         layoutId="activeMobileNav"
                         className="absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-500 via-emerald-500 to-cyan-500 shadow-lg shadow-teal-500/30"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
-                      {/* Inner glow */}
                       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/30 via-transparent to-black/5" />
                     </>
                   )}
@@ -245,7 +319,7 @@ function MobileBottomNavContent() {
             );
           })}
           
-          {/* Library Button - Only show if URL is configured */}
+          {/* Library Button */}
           {settings.libraryURL && (
             <motion.button
               whileTap={{ scale: 0.95 }}
@@ -303,9 +377,13 @@ function MobileBottomNavContent() {
                 activeId === "notifications" ? "text-white" : "text-muted-foreground"
               )} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold shadow-md">
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold shadow-md"
+                >
                   {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
+                </motion.span>
               )}
             </div>
             <span className={cn(
@@ -328,10 +406,45 @@ function MobileBottomNavContent() {
                   <Bell className="w-4 h-4 text-white" />
                 </div>
                 Notifications
+                {unreadCount > 0 && (
+                  <Badge className="bg-red-500 text-white text-[10px] px-1.5">
+                    {unreadCount}
+                  </Badge>
+                )}
               </SheetTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="h-8 w-8"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
+            
+            {/* Settings Panel */}
+            {showSettings && (
+              <div className="mt-3 p-3 rounded-lg bg-muted/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    {soundEnabled ? (
+                      <Volume2 className="w-4 h-4 text-emerald-500" />
+                    ) : (
+                      <VolumeX className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <span>Notification Sound</span>
+                  </div>
+                  <Switch
+                    checked={soundEnabled}
+                    onCheckedChange={toggleSound}
+                  />
+                </div>
+              </div>
+            )}
           </SheetHeader>
-          <div className="overflow-y-auto h-[calc(80vh-80px)]">
+          <div className="overflow-y-auto h-[calc(80vh-100px)]">
             {notificationsLoading ? (
               <div className="flex items-center justify-center py-12">
                 <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
