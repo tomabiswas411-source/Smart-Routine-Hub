@@ -6,9 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useSettingsStore } from "@/store/settings-store";
 import { motion } from "framer-motion";
+import { useSyncExternalStore, useCallback } from "react";
+
+// Custom hook to check if component is mounted (avoids hydration mismatch)
+function useMounted() {
+  return useSyncExternalStore(
+    useCallback(() => () => {}, []),
+    () => true,
+    () => false
+  );
+}
 
 export function Footer() {
   const { settings } = useSettingsStore();
+  const mounted = useMounted();
 
   return (
     <footer className="mt-auto relative overflow-hidden">
@@ -189,7 +200,7 @@ export function Footer() {
             <p className="flex items-center gap-1">
               Developed with <Heart className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" /> for {settings.siteName || "Smart Routine Hub"}
             </p>
-            {settings.developerName && (
+            {mounted && settings.developerName && (
               <p className="flex items-center gap-1">
                 <span className="hidden sm:inline">•</span>
                 <span>Developed by</span>
