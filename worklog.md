@@ -381,3 +381,49 @@ Stage Summary:
 - All functionality preserved (no logic broken)
 - All lint checks pass
 - All API routes return 200 status codes
+
+---
+Task ID: 11
+Agent: Main Agent
+Task: Add Developer Info to Footer and Fix Mobile Navigation Notifications
+
+Work Log:
+- Added developer info fields to settings store (src/store/settings-store.ts):
+  - Added `developerName: string` field
+  - Added `developerURL: string` field
+  - Updated defaultSettings with empty defaults
+- Updated admin page (src/app/admin/page.tsx):
+  - Added `developerName` and `developerURL` to SiteSettings interface
+  - Added Code icon import
+  - Created Developer Info card in Footer Settings tab with:
+    - Developer Name input
+    - Developer Website URL input
+    - Description text explaining usage
+- Updated footer component (src/components/layout/footer.tsx):
+  - Added developer credit display in bottom section
+  - Shows "Developed by [Name]" with optional link
+  - Links open in new tab with ExternalLink icon
+  - Only displays when developerName is set
+- Completely rewrote mobile navigation (src/components/layout/mobile-nav.tsx):
+  - Reduced nav items to 3 (Home, Routine, Student)
+  - Added dedicated Notification button with drawer
+  - Added notification badge with unread count
+  - Added notification drawer that shows all notifications
+  - Added notification fetching from API
+  - Added notification type icons (cancelled, rescheduled, room changed, general)
+  - Added notification time formatting
+  - Shows semester and program badges on notifications
+
+Files Modified:
+1. /src/store/settings-store.ts - Added developerName and developerURL fields
+2. /src/app/admin/page.tsx - Added Developer Info settings card
+3. /src/components/layout/footer.tsx - Added developer credit display
+4. /src/components/layout/mobile-nav.tsx - Complete rewrite with notification drawer
+
+Stage Summary:
+- Footer now shows developer name with link (controllable from admin settings)
+- Mobile navigation has proper notification icon that opens drawer
+- Notification drawer shows all notifications with unread count
+- Admin can set developer name and URL from Settings > Footer tab
+- All lint checks pass
+- All functionality preserved

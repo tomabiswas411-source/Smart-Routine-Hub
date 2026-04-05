@@ -11,7 +11,7 @@ import {
   LayoutDashboard, Key, Mail, Phone, Globe,
   MapPin, FileText, GraduationCap, Building, Link,
   Facebook, Twitter, Instagram, Youtube, ExternalLink,
-  Palette, Type, Image
+  Palette, Type, Image, Code
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -168,6 +168,9 @@ interface SiteSettings {
   // Footer settings
   footerQuickLinks: { label: string; href: string }[];
   footerDescription: string;
+  // Developer info
+  developerName: string;
+  developerURL: string;
 }
 
 type ActiveSection = "dashboard" | "teachers" | "courses" | "rooms" | "schedules" | "notices" | "settings";
@@ -199,6 +202,8 @@ const defaultSettings: SiteSettings = {
     { label: "Library", href: "/?view=library" },
   ],
   footerDescription: "Your complete academic companion for managing class schedules, routines, and academic activities.",
+  developerName: "",
+  developerURL: "",
 };
 
 export default function AdminDashboard() {
@@ -1696,6 +1701,45 @@ export default function AdminDashboard() {
                           placeholder="Footer description text..."
                           className="bg-white dark:bg-gray-800 border-2"
                         />
+                      </CardContent>
+                    </Card>
+
+                    {/* Developer Info Card */}
+                    <Card className="card-3d card-inner-glow overflow-hidden">
+                      <div className="h-1 bg-gradient-to-r from-purple-500 via-violet-500 to-indigo-500" />
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center shadow-md shadow-purple-500/30">
+                            <Code className="w-3.5 h-3.5 text-white" />
+                          </div>
+                          Developer Info
+                        </CardTitle>
+                        <CardDescription>This will be shown in the footer as "Developed by"</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Developer Name</Label>
+                            <Input
+                              placeholder="e.g., Your Name or Company"
+                              value={siteSettings.developerName}
+                              onChange={(e) => setSiteSettings({ ...siteSettings, developerName: e.target.value })}
+                              className="bg-white dark:bg-gray-800 border-2"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Developer Website URL</Label>
+                            <Input
+                              placeholder="https://your-website.com"
+                              value={siteSettings.developerURL}
+                              onChange={(e) => setSiteSettings({ ...siteSettings, developerURL: e.target.value })}
+                              className="bg-white dark:bg-gray-800 border-2"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Leave empty to hide the developer credit in footer.
+                        </p>
                       </CardContent>
                     </Card>
 

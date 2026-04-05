@@ -185,9 +185,30 @@ export function Footer() {
 
         {/* Bottom */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p className="flex items-center gap-1">
-            Developed with <Heart className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" /> for {settings.siteName || "Smart Routine Hub"}
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+            <p className="flex items-center gap-1">
+              Developed with <Heart className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" /> for {settings.siteName || "Smart Routine Hub"}
+            </p>
+            {settings.developerName && (
+              <p className="flex items-center gap-1">
+                <span className="hidden sm:inline">•</span>
+                <span>Developed by</span>
+                {settings.developerURL ? (
+                  <a 
+                    href={settings.developerURL} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors font-medium"
+                  >
+                    {settings.developerName}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : (
+                  <span className="font-medium text-teal-600 dark:text-teal-400">{settings.developerName}</span>
+                )}
+              </p>
+            )}
+          </div>
           <p className="text-center md:text-right">© {new Date().getFullYear()} {settings.departmentName || settings.siteName}. All rights reserved.</p>
         </div>
       </div>

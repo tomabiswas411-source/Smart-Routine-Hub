@@ -18,6 +18,9 @@ export interface SiteSettings {
   headerLinks: { label: string; href: string }[];
   footerQuickLinks: { label: string; href: string }[];
   footerDescription: string;
+  // Developer info for footer
+  developerName: string;
+  developerURL: string;
 }
 
 interface SettingsState {
@@ -54,6 +57,8 @@ const defaultSettings: SiteSettings = {
     { label: "Library", href: "/?view=library" },
   ],
   footerDescription: "Your complete academic companion for managing class schedules, routines, and academic activities.",
+  developerName: "",
+  developerURL: "",
 };
 
 export const useSettingsStore = create<SettingsState>((set) => ({
