@@ -140,13 +140,18 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       // Check for VAPID key (you'll need to generate this)
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
-      // Subscribe
-      const subscription = await registration.pushManager.subscribe({
+      // Subscribe options
+      const subscribeOptions: PushSubscriptionOptionsInit = {
         userVisibleOnly: true,
-        applicationServerKey: vapidPublicKey
-          ? urlBase64ToUint8Array(vapidPublicKey)
-          : undefined,
-      });
+      };
+
+      // Add applicationServerKey only if vapidPublicKey exists
+      if (vapidPublicKey) {
+        subscribeOptions.applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+      }
+
+      // Subscribe
+      const subscription = await registration.pushManager.subscribe(subscribeOptions);
 
       // Send subscription to server
       await fetch("/api/notifications/subscribe", {
@@ -228,7 +233,8 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         requireInteraction: options.requireInteraction || false,
         silent: options.silent || false,
         data: options.data || {},
-        vibrate: [100, 50, 100],
+        // Note: vibrate is supported by browsers but not in TypeScript types
+        ...({ vibrate: [100, 50, 100] } as Record<string, unknown>),
       });
 
       // Play sound if enabled
@@ -282,7 +288,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 }
 
 // Helper function to convert VAPID key
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
 
@@ -292,7 +298,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
-  return outputArray;
+  return outputArray as Uint8Array<ArrayBuffer>;
 }
 
 // Hook for managing notification sound preference
