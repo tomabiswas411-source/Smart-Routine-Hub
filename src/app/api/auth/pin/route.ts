@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByEmail } from "@/lib/firebase-services";
-
-// Demo PINs for development - In production, these should be stored in Firebase
-// with proper hashing. Set USE_DEMO_PINS=false in production.
-const DEMO_PINS: Record<string, { email: string; role: string }> = {
-  "123456": { email: "admin@ice.ru.ac.bd", role: "admin" },
-  "654321": { email: "rahman@ru.ac.bd", role: "teacher" },
-  "111111": { email: "kamal@ru.ac.bd", role: "teacher" },
-  "222222": { email: "nafisa@ru.ac.bd", role: "teacher" },
-};
+import { getUserByPin } from "@/lib/firebase-services";
+import { compare } from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,45 +8,53 @@ export async function POST(request: NextRequest) {
 
     if (!pin || typeof pin !== "string" || pin.length !== 6) {
       return NextResponse.json(
-        { success: false, error: "Invalid PIN format" },
+        { success: false, error: "Invalid PIN format. PIN must be 6 digits." },
         { status: 400 }
       );
     }
 
-    // Check demo PINs (for development only)
-    const pinData = DEMO_PINS[pin];
+    // Look up user by PIN in Firebase
+    const user = await getUserByPin(pin);
     
-    if (!pinData) {
+    if (!user) {
       return NextResponse.json(
-        { success: false, error: "Invalid PIN code" },
+        { success: false, error: "Invalid PIN code. Please contact admin if you forgot your PIN." },
         { status: 401 }
       );
     }
 
-    // Get user from Firebase
-    const user = await getUserByEmail(pinData.email);
-    
-    if (!user || !user.isActive) {
+    if (!user.isActive) {
       return NextResponse.json(
-        { success: false, error: "User not found or inactive" },
+        { success: false, error: "Your account has been deactivated. Please contact admin." },
+        { status: 401 }
+      );
+    }
+
+    // For PIN login, we need to provide credentials for NextAuth
+    // The user must have a password set in Firebase
+    if (!user.password) {
+      return NextResponse.json(
+        { success: false, error: "Account not configured for login. Please contact admin." },
         { status: 401 }
       );
     }
 
     // Return user info for client-side session handling
+    // We return the email so the client can authenticate via NextAuth
     return NextResponse.json({
       success: true,
       data: {
-        email: pinData.email,
-        password: "password123", // Demo password - in production, use proper auth
+        email: user.email,
+        // Return a flag indicating PIN was verified
+        pinVerified: true,
+        fullName: user.fullName,
         role: user.role,
-        name: user.fullName,
       },
     });
   } catch (error) {
     console.error("PIN verification error:", error);
     return NextResponse.json(
-      { success: false, error: "Internal server error" },
+      { success: false, error: "Internal server error. Please try again later." },
       { status: 500 }
     );
   }

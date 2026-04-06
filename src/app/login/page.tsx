@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Database, CheckCircle, Smartphone, KeyRound, ArrowLeft, Delete, Sparkles, GraduationCap, Zap } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Smartphone, KeyRound, ArrowLeft, Delete, Sparkles, GraduationCap, Zap } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,8 +18,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [seedMessage, setSeedMessage] = useState("");
   
   // PIN Login State
   const [showPinLogin, setShowPinLogin] = useState(false);
@@ -31,45 +29,19 @@ export default function LoginPage() {
   useEffect(() => {
     const clearCorruptedSession = async () => {
       try {
-        // Check if there's a corrupted session by trying to fetch it
         const response = await fetch("/api/auth/session");
         const data = await response.json();
         
-        // If we get an error or the session is malformed, sign out to clear cookies
         if (!response.ok || data.error) {
           await signOut({ redirect: false });
         }
       } catch {
-        // If there's an error fetching the session, clear cookies
         await signOut({ redirect: false });
       }
     };
     
     clearCorruptedSession();
   }, []);
-
-  const handleSeedDatabase = async () => {
-    setIsSeeding(true);
-    setSeedMessage("");
-    setError("");
-    
-    try {
-      const response = await fetch("/api/seed", {
-        method: "POST",
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        setSeedMessage(`Database seeded! Created ${data.data.teachers} teachers, ${data.data.courses} courses.`);
-      } else {
-        setSeedMessage(data.message || "Database already has data.");
-      }
-    } catch (err) {
-      setSeedMessage("Failed to seed database. Please try again.");
-    } finally {
-      setIsSeeding(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +56,7 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password. Please try again or seed the database first.");
+        setError("Invalid email or password. Please try again.");
       } else {
         const response = await fetch("/api/auth/session");
         const session = await response.json();
@@ -97,7 +69,7 @@ export default function LoginPage() {
           router.push("/");
         }
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
@@ -128,31 +100,14 @@ export default function LoginPage() {
     setPinError("");
 
     try {
-      // Verify PIN via API
-      const pinResponse = await fetch("/api/auth/pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: pinCode }),
-      });
-      
-      const pinData = await pinResponse.json();
-      
-      if (!pinData.success) {
-        setPinError(pinData.error || "Invalid PIN code");
-        setPin("");
-        setIsPinLoading(false);
-        return;
-      }
-
-      // Sign in with credentials from PIN verification
-      const result = await signIn("credentials", {
-        email: pinData.data.email,
-        password: pinData.data.password,
+      // Sign in using the PIN provider
+      const result = await signIn("pin", {
+        pin: pinCode,
         redirect: false,
       });
 
       if (result?.error) {
-        setPinError("Login failed. Please try again.");
+        setPinError("Invalid PIN code. Please try again.");
         setPin("");
       } else {
         const response = await fetch("/api/auth/session");
@@ -166,7 +121,7 @@ export default function LoginPage() {
           router.push("/");
         }
       }
-    } catch (err) {
+    } catch {
       setPinError("An error occurred. Please try again.");
       setPin("");
     } finally {
@@ -240,39 +195,6 @@ export default function LoginPage() {
                 <Zap className="w-5 h-5 text-amber-500" />
                 Sign In
               </h2>
-
-              {/* Seed Database Button */}
-              <div className="mb-4 relative">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700 hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-800"
-                  onClick={handleSeedDatabase}
-                  disabled={isSeeding}
-                >
-                  {isSeeding ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Seeding Database...
-                    </>
-                  ) : (
-                    <>
-                      <Database className="w-4 h-4 mr-2 text-teal-500" />
-                      Initialize Database (First Time Setup)
-                    </>
-                  )}
-                </Button>
-                {seedMessage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm mt-2"
-                  >
-                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                    {seedMessage}
-                  </motion.div>
-                )}
-              </div>
 
               {/* Error Message */}
               {error && (
@@ -357,26 +279,6 @@ export default function LoginPage() {
                   <Smartphone className="w-4 h-4 text-teal-500" />
                   Quick PIN Login (Mobile)
                 </Button>
-              </div>
-
-              {/* Demo Credentials */}
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-muted-foreground text-center mb-3">Demo Credentials (after seeding):</p>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-3 bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20 rounded-xl border border-teal-100 dark:border-teal-800">
-                    <p className="font-semibold text-teal-700 dark:text-teal-300 mb-1">Admin</p>
-                    <p className="text-muted-foreground text-[10px]">admin@ice.ru.ac.bd</p>
-                    <p className="text-muted-foreground text-[10px]">password123</p>
-                  </div>
-                  <div className="p-3 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl border border-amber-100 dark:border-amber-800">
-                    <p className="font-semibold text-amber-700 dark:text-amber-300 mb-1">Teacher</p>
-                    <p className="text-muted-foreground text-[10px]">rahman@ru.ac.bd</p>
-                    <p className="text-muted-foreground text-[10px]">password123</p>
-                  </div>
-                </div>
-                <p className="text-[10px] text-muted-foreground text-center mt-3">
-                  PIN: <span className="font-mono font-bold text-teal-600">123456</span> (Admin) | <span className="font-mono font-bold text-amber-600">654321</span> (Teacher)
-                </p>
               </div>
             </motion.div>
 
@@ -512,21 +414,6 @@ export default function LoginPage() {
                     </motion.button>
                   );
                 })}
-              </div>
-
-              {/* Demo PINs */}
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 relative">
-                <p className="text-xs text-muted-foreground text-center mb-2">Demo PINs:</p>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2 bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20 rounded-lg text-center border border-teal-100 dark:border-teal-800">
-                    <p className="font-semibold text-teal-700 dark:text-teal-300">Admin</p>
-                    <p className="text-teal-600 font-mono font-bold text-lg">123456</p>
-                  </div>
-                  <div className="p-2 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg text-center border border-amber-100 dark:border-amber-800">
-                    <p className="font-semibold text-amber-700 dark:text-amber-300">Teacher</p>
-                    <p className="text-amber-600 font-mono font-bold text-lg">654321</p>
-                  </div>
-                </div>
               </div>
             </motion.div>
 

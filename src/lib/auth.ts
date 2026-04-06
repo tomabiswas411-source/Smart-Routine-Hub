@@ -1,11 +1,12 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getUserByEmail } from "@/lib/firebase-services";
+import { getUserByEmail, getUserByPin } from "@/lib/firebase-services";
 import { compare } from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
+      id: "credentials",
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -25,6 +26,35 @@ export const authOptions: NextAuthOptions = {
         const isPasswordValid = await compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
+          return null;
+        }
+
+        if (!user.isActive) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.fullName,
+          role: user.role,
+        };
+      },
+    }),
+    CredentialsProvider({
+      id: "pin",
+      name: "PIN",
+      credentials: {
+        pin: { label: "PIN", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.pin || credentials.pin.length !== 6) {
+          return null;
+        }
+
+        const user = await getUserByPin(credentials.pin);
+
+        if (!user || !user.isActive) {
           return null;
         }
 

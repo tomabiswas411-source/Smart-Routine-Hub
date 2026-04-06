@@ -21,6 +21,7 @@ export interface User {
   id: string;
   email: string;
   password?: string;
+  pin?: string; // 6-digit PIN for quick mobile login
   fullName: string;
   designation?: string;
   department: string;
@@ -227,6 +228,19 @@ export async function getUserByEmail(email: string): Promise<User | null> {
     return docToObj<User>(docSnap as unknown as { id: string; data: () => Record<string, unknown> });
   } catch (error) {
     console.error("Error getting user by email:", error);
+    return null;
+  }
+}
+
+export async function getUserByPin(pin: string): Promise<User | null> {
+  try {
+    const q = query(collection(db, "users"), where("pin", "==", pin), where("isActive", "==", true), limit(1));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return null;
+    const docSnap = querySnapshot.docs[0];
+    return docToObj<User>(docSnap as unknown as { id: string; data: () => Record<string, unknown> });
+  } catch (error) {
+    console.error("Error getting user by PIN:", error);
     return null;
   }
 }
