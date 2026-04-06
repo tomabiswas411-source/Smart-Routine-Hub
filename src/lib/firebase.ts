@@ -13,9 +13,12 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase only if it hasn't been initialized
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// Check if Firebase config is valid
+const isValidConfig = firebaseConfig.apiKey && firebaseConfig.projectId;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+// Initialize Firebase only if config is valid and hasn't been initialized
+const app = isValidConfig && getApps().length === 0 ? initializeApp(firebaseConfig) : (getApps().length > 0 ? getApp() : null);
+
+export const auth = app ? getAuth(app) : null;
+export const db = app ? getFirestore(app) : null as unknown as ReturnType<typeof getFirestore>;
+export const storage = app ? getStorage(app) : null as unknown as ReturnType<typeof getStorage>;
