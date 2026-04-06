@@ -451,13 +451,13 @@ interface NotificationItem {
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case "class_cancelled":
-      return <XCircle className="w-4 h-4 text-red-500" />;
+      return <XCircle className="w-5 h-5 text-red-500" />;
     case "class_rescheduled":
-      return <CalendarClock className="w-4 h-4 text-amber-500" />;
+      return <CalendarClock className="w-5 h-5 text-amber-500" />;
     case "room_changed":
-      return <MapPin className="w-4 h-4 text-blue-500" />;
+      return <MapPin className="w-5 h-5 text-blue-500" />;
     default:
-      return <Bell className="w-4 h-4 text-emerald-500" />;
+      return <Bell className="w-5 h-5 text-emerald-500" />;
   }
 };
 
@@ -498,8 +498,8 @@ function NotificationList({
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <BellOff className="w-8 h-8 text-muted-foreground/50 mb-2" />
-        <p className="text-xs sm:text-sm text-muted-foreground">No notifications yet</p>
-        <p className="text-[10px] text-muted-foreground/70 mt-1">
+        <p className="text-sm text-muted-foreground">No notifications yet</p>
+        <p className="text-xs text-muted-foreground/70 mt-1">
           Class changes and updates will appear here
         </p>
       </div>
@@ -520,26 +520,26 @@ function NotificationList({
             {getNotificationIcon(notification.type)}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-xs sm:text-sm text-foreground">
+            <p className="font-medium text-sm sm:text-base text-foreground">
               {notification.title}
             </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
               {notification.message}
             </p>
             {/* Semester Highlight */}
             {notification.semester && (
               <div className="flex items-center gap-2 mt-2">
-                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] px-2 py-0.5">
+                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs px-2.5 py-1">
                   {notification.semester}{notification.semester === 1 ? 'st' : notification.semester === 2 ? 'nd' : notification.semester === 3 ? 'rd' : 'th'} Semester
                 </Badge>
                 {notification.program && (
-                  <Badge variant="outline" className="text-[10px] uppercase px-2 py-0.5">
+                  <Badge variant="outline" className="text-xs uppercase px-2.5 py-1">
                     {notification.program}
                   </Badge>
                 )}
               </div>
             )}
-            <p className="text-[10px] text-muted-foreground/70 mt-1">
+            <p className="text-xs text-muted-foreground/70 mt-1.5">
               {formatNotificationTime(notification.timestamp)}
             </p>
           </div>
