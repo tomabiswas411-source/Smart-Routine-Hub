@@ -67,6 +67,22 @@ interface Room {
   building: string | null;
 }
 
+function timestampToMillis(timestamp: unknown): number {
+  if (!timestamp) return 0;
+  if (timestamp instanceof Date) return timestamp.getTime();
+  if (typeof timestamp === "number") return timestamp;
+  if (typeof timestamp === "string") {
+    const parsed = new Date(timestamp).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof timestamp === "object" && timestamp !== null) {
+    const ts = timestamp as { seconds?: number; _seconds?: number };
+    const seconds = ts.seconds ?? ts._seconds ?? 0;
+    return seconds > 0 ? seconds * 1000 : 0;
+  }
+  return 0;
+}
+
 // Program configuration - Premium Color Palette
 const programs = [
   {
@@ -988,7 +1004,8 @@ function StudentView() {
 
   // Use real-time hooks instead of fetch
   const { schedules, loading: schedulesLoading } = useRealtimeSchedules();
-  const { changes, loading: changesLoading } = useRealtimeScheduleChanges();
+  const today = new Date().toISOString().split("T")[0];
+  const { changes, loading: changesLoading } = useRealtimeScheduleChanges({ effectiveDate: today });
 
   const loading = schedulesLoading || changesLoading;
 
@@ -997,9 +1014,10 @@ function StudentView() {
   changes.forEach((change) => {
     if (change.isActive && change.scheduleId) {
       // Only keep the most recent change per schedule
-      if (!scheduleChanges[change.scheduleId] || 
-          (change.createdAt && scheduleChanges[change.scheduleId].createdAt &&
-           new Date(change.createdAt as Date) > new Date(scheduleChanges[change.scheduleId].createdAt as Date))) {
+      if (
+        !scheduleChanges[change.scheduleId] ||
+        timestampToMillis(change.createdAt) > timestampToMillis(scheduleChanges[change.scheduleId].createdAt)
+      ) {
         scheduleChanges[change.scheduleId] = change as ScheduleChangeForView;
       }
     }
@@ -1472,7 +1490,8 @@ function MasterRoutineCalendar() {
 
   // Use real-time hooks instead of fetch
   const { schedules, loading: schedulesLoading } = useRealtimeSchedules();
-  const { changes, loading: changesLoading } = useRealtimeScheduleChanges();
+  const today = new Date().toISOString().split("T")[0];
+  const { changes, loading: changesLoading } = useRealtimeScheduleChanges({ effectiveDate: today });
   const { teachers, loading: teachersLoading } = useRealtimeTeachers();
   const { rooms, loading: roomsLoading } = useRealtimeRooms();
 
@@ -1482,9 +1501,10 @@ function MasterRoutineCalendar() {
   const scheduleChanges: Record<string, ScheduleChangeForView> = {};
   changes.forEach((change) => {
     if (change.isActive && change.scheduleId) {
-      if (!scheduleChanges[change.scheduleId] || 
-          (change.createdAt && scheduleChanges[change.scheduleId].createdAt &&
-           new Date(change.createdAt as Date) > new Date(scheduleChanges[change.scheduleId].createdAt as Date))) {
+      if (
+        !scheduleChanges[change.scheduleId] ||
+        timestampToMillis(change.createdAt) > timestampToMillis(scheduleChanges[change.scheduleId].createdAt)
+      ) {
         scheduleChanges[change.scheduleId] = change as ScheduleChangeForView;
       }
     }
