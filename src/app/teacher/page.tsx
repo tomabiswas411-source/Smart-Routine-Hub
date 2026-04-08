@@ -377,13 +377,16 @@ function ScheduleCard({ schedule, isSelected, onSelect, onCancel, onReschedule, 
 
 // Main Teacher Dashboard Component
 export default function TeacherDashboard() {
+  const today = new Date().toISOString().split("T")[0];
   const { data: session, status } = useSession();
   const router = useRouter();
   const { toast } = useToast();
 
   // Real-time data hooks
   const { schedules, loading: schedulesLoading } = useRealtimeSchedules(session?.user?.id ? { teacherId: session.user.id } : undefined);
-  const { changes, loading: changesLoading } = useRealtimeScheduleChanges(session?.user?.id ? { teacherId: session.user.id } : undefined);
+  const { changes, loading: changesLoading } = useRealtimeScheduleChanges(
+    session?.user?.id ? { teacherId: session.user.id, effectiveDate: today } : { effectiveDate: today }
+  );
   const { timeSlots, loading: timeSlotsLoading } = useRealtimeTimeSlots();
   const { rooms, loading: roomsLoading } = useRealtimeRooms();
   const { notices, loading: noticesLoading } = useRealtimeNotices({ limitCount: 50 }); // Increased limit for teacher dashboard
@@ -1544,7 +1547,7 @@ export default function TeacherDashboard() {
                   {availableCoursesToAdd.length > 0 && (
                     <>
                       <div className="px-2 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50 dark:bg-amber-900/30 mt-1">Other Courses</div>
-                      {availableCoursesToAdd.slice(0, 20).map((course) => (
+                      {availableCoursesToAdd.map((course) => (
                         <SelectItem key={course.id} value={course.id}>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-[10px] px-1.5">{course.code}</Badge>

@@ -286,6 +286,8 @@ export default function AdminDashboard() {
     teacherId: "",
     roomId: "",
     timeSlotId: "",
+    startTime: "",
+    endTime: "",
     dayOfWeek: "sunday",
     semester: 1,
     program: "bsc", // Changed from section to program
@@ -596,9 +598,11 @@ export default function AdminDashboard() {
       const teacher = teachers.find(t => t.id === scheduleForm.teacherId);
       const room = rooms.find(r => r.id === scheduleForm.roomId);
       const timeSlot = timeSlots.find(t => t.id === scheduleForm.timeSlotId);
+      const startTime = scheduleForm.startTime || timeSlot?.startTime;
+      const endTime = scheduleForm.endTime || timeSlot?.endTime;
       
-      if (!course || !teacher || !room || !timeSlot) {
-        toast({ title: "Error", description: "Please select course, teacher, room, and time slot", variant: "destructive" });
+      if (!course || !teacher || !room || !startTime || !endTime) {
+        toast({ title: "Error", description: "Please select course, teacher, room and set valid start/end time", variant: "destructive" });
         setSubmitting(false);
         return;
       }
@@ -609,8 +613,8 @@ export default function AdminDashboard() {
         courseCode: course.code,
         teacherName: teacher.fullName,
         roomNumber: room.roomNumber,
-        startTime: timeSlot.startTime,
-        endTime: timeSlot.endTime,
+        startTime,
+        endTime,
         classType: course.type,
         isActive: true,
       };
@@ -662,7 +666,7 @@ export default function AdminDashboard() {
   };
 
   const resetScheduleForm = () => {
-    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "sunday", semester: 1, program: "bsc" });
+    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", startTime: "", endTime: "", dayOfWeek: "sunday", semester: 1, program: "bsc" });
     setEditingItem(null);
   };
 
@@ -1443,6 +1447,8 @@ export default function AdminDashboard() {
                                   teacherId: schedule.teacherId,
                                   roomId: schedule.roomId,
                                   timeSlotId: schedule.timeSlotId,
+                                  startTime: schedule.startTime || "",
+                                  endTime: schedule.endTime || "",
                                   dayOfWeek: schedule.dayOfWeek,
                                   semester: schedule.semester,
                                   program: schedule.program || "bsc",
@@ -2666,9 +2672,20 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-2">
                 <Label>Time Slot *</Label>
-                <Select value={scheduleForm.timeSlotId} onValueChange={(v) => setScheduleForm({ ...scheduleForm, timeSlotId: v })}>
+                <Select
+                  value={scheduleForm.timeSlotId}
+                  onValueChange={(v) => {
+                    const selectedSlot = timeSlots.find((slot) => slot.id === v);
+                    setScheduleForm({
+                      ...scheduleForm,
+                      timeSlotId: v,
+                      startTime: selectedSlot?.startTime || scheduleForm.startTime,
+                      endTime: selectedSlot?.endTime || scheduleForm.endTime,
+                    });
+                  }}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
+                    <SelectValue placeholder="Select time slot (optional)" />
                   </SelectTrigger>
                   <SelectContent>
                     {timeSlots.map((slot) => (
@@ -2678,6 +2695,24 @@ export default function AdminDashboard() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Start Time *</Label>
+                <Input
+                  type="time"
+                  value={scheduleForm.startTime}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, startTime: e.target.value, timeSlotId: "" })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Time *</Label>
+                <Input
+                  type="time"
+                  value={scheduleForm.endTime}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, endTime: e.target.value, timeSlotId: "" })}
+                />
               </div>
             </div>
             <div className="space-y-2">
