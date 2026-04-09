@@ -377,13 +377,16 @@ function ScheduleCard({ schedule, isSelected, onSelect, onCancel, onReschedule, 
 
 // Main Teacher Dashboard Component
 export default function TeacherDashboard() {
+  const today = new Date().toISOString().split("T")[0];
   const { data: session, status } = useSession();
   const router = useRouter();
   const { toast } = useToast();
 
   // Real-time data hooks
   const { schedules, loading: schedulesLoading } = useRealtimeSchedules(session?.user?.id ? { teacherId: session.user.id } : undefined);
-  const { changes, loading: changesLoading } = useRealtimeScheduleChanges(session?.user?.id ? { teacherId: session.user.id } : undefined);
+  const { changes, loading: changesLoading } = useRealtimeScheduleChanges(
+    session?.user?.id ? { teacherId: session.user.id, effectiveDate: today } : { effectiveDate: today }
+  );
   const { timeSlots, loading: timeSlotsLoading } = useRealtimeTimeSlots();
   const { rooms, loading: roomsLoading } = useRealtimeRooms();
   const { notices, loading: noticesLoading } = useRealtimeNotices({ limitCount: 50 }); // Increased limit for teacher dashboard
