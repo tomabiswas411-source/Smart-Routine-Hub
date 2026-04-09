@@ -299,7 +299,7 @@ function OnlineStatus() {
 interface ScheduleChangeForView {
   id: string;
   scheduleId: string;
-  changeType: "cancelled" | "rescheduled" | "room_changed";
+  changeType: "cancelled" | "rescheduled" | "room_changed" | "time_changed";
   isActive: boolean;
   originalDay?: string;
   originalStartTime?: string;
@@ -992,10 +992,14 @@ function StudentView() {
 
   const loading = schedulesLoading || changesLoading;
 
+  const now = new Date();
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  const todayDateString = new Date(now.getTime() - timezoneOffsetMs).toISOString().split("T")[0];
+
   // Create a map of scheduleId -> active change (same logic as before)
   const scheduleChanges: Record<string, ScheduleChangeForView> = {};
   changes.forEach((change) => {
-    if (change.isActive && change.scheduleId) {
+    if (change.isActive && change.scheduleId && change.effectiveDate === todayDateString) {
       // Only keep the most recent change per schedule
       if (!scheduleChanges[change.scheduleId] || 
           (change.createdAt && scheduleChanges[change.scheduleId].createdAt &&
@@ -1009,7 +1013,11 @@ function StudentView() {
   const getEffectiveSchedule = (schedule: Schedule): Schedule => {
     const change = scheduleChanges[schedule.id];
     
-    if (change?.changeType === "rescheduled" && change?.isActive) {
+    if (change?.isActive && (
+      change.changeType === "rescheduled" ||
+      change.changeType === "room_changed" ||
+      change.changeType === "time_changed"
+    )) {
       return {
         ...schedule,
         dayOfWeek: change.newDay || schedule.dayOfWeek,

@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -140,6 +141,7 @@ interface Schedule {
   semester: number;
   program: string; // Changed from section to program (bsc/msc)
   classType: string;
+  allowSharedSlot?: boolean;
   isActive: boolean;
 }
 
@@ -289,7 +291,11 @@ export default function AdminDashboard() {
     dayOfWeek: "sunday",
     semester: 1,
     program: "bsc", // Changed from section to program
+    allowSharedSlot: false,
   });
+  const [useCustomScheduleTime, setUseCustomScheduleTime] = useState(false);
+  const [customScheduleStartTime, setCustomScheduleStartTime] = useState("09:00");
+  const [customScheduleEndTime, setCustomScheduleEndTime] = useState("10:00");
   
   const [noticeForm, setNoticeForm] = useState({
     title: "",
@@ -595,10 +601,12 @@ export default function AdminDashboard() {
       const course = courses.find(c => c.id === scheduleForm.courseId);
       const teacher = teachers.find(t => t.id === scheduleForm.teacherId);
       const room = rooms.find(r => r.id === scheduleForm.roomId);
-      const timeSlot = timeSlots.find(t => t.id === scheduleForm.timeSlotId);
+      const timeSlot = useCustomScheduleTime ? undefined : timeSlots.find(t => t.id === scheduleForm.timeSlotId);
+      const startTime = useCustomScheduleTime ? customScheduleStartTime : timeSlot?.startTime;
+      const endTime = useCustomScheduleTime ? customScheduleEndTime : timeSlot?.endTime;
       
-      if (!course || !teacher || !room || !timeSlot) {
-        toast({ title: "Error", description: "Please select course, teacher, room, and time slot", variant: "destructive" });
+      if (!course || !teacher || !room || !startTime || !endTime) {
+        toast({ title: "Error", description: "Please select course, teacher, room, and valid class time", variant: "destructive" });
         setSubmitting(false);
         return;
       }
@@ -609,9 +617,11 @@ export default function AdminDashboard() {
         courseCode: course.code,
         teacherName: teacher.fullName,
         roomNumber: room.roomNumber,
-        startTime: timeSlot.startTime,
-        endTime: timeSlot.endTime,
+        startTime,
+        endTime,
+        timeSlotId: useCustomScheduleTime ? "" : scheduleForm.timeSlotId,
         classType: course.type,
+        allowSharedSlot: scheduleForm.allowSharedSlot,
         isActive: true,
       };
       
@@ -662,7 +672,10 @@ export default function AdminDashboard() {
   };
 
   const resetScheduleForm = () => {
-    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "sunday", semester: 1, program: "bsc" });
+    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "sunday", semester: 1, program: "bsc", allowSharedSlot: false });
+    setUseCustomScheduleTime(false);
+    setCustomScheduleStartTime("09:00");
+    setCustomScheduleEndTime("10:00");
     setEditingItem(null);
   };
 
@@ -1437,16 +1450,23 @@ export default function AdminDashboard() {
                               variant="ghost"
                               className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600"
                               onClick={() => {
+                                const matchedSlot = timeSlots.find(
+                                  (slot) => slot.id === schedule.timeSlotId || (slot.startTime === schedule.startTime && slot.endTime === schedule.endTime)
+                                );
                                 setEditingItem(schedule);
                                 setScheduleForm({
                                   courseId: schedule.courseId,
                                   teacherId: schedule.teacherId,
                                   roomId: schedule.roomId,
-                                  timeSlotId: schedule.timeSlotId,
+                                  timeSlotId: matchedSlot?.id || "",
                                   dayOfWeek: schedule.dayOfWeek,
                                   semester: schedule.semester,
                                   program: schedule.program || "bsc",
+                                  allowSharedSlot: schedule.allowSharedSlot === true,
                                 });
+                                setUseCustomScheduleTime(!matchedSlot);
+                                setCustomScheduleStartTime(schedule.startTime || "09:00");
+                                setCustomScheduleEndTime(schedule.endTime || "10:00");
                                 setShowScheduleDialog(true);
                               }}
                             >
@@ -2666,18 +2686,43 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-2">
                 <Label>Time Slot *</Label>
-                <Select value={scheduleForm.timeSlotId} onValueChange={(v) => setScheduleForm({ ...scheduleForm, timeSlotId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((slot) => (
-                      <SelectItem key={slot.id} value={slot.id}>
-                        {slot.label} ({slot.startTime} - {slot.endTime})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setUseCustomScheduleTime((prev) => !prev)}
+                  >
+                    {useCustomScheduleTime ? "Use predefined timeslot" : "Use custom random time"}
+                  </Button>
+                  {!useCustomScheduleTime ? (
+                    <Select value={scheduleForm.timeSlotId} onValueChange={(v) => setScheduleForm({ ...scheduleForm, timeSlotId: v })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeSlots.map((slot) => (
+                          <SelectItem key={slot.id} value={slot.id}>
+                            {slot.label} ({slot.startTime} - {slot.endTime})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="time"
+                        value={customScheduleStartTime}
+                        onChange={(e) => setCustomScheduleStartTime(e.target.value)}
+                      />
+                      <Input
+                        type="time"
+                        value={customScheduleEndTime}
+                        onChange={(e) => setCustomScheduleEndTime(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="space-y-2">
@@ -2720,6 +2765,21 @@ export default function AdminDashboard() {
                     <SelectItem value="msc">MSc - Master</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-lg border p-3">
+              <Checkbox
+                id="allowSharedSlot"
+                checked={scheduleForm.allowSharedSlot}
+                onCheckedChange={(checked) => setScheduleForm({ ...scheduleForm, allowSharedSlot: checked === true })}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="allowSharedSlot" className="cursor-pointer">
+                  Allow shared slot (Lab/Exam)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable this when multiple teachers need the same batch/time or same room at once (e.g., lab supervision, exam duty).
+                </p>
               </div>
             </div>
           </div>

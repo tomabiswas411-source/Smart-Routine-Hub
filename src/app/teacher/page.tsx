@@ -481,12 +481,21 @@ export default function TeacherDashboard() {
   // Derive teacher's courses from their schedules
   const teacherCourseIds = new Set(schedules.map(s => s.courseId));
   const teacherCourses = courses.filter(c => teacherCourseIds.has(c.id));
-  const availableCoursesToAdd = courses.filter(c => !teacherCourseIds.has(c.id));
+  const availableCoursesToAdd = courses;
+
+  const now = new Date();
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  const todayDateString = new Date(now.getTime() - timezoneOffsetMs).toISOString().split("T")[0];
 
   // Get effective schedule
   const getEffectiveSchedule = useCallback((schedule: TeacherSchedule): TeacherSchedule => {
     const change = changeMap[schedule.id];
-    if (change?.changeType === "rescheduled" && change?.isActive) {
+    const isEffectiveToday = change?.effectiveDate === todayDateString;
+    if (change?.isActive && isEffectiveToday && (
+      change.changeType === "rescheduled" ||
+      change.changeType === "room_changed" ||
+      change.changeType === "time_changed"
+    )) {
       return {
         ...schedule,
         dayOfWeek: change.newDay || schedule.dayOfWeek,
@@ -496,12 +505,12 @@ export default function TeacherDashboard() {
       };
     }
     return schedule;
-  }, [changeMap]);
+  }, [changeMap, todayDateString]);
 
   const isScheduleCancelled = useCallback((scheduleId: string): boolean => {
     const change = changeMap[scheduleId];
-    return change?.changeType === "cancelled" && change?.isActive;
-  }, [changeMap]);
+    return change?.changeType === "cancelled" && change?.isActive && change?.effectiveDate === todayDateString;
+  }, [changeMap, todayDateString]);
 
   // Effective schedules
   const effectiveSchedules = schedules.filter((s) => s.isActive).map((s) => getEffectiveSchedule(s));
@@ -1544,7 +1553,7 @@ export default function TeacherDashboard() {
                   {availableCoursesToAdd.length > 0 && (
                     <>
                       <div className="px-2 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50 dark:bg-amber-900/30 mt-1">Other Courses</div>
-                      {availableCoursesToAdd.slice(0, 20).map((course) => (
+                      {availableCoursesToAdd.map((course) => (
                         <SelectItem key={course.id} value={course.id}>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-[10px] px-1.5">{course.code}</Badge>

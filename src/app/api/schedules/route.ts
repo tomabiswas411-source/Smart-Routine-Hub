@@ -15,6 +15,7 @@ async function checkScheduleConflicts(data: {
   teacherId: string;
   program: string;
   semester: number;
+  allowSharedSlot?: boolean;
   excludeId?: string;
 }): Promise<{ hasConflict: boolean; conflicts: string[] }> {
   const conflicts: string[] = [];
@@ -51,8 +52,10 @@ async function checkScheduleConflicts(data: {
         (data.startTime <= existingStart && data.endTime >= existingEnd);
 
       if (hasTimeOverlap) {
+        const allowsSharedSlot = Boolean(data.allowSharedSlot);
+
         // Check room conflict
-        if (schedule.roomId === data.roomId) {
+        if (!allowsSharedSlot && schedule.roomId === data.roomId) {
           conflicts.push(`Room ${schedule.roomNumber || 'Unknown'} is already booked for ${schedule.courseCode || 'Unknown'} at ${existingStart}-${existingEnd}`);
         }
 
@@ -62,7 +65,7 @@ async function checkScheduleConflicts(data: {
         }
 
         // Check program/semester conflict (same batch can't have two classes at same time)
-        if (data.program && data.semester && schedule.program === data.program && schedule.semester === data.semester) {
+        if (!allowsSharedSlot && data.program && data.semester && schedule.program === data.program && schedule.semester === data.semester) {
           conflicts.push(`${data.program.toUpperCase()} Semester ${data.semester} already has ${schedule.courseCode || 'Unknown'} at ${existingStart}-${existingEnd}`);
         }
       }
@@ -150,6 +153,7 @@ export async function POST(request: NextRequest) {
       teacherId: teacherId,
       program: body.program || 'bsc',
       semester: body.semester || 1,
+      allowSharedSlot: body.allowSharedSlot === true,
     });
 
     if (conflictCheck.hasConflict) {
@@ -168,6 +172,7 @@ export async function POST(request: NextRequest) {
       teacherName,
       semester: body.semester || 1,
       program: body.program || 'bsc',
+      allowSharedSlot: body.allowSharedSlot === true,
       isActive: true,
     });
 
@@ -206,6 +211,7 @@ export async function PUT(request: NextRequest) {
         teacherId: body.teacherId || "",
         program: body.program || "",
         semester: body.semester || 1,
+        allowSharedSlot: body.allowSharedSlot === true,
         excludeId: scheduleId,
       });
 
