@@ -15,6 +15,9 @@ async function checkScheduleConflicts(data: {
   teacherId: string;
   program: string;
   semester: number;
+  classType?: string;
+  allowSharedRoom?: boolean;
+  allowParallelBatch?: boolean;
   excludeId?: string;
 }): Promise<{ hasConflict: boolean; conflicts: string[] }> {
   const conflicts: string[] = [];
@@ -51,8 +54,12 @@ async function checkScheduleConflicts(data: {
         (data.startTime <= existingStart && data.endTime >= existingEnd);
 
       if (hasTimeOverlap) {
+        const isSharedSession = ["lab", "exam"].includes((data.classType || "").toLowerCase());
+        const allowSharedRoom = data.allowSharedRoom || isSharedSession;
+        const allowParallelBatch = data.allowParallelBatch || isSharedSession;
+
         // Check room conflict
-        if (schedule.roomId === data.roomId) {
+        if (!allowSharedRoom && schedule.roomId === data.roomId) {
           conflicts.push(`Room ${schedule.roomNumber || 'Unknown'} is already booked for ${schedule.courseCode || 'Unknown'} at ${existingStart}-${existingEnd}`);
         }
 
@@ -62,7 +69,7 @@ async function checkScheduleConflicts(data: {
         }
 
         // Check program/semester conflict (same batch can't have two classes at same time)
-        if (data.program && data.semester && schedule.program === data.program && schedule.semester === data.semester) {
+        if (!allowParallelBatch && data.program && data.semester && schedule.program === data.program && schedule.semester === data.semester) {
           conflicts.push(`${data.program.toUpperCase()} Semester ${data.semester} already has ${schedule.courseCode || 'Unknown'} at ${existingStart}-${existingEnd}`);
         }
       }
@@ -150,6 +157,9 @@ export async function POST(request: NextRequest) {
       teacherId: teacherId,
       program: body.program || 'bsc',
       semester: body.semester || 1,
+      classType: body.classType,
+      allowSharedRoom: Boolean(body.allowSharedRoom),
+      allowParallelBatch: Boolean(body.allowParallelBatch),
     });
 
     if (conflictCheck.hasConflict) {
@@ -206,6 +216,9 @@ export async function PUT(request: NextRequest) {
         teacherId: body.teacherId || "",
         program: body.program || "",
         semester: body.semester || 1,
+        classType: body.classType,
+        allowSharedRoom: Boolean(body.allowSharedRoom),
+        allowParallelBatch: Boolean(body.allowParallelBatch),
         excludeId: scheduleId,
       });
 

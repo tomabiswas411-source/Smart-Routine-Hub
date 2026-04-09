@@ -291,7 +291,13 @@ export default function AdminDashboard() {
     dayOfWeek: "sunday",
     semester: 1,
     program: "bsc", // Changed from section to program
+    classType: "theory",
+    allowSharedRoom: false,
+    allowParallelBatch: false,
   });
+  const [useCustomScheduleTime, setUseCustomScheduleTime] = useState(false);
+  const [customScheduleStartTime, setCustomScheduleStartTime] = useState("09:00");
+  const [customScheduleEndTime, setCustomScheduleEndTime] = useState("10:00");
   
   const [noticeForm, setNoticeForm] = useState({
     title: "",
@@ -597,6 +603,12 @@ export default function AdminDashboard() {
       const course = courses.find(c => c.id === scheduleForm.courseId);
       const teacher = teachers.find(t => t.id === scheduleForm.teacherId);
       const room = rooms.find(r => r.id === scheduleForm.roomId);
+      const timeSlot = useCustomScheduleTime ? undefined : timeSlots.find(t => t.id === scheduleForm.timeSlotId);
+      const startTime = useCustomScheduleTime ? customScheduleStartTime : timeSlot?.startTime;
+      const endTime = useCustomScheduleTime ? customScheduleEndTime : timeSlot?.endTime;
+      
+      if (!course || !teacher || !room || !startTime || !endTime) {
+        toast({ title: "Error", description: "Please select course, teacher, room, and valid class time", variant: "destructive" });
       const timeSlot = timeSlots.find(t => t.id === scheduleForm.timeSlotId);
       const startTime = scheduleForm.startTime || timeSlot?.startTime;
       const endTime = scheduleForm.endTime || timeSlot?.endTime;
@@ -615,6 +627,10 @@ export default function AdminDashboard() {
         roomNumber: room.roomNumber,
         startTime,
         endTime,
+        timeSlotId: useCustomScheduleTime ? "" : scheduleForm.timeSlotId,
+        classType: scheduleForm.classType || course.type,
+        allowSharedRoom: Boolean(scheduleForm.allowSharedRoom),
+        allowParallelBatch: Boolean(scheduleForm.allowParallelBatch),
         classType: course.type,
         isActive: true,
       };
@@ -666,6 +682,10 @@ export default function AdminDashboard() {
   };
 
   const resetScheduleForm = () => {
+    setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", dayOfWeek: "sunday", semester: 1, program: "bsc", classType: "theory", allowSharedRoom: false, allowParallelBatch: false });
+    setUseCustomScheduleTime(false);
+    setCustomScheduleStartTime("09:00");
+    setCustomScheduleEndTime("10:00");
     setScheduleForm({ courseId: "", teacherId: "", roomId: "", timeSlotId: "", startTime: "", endTime: "", dayOfWeek: "sunday", semester: 1, program: "bsc" });
     setEditingItem(null);
   };
@@ -1441,18 +1461,28 @@ export default function AdminDashboard() {
                               variant="ghost"
                               className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600"
                               onClick={() => {
+                                const matchedSlot = timeSlots.find(
+                                  (slot) => slot.id === schedule.timeSlotId || (slot.startTime === schedule.startTime && slot.endTime === schedule.endTime)
+                                );
                                 setEditingItem(schedule);
                                 setScheduleForm({
                                   courseId: schedule.courseId,
                                   teacherId: schedule.teacherId,
                                   roomId: schedule.roomId,
+                                  timeSlotId: matchedSlot?.id || "",
                                   timeSlotId: schedule.timeSlotId,
                                   startTime: schedule.startTime || "",
                                   endTime: schedule.endTime || "",
                                   dayOfWeek: schedule.dayOfWeek,
                                   semester: schedule.semester,
                                   program: schedule.program || "bsc",
+                                  classType: schedule.classType || "theory",
+                                  allowSharedRoom: false,
+                                  allowParallelBatch: false,
                                 });
+                                setUseCustomScheduleTime(!matchedSlot);
+                                setCustomScheduleStartTime(schedule.startTime || "09:00");
+                                setCustomScheduleEndTime(schedule.endTime || "10:00");
                                 setShowScheduleDialog(true);
                               }}
                             >
@@ -2533,6 +2563,7 @@ export default function AdminDashboard() {
                 <SelectContent>
                   <SelectItem value="theory">Theory</SelectItem>
                   <SelectItem value="lab">Lab</SelectItem>
+                  <SelectItem value="exam">Exam</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2626,7 +2657,18 @@ export default function AdminDashboard() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Course *</Label>
-              <Select value={scheduleForm.courseId} onValueChange={(v) => setScheduleForm({ ...scheduleForm, courseId: v })}>
+              <Select value={scheduleForm.courseId} onValueChange={(v) => {
+                const selectedCourse = courses.find((course) => course.id === v);
+                const nextClassType = selectedCourse?.type || scheduleForm.classType;
+                const isSharedSession = nextClassType === "lab" || nextClassType === "exam";
+                setScheduleForm({
+                  ...scheduleForm,
+                  courseId: v,
+                  classType: nextClassType,
+                  allowSharedRoom: isSharedSession,
+                  allowParallelBatch: isSharedSession,
+                });
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select course" />
                 </SelectTrigger>
@@ -2672,6 +2714,43 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-2">
                 <Label>Time Slot *</Label>
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setUseCustomScheduleTime((prev) => !prev)}
+                  >
+                    {useCustomScheduleTime ? "Use predefined timeslot" : "Use custom random time"}
+                  </Button>
+                  {!useCustomScheduleTime ? (
+                    <Select value={scheduleForm.timeSlotId} onValueChange={(v) => setScheduleForm({ ...scheduleForm, timeSlotId: v })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeSlots.map((slot) => (
+                          <SelectItem key={slot.id} value={slot.id}>
+                            {slot.label} ({slot.startTime} - {slot.endTime})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="time"
+                        value={customScheduleStartTime}
+                        onChange={(e) => setCustomScheduleStartTime(e.target.value)}
+                      />
+                      <Input
+                        type="time"
+                        value={customScheduleEndTime}
+                        onChange={(e) => setCustomScheduleEndTime(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
                 <Select
                   value={scheduleForm.timeSlotId}
                   onValueChange={(v) => {
@@ -2732,6 +2811,27 @@ export default function AdminDashboard() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
+                <Label>Session Type</Label>
+                <Select value={scheduleForm.classType} onValueChange={(v) => {
+                  const isSharedSession = v === "lab" || v === "exam";
+                  setScheduleForm({
+                    ...scheduleForm,
+                    classType: v,
+                    allowSharedRoom: isSharedSession || scheduleForm.allowSharedRoom,
+                    allowParallelBatch: isSharedSession || scheduleForm.allowParallelBatch,
+                  });
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="theory">Theory</SelectItem>
+                    <SelectItem value="lab">Lab</SelectItem>
+                    <SelectItem value="exam">Exam</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Semester</Label>
                 <Select value={scheduleForm.semester.toString()} onValueChange={(v) => setScheduleForm({ ...scheduleForm, semester: parseInt(v) })}>
                   <SelectTrigger>
@@ -2755,6 +2855,21 @@ export default function AdminDashboard() {
                     <SelectItem value="msc">MSc - Master</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 rounded-md border p-3">
+              <Label className="text-xs text-muted-foreground">Parallel Session Options</Label>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm">Allow shared room (lab/exam invigilation)</span>
+                <Button type="button" size="sm" variant={scheduleForm.allowSharedRoom ? "default" : "outline"} onClick={() => setScheduleForm({ ...scheduleForm, allowSharedRoom: !scheduleForm.allowSharedRoom })}>
+                  {scheduleForm.allowSharedRoom ? "Enabled" : "Disabled"}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm">Allow same batch parallel classes</span>
+                <Button type="button" size="sm" variant={scheduleForm.allowParallelBatch ? "default" : "outline"} onClick={() => setScheduleForm({ ...scheduleForm, allowParallelBatch: !scheduleForm.allowParallelBatch })}>
+                  {scheduleForm.allowParallelBatch ? "Enabled" : "Disabled"}
+                </Button>
               </div>
             </div>
           </div>

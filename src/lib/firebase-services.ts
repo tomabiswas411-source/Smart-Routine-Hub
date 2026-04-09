@@ -40,7 +40,7 @@ export interface Course {
   name: string;
   code: string;
   creditHours: number;
-  type: "theory" | "lab";
+  type: "theory" | "lab" | "exam";
   year?: number; // Year of study (1-4 for BSc, 1-2 for MSc)
   semester: number;
   program?: string; // "bsc" or "msc" - optional for backward compatibility
@@ -84,7 +84,7 @@ export interface Schedule {
   dayOfWeek: string;
   semester: number;
   program: string; // "bsc" or "msc"
-  classType: "theory" | "lab";
+  classType: "theory" | "lab" | "exam";
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
