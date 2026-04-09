@@ -317,7 +317,7 @@ function ScheduleCard({ schedule, isSelected, onSelect, onCancel, onReschedule, 
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className={cn("font-bold text-base bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent", isCancelled && "line-through")}>{schedule.courseCode}</h3>
                 <Badge className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", typeColors.badge)}>
-                  {schedule.classType === "lab" ? "LAB" : "THEORY"}
+                  {schedule.classType === "lab" ? "LAB" : schedule.classType === "exam" ? "EXAM" : "THEORY"}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground truncate mt-0.5 font-medium">{schedule.courseName}</p>
@@ -415,7 +415,9 @@ export default function TeacherDashboard() {
     roomId: "",
     semester: 1,
     program: "bsc",
-    classType: "theory" as "theory" | "lab"
+    classType: "theory" as "theory" | "lab" | "exam",
+    allowSharedRoom: false,
+    allowParallelBatch: false,
   });
   
   // Available rooms for new class (based on selected day/time)
@@ -481,12 +483,21 @@ export default function TeacherDashboard() {
   // Derive teacher's courses from their schedules
   const teacherCourseIds = new Set(schedules.map(s => s.courseId));
   const teacherCourses = courses.filter(c => teacherCourseIds.has(c.id));
-  const availableCoursesToAdd = courses.filter(c => !teacherCourseIds.has(c.id));
+  const availableCoursesToAdd = courses;
+
+  const now = new Date();
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+  const todayDateString = new Date(now.getTime() - timezoneOffsetMs).toISOString().split("T")[0];
 
   // Get effective schedule
   const getEffectiveSchedule = useCallback((schedule: TeacherSchedule): TeacherSchedule => {
     const change = changeMap[schedule.id];
-    if (change?.changeType === "rescheduled" && change?.isActive) {
+    const isEffectiveToday = change?.effectiveDate === todayDateString;
+    if (change?.isActive && isEffectiveToday && (
+      change.changeType === "rescheduled" ||
+      change.changeType === "room_changed" ||
+      change.changeType === "time_changed"
+    )) {
       return {
         ...schedule,
         dayOfWeek: change.newDay || schedule.dayOfWeek,
@@ -496,12 +507,12 @@ export default function TeacherDashboard() {
       };
     }
     return schedule;
-  }, [changeMap]);
+  }, [changeMap, todayDateString]);
 
   const isScheduleCancelled = useCallback((scheduleId: string): boolean => {
     const change = changeMap[scheduleId];
-    return change?.changeType === "cancelled" && change?.isActive;
-  }, [changeMap]);
+    return change?.changeType === "cancelled" && change?.isActive && change?.effectiveDate === todayDateString;
+  }, [changeMap, todayDateString]);
 
   // Effective schedules
   const effectiveSchedules = schedules.filter((s) => s.isActive).map((s) => getEffectiveSchedule(s));
@@ -709,6 +720,7 @@ export default function TeacherDashboard() {
           newStartTime: startTime,
           newEndTime: endTime,
           newRoomId: newRoomId || selectedSchedule.roomId,
+          allowSharedRoom: selectedSchedule.classType === "lab" || selectedSchedule.classType === "exam",
           effectiveDate: new Date().toISOString().split("T")[0],
           reason: rescheduleData.reason,
           courseName: selectedSchedule.courseName,
@@ -828,7 +840,9 @@ export default function TeacherDashboard() {
         courseName: "",
         classType: "theory",
         semester: 1,
-        program: "bsc"
+        program: "bsc",
+        allowSharedRoom: false,
+        allowParallelBatch: false,
       });
     } else {
       const course = courses.find(c => c.id === courseId);
@@ -838,9 +852,11 @@ export default function TeacherDashboard() {
           courseId: course.id,
           courseCode: course.code,
           courseName: course.name,
-          classType: course.type as "theory" | "lab",
+          classType: course.type as "theory" | "lab" | "exam",
           semester: course.semester || 1,
-          program: course.program || "bsc"
+          program: course.program || "bsc",
+          allowSharedRoom: course.type === "lab",
+          allowParallelBatch: course.type === "lab",
         });
       }
     }
@@ -877,6 +893,8 @@ export default function TeacherDashboard() {
           semester: newClassForm.semester,
           program: newClassForm.program,
           classType: newClassForm.classType,
+          allowSharedRoom: newClassForm.allowSharedRoom,
+          allowParallelBatch: newClassForm.allowParallelBatch,
         }),
       });
       
@@ -894,7 +912,9 @@ export default function TeacherDashboard() {
           roomId: "",
           semester: 1,
           program: "bsc",
-          classType: "theory"
+          classType: "theory",
+          allowSharedRoom: false,
+          allowParallelBatch: false,
         });
       } else if (data.conflicts) {
         toast({ title: "⚠️ Conflicts Detected", description: data.conflicts.join(", "), variant: "destructive" });
@@ -1181,7 +1201,7 @@ export default function TeacherDashboard() {
                           <span className="uppercase">{schedule.program}</span>
                         </div>
                       </div>
-                      <Badge className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", typeColors.badge)}>{schedule.classType === "lab" ? "LAB" : "THEORY"}</Badge>
+                      <Badge className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", typeColors.badge)}>{schedule.classType === "lab" ? "LAB" : schedule.classType === "exam" ? "EXAM" : "THEORY"}</Badge>
                       {change && change.isActive && (
                         <Badge className={cn("text-[9px] font-semibold px-2 py-0.5 rounded-full", change.changeType === "cancelled" && "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-md shadow-red-500/30", change.changeType === "rescheduled" && "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30")}>
                           {change.changeType === "cancelled" ? "CANCELLED" : "RESCHEDULED"}
@@ -1544,7 +1564,7 @@ export default function TeacherDashboard() {
                   {availableCoursesToAdd.length > 0 && (
                     <>
                       <div className="px-2 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50 dark:bg-amber-900/30 mt-1">Other Courses</div>
-                      {availableCoursesToAdd.slice(0, 20).map((course) => (
+                      {availableCoursesToAdd.map((course) => (
                         <SelectItem key={course.id} value={course.id}>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-[10px] px-1.5">{course.code}</Badge>
@@ -1578,13 +1598,36 @@ export default function TeacherDashboard() {
               </div>
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground font-medium">Class Type</Label>
-                <Select value={newClassForm.classType} onValueChange={(v: "theory" | "lab") => setNewClassForm({ ...newClassForm, classType: v })}>
+                <Select value={newClassForm.classType} onValueChange={(v: "theory" | "lab" | "exam") => {
+                  const isSharedSession = v === "lab" || v === "exam";
+                  setNewClassForm({
+                    ...newClassForm,
+                    classType: v,
+                    allowSharedRoom: isSharedSession || newClassForm.allowSharedRoom,
+                    allowParallelBatch: isSharedSession || newClassForm.allowParallelBatch,
+                  });
+                }}>
                   <SelectTrigger className="h-9 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="theory">📖 Theory</SelectItem>
                     <SelectItem value="lab">🔬 Lab</SelectItem>
+                    <SelectItem value="exam">📝 Exam</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 rounded-xl border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs text-muted-foreground font-medium">Allow shared room (Lab/Exam)</Label>
+                <Button type="button" size="sm" variant={newClassForm.allowSharedRoom ? "default" : "outline"} onClick={() => setNewClassForm({ ...newClassForm, allowSharedRoom: !newClassForm.allowSharedRoom })}>
+                  {newClassForm.allowSharedRoom ? "Enabled" : "Disabled"}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs text-muted-foreground font-medium">Allow same semester parallel class</Label>
+                <Button type="button" size="sm" variant={newClassForm.allowParallelBatch ? "default" : "outline"} onClick={() => setNewClassForm({ ...newClassForm, allowParallelBatch: !newClassForm.allowParallelBatch })}>
+                  {newClassForm.allowParallelBatch ? "Enabled" : "Disabled"}
+                </Button>
               </div>
             </div>
             
@@ -1721,10 +1764,18 @@ export default function TeacherDashboard() {
                       <div className="grid grid-cols-1 gap-2">
                         {availableRoomsForNewClass.filter(r => !r.isAvailable).map((item) => {
                           const occupied = item.occupiedBy as { courseCode?: string; courseName?: string; teacherName?: string; startTime?: string; endTime?: string } | null;
+                          const canSelectOccupied = newClassForm.allowSharedRoom;
                           return (
-                            <div
+                            <button
+                              type="button"
                               key={item.room.id}
-                              className="p-2.5 rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20"
+                              onClick={() => canSelectOccupied && setNewClassForm({ ...newClassForm, roomId: item.room.id })}
+                              className={cn(
+                                "w-full p-2.5 rounded-xl border text-left",
+                                canSelectOccupied
+                                  ? "border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-900/20 hover:border-amber-500"
+                                  : "border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20"
+                              )}
                             >
                               <div className="flex items-center gap-2">
                                 <div className="w-7 h-7 rounded-lg bg-red-500/20 flex items-center justify-center text-red-500">
@@ -1736,11 +1787,11 @@ export default function TeacherDashboard() {
                                     {occupied?.courseCode} • {occupied?.teacherName}
                                   </p>
                                 </div>
-                                <Badge variant="outline" className="text-[9px] border-red-300 text-red-600 shrink-0">
+                                <Badge variant="outline" className={cn("text-[9px] shrink-0", canSelectOccupied ? "border-amber-300 text-amber-700" : "border-red-300 text-red-600")}>
                                   {occupied?.startTime}-{occupied?.endTime}
                                 </Badge>
                               </div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
