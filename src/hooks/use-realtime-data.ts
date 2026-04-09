@@ -133,6 +133,22 @@ function docToObj<T>(doc: { id: string; data: () => DocumentData }): T {
   return { id: doc.id, ...data } as T;
 }
 
+function timestampToMillis(timestamp: unknown): number {
+  if (!timestamp) return 0;
+  if (timestamp instanceof Date) return timestamp.getTime();
+  if (typeof timestamp === "number") return timestamp;
+  if (typeof timestamp === "string") {
+    const parsed = new Date(timestamp).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof timestamp === "object" && timestamp !== null) {
+    const ts = timestamp as { seconds?: number; _seconds?: number };
+    const seconds = ts.seconds ?? ts._seconds ?? 0;
+    return seconds > 0 ? seconds * 1000 : 0;
+  }
+  return 0;
+}
+
 // Real-time Schedules Hook
 export function useRealtimeSchedules(filters?: {
   semester?: number;
@@ -222,11 +238,7 @@ export function useRealtimeScheduleChanges(filters?: {
         );
         
         // Sort by createdAt descending
-        data.sort((a, b) => {
-          const aTime = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
-          const bTime = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
-          return bTime - aTime;
-        });
+        data.sort((a, b) => timestampToMillis(b.createdAt) - timestampToMillis(a.createdAt));
         
         setChanges(data);
         setLoading(false);
