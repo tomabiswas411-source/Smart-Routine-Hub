@@ -27,7 +27,7 @@ export interface Schedule {
   dayOfWeek: string;
   semester: number;
   program: string; // "bsc" or "msc"
-  classType: "theory" | "lab";
+  classType: "theory" | "lab" | "exam";
   isActive: boolean;
   createdAt?: unknown;
   updatedAt?: unknown;
