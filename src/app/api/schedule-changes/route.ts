@@ -57,6 +57,8 @@ async function checkRescheduleConflicts(data: {
   newRoomId?: string;
   teacherId: string;
   scheduleId: string;
+  classType?: string;
+  allowSharedRoom?: boolean;
 }): Promise<{ hasConflict: boolean; conflicts: string[] }> {
   const conflicts: string[] = [];
   
@@ -77,9 +79,12 @@ async function checkRescheduleConflicts(data: {
         (data.newStartTime <= schedule.startTime && data.newEndTime >= schedule.endTime);
 
       if (hasTimeOverlap) {
+        const isSharedSession = ["lab", "exam"].includes((data.classType || "").toLowerCase());
+        const allowSharedRoom = data.allowSharedRoom || isSharedSession;
+
         // Check room conflict
-        const roomId = data.newRoomId || schedule.roomId;
-        if (schedule.roomId === roomId) {
+        const roomId = data.newRoomId || "";
+        if (!allowSharedRoom && roomId && schedule.roomId === roomId) {
           conflicts.push(`Room ${schedule.roomNumber} is already booked for ${schedule.courseCode} at ${schedule.startTime}-${schedule.endTime}`);
         }
 
@@ -144,6 +149,8 @@ export async function POST(request: NextRequest) {
         newRoomId,
         teacherId: schedule.teacherId,
         scheduleId,
+        classType: schedule.classType,
+        allowSharedRoom: Boolean(body.allowSharedRoom),
       });
 
       if (conflictCheck.hasConflict) {
